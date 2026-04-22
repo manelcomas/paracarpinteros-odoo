@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_correos_cr" model="ir.ui.view">
+        <field name="name">res.partner.form.correos.cr</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='zip']" position="after">
+                <field name="correos_cr_provincia_code"
+                       string="Prov. CR"
+                       invisible="country_id and country_id != %(base.cr)d"/>
+                <field name="correos_cr_canton_code"
+                       string="Cantón CR"
+                       invisible="country_id and country_id != %(base.cr)d"/>
+                <field name="correos_cr_distrito_code"
+                       string="Distrito CR"
+                       invisible="country_id and country_id != %(base.cr)d"/>
+                <field name="correos_cr_zip"
+                       string="CP CR"
+                       invisible="country_id and country_id != %(base.cr)d"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

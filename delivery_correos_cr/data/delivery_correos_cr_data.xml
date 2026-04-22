@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Producto de servicio para el carrier (Odoo lo exige) -->
+    <record id="product_delivery_correos_cr" model="product.product">
+        <field name="name">Envío Correos CR (Pymexpress)</field>
+        <field name="type">service</field>
+        <field name="categ_id" ref="product.product_category_all"/>
+        <field name="sale_ok" eval="False"/>
+        <field name="purchase_ok" eval="False"/>
+        <field name="invoice_policy">order</field>
+        <field name="default_code">ENV-CCR</field>
+    </record>
+
+    <!-- Transportista preconfigurado -->
+    <record id="delivery_carrier_correos_cr" model="delivery.carrier">
+        <field name="name">Correos CR - Pymexpress</field>
+        <field name="delivery_type">correos_cr</field>
+        <field name="product_id" ref="product_delivery_correos_cr"/>
+        <field name="integration_level">rate_and_ship</field>
+        <field name="country_ids" eval="[(6, 0, [ref('base.cr')])]"/>
+    </record>
+
+</odoo>

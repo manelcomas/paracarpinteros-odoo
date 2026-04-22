@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_correos_cr" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.correos.cr</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='companies_setting_container']" position="before">
+                <block title="Correos de Costa Rica (Pymexpress)" id="correos_cr_settings">
+                    <setting id="correos_cr_env_setting"
+                             string="Ambiente"
+                             help="Pruebas hasta aprobar integración. Producción tras confirmación de Correos.">
+                        <field name="correos_cr_environment" widget="radio"/>
+                    </setting>
+                    <setting id="correos_cr_credentials_setting"
+                             string="Credenciales"
+                             help="Datos entregados por Correos CR. En pruebas usa los del PDF de Sharon Rodríguez.">
+                        <div class="content-group">
+                            <div class="row mt16 o_settings_container">
+                                <label for="correos_cr_username"/>
+                                <field name="correos_cr_username" placeholder="ccrWS265304"/>
+                            </div>
+                            <div class="row o_settings_container">
+                                <label for="correos_cr_password"/>
+                                <field name="correos_cr_password" password="True"/>
+                            </div>
+                            <div class="row o_settings_container">
+                                <label for="correos_cr_sistema"/>
+                                <field name="correos_cr_sistema"/>
+                            </div>
+                            <div class="row o_settings_container">
+                                <label for="correos_cr_user_id"/>
+                                <field name="correos_cr_user_id" placeholder="304410837"/>
+                            </div>
+                            <div class="row o_settings_container">
+                                <label for="correos_cr_servicio_id"/>
+                                <field name="correos_cr_servicio_id"/>
+                            </div>
+                            <div class="row o_settings_container">
+                                <label for="correos_cr_codigo_cliente"/>
+                                <field name="correos_cr_codigo_cliente" placeholder="265304"/>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="correos_cr_weight_setting"
+                             string="Peso por defecto"
+                             help="Se usa cuando un producto no tiene peso cargado en Odoo.">
+                        <field name="correos_cr_default_weight_g"/> g
+                    </setting>
+                    <setting id="correos_cr_test_setting"
+                             string="Probar conexión"
+                             help="Ejecuta una llamada de prueba al WS (token + provincias).">
+                        <button name="action_correos_cr_test_connection"
+                                type="object"
+                                string="▶ Probar ahora"
+                                class="btn-primary"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

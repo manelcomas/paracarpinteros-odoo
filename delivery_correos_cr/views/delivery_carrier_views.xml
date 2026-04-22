@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_delivery_carrier_form_correos_cr" model="ir.ui.view">
+        <field name="name">delivery.carrier.form.correos.cr</field>
+        <field name="model">delivery.carrier</field>
+        <field name="inherit_id" ref="delivery.view_delivery_carrier_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Correos CR"
+                      invisible="delivery_type != 'correos_cr'">
+                    <group>
+                        <div colspan="2" class="alert alert-info" role="alert">
+                            Los parámetros de conexión (credenciales y ambiente) se configuran en
+                            <b>Ajustes → Correos de Costa Rica</b>, no en el transportista.
+                        </div>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

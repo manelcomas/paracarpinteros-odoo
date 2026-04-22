@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_correos_cr_test_connection_form" model="ir.ui.view">
+        <field name="name">correos.cr.test.connection.form</field>
+        <field name="model">correos.cr.test.connection</field>
+        <field name="arch" type="xml">
+            <form string="Probar conexión Correos CR">
+                <sheet>
+                    <group>
+                        <field name="result" nolabel="1" readonly="1" widget="text"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_run" string="▶ Ejecutar prueba" type="object" class="btn-primary"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_correos_cr_test_connection" model="ir.actions.act_window">
+        <field name="name">Probar conexión Correos CR</field>
+        <field name="res_model">correos.cr.test.connection</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

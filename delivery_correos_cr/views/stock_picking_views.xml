@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_correos_cr" model="ir.ui.view">
+        <field name="name">stock.picking.form.correos.cr</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='carrier_tracking_ref']" position="after">
+                <field name="correos_cr_peso_g"
+                       invisible="not carrier_id"/>
+                <field name="correos_cr_label_attachment_id"
+                       invisible="not correos_cr_label_attachment_id"
+                       readonly="1"/>
+            </xpath>
+
+            <xpath expr="//header" position="inside">
+                <button name="action_correos_cr_reprint_label"
+                        type="object"
+                        string="↓ Descargar etiqueta"
+                        class="btn-secondary"
+                        invisible="not correos_cr_label_attachment_id"/>
+                <button name="action_correos_cr_update_tracking"
+                        type="object"
+                        string="🔄 Actualizar rastreo"
+                        class="btn-secondary"
+                        invisible="not carrier_tracking_ref"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

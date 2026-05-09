@@ -1,0 +1,6 @@
+data/
+*.bat
+*.md
+*.txt
+__pycache__/
+*.pyc

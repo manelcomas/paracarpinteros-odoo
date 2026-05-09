@@ -1,13 +1,28 @@
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-.idea/
-.vscode/
+*.pyc
+*.pyo
+*.bak
 *.swp
-*.swo
-.DS_Store
+
+# Env y secretos
 .env
-*.log
+.env.bak
+.env.test.bak
+*.key
+
+# Datos persistentes
+*.sqlite
+*.db
+calculadora/data/
+correos-cr-bridge/panel.sqlite
+
+# Generados
+*.pdf
+guia_*.pdf
+clientes_incompletos.csv
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db

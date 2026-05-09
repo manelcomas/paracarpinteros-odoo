@@ -84,8 +84,10 @@ class Processor:
         # Validaciones mínimas
         if not partner.get('zip'):
             raise Exception(f"Cliente '{partner.get('name')}' sin código postal")
+        provincia = partner.get('state_id')
+        provincia_name = provincia[1] if provincia and isinstance(provincia, (list, tuple)) and len(provincia) > 1 else None
         direccion_dest = ', '.join(filter(None, [
-            partner.get('street'), partner.get('street2'), partner.get('city'),
+            partner.get('street'), partner.get('street2'), partner.get('city'), provincia_name,
         ]))
         if not direccion_dest:
             raise Exception(f"Cliente '{partner.get('name')}' sin dirección")
@@ -102,13 +104,13 @@ class Processor:
             'monto_flete': 0,
             'dest_nombre': partner.get('name', ''),
             'dest_direccion': direccion_dest,
-            'dest_telefono': (partner.get('phone') or partner.get('mobile') or '').replace(' ', '').replace('-', ''),
+            'dest_telefono': (partner.get('phone') or '').replace(' ', '').replace('-', ''),
             'dest_zip': partner.get('zip', ''),
             'send_nombre': settings.sender_name,
             'send_direccion': settings.sender_address,
             'send_zip': settings.sender_zip,
             'send_telefono': settings.sender_phone.replace(' ', '').replace('-', ''),
-            'observaciones': picking.get('origin') or pk_name,
+            'observaciones': 'Herramientas',
             'peso': peso_g,
         }
         cod, msg, pdf_b64 = self.correos.registrar_envio(envio_id, envio_data)

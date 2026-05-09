@@ -27,7 +27,7 @@ class CorreosCRError(Exception):
 
 class CorreosCRClient:
     def __init__(self, username, password, sistema, user_id, servicio_id,
-                 codigo_cliente, token_url, soap_url, timeout=30):
+                 codigo_cliente, token_url, soap_url, timeout=60):
         self.username = username
         self.password = password
         self.sistema = sistema
@@ -55,17 +55,29 @@ class CorreosCRClient:
                     'Sistema': self.sistema,
                 },
                 timeout=self.timeout,
+                headers={'Content-Type': 'application/json'},
             )
             resp.raise_for_status()
-            data = resp.json()
         except requests.RequestException as e:
             raise CorreosCRError(f"Error autenticando con Correos CR: {e}")
-        except ValueError:
-            raise CorreosCRError("Respuesta no-JSON del endpoint de token")
 
-        token = data.get('Token') or data.get('token') or data.get('access_token')
+        body = resp.text.strip()
+        if not body:
+            raise CorreosCRError("Respuesta vacia del endpoint de token")
+        try:
+            import json as _json
+            data = _json.loads(body)
+            if isinstance(data, dict):
+                token = data.get('Token') or data.get('token') or data.get('access_token') or ''
+            else:
+                token = str(data)
+        except (ValueError, TypeError):
+            token = body
+        if token.lower().startswith('bearer '):
+            token = token[7:].strip()
+        token = token.strip('"').strip()
         if not token:
-            raise CorreosCRError(f"Sin token en respuesta: {str(data)[:200]}")
+            raise CorreosCRError(f"Token vacio tras parseo: {body[:200]}")
 
         self._token = token
         self._token_expires_at = now + _TOKEN_TTL_SECONDS
@@ -89,13 +101,15 @@ class CorreosCRClient:
         client = self._get_client()
         for attempt in (1, 2):
             token = self.get_token()
+            # Token va como header HTTP Authorization, no como parametro SOAP
+            client.transport.session.headers.update({'Authorization': f'Bearer {token}'})
             try:
                 method = getattr(client.service, method_name)
-                result = method(token=token, **kwargs)
+                result = method(**kwargs)
             except ZeepFault as e:
                 raise CorreosCRError(f"SOAP fault en {method_name}: {e}")
             except Exception as e:
-                raise CorreosCRError(f"Error comunicación {method_name}: {e}")
+                raise CorreosCRError(f"Error comunicacion {method_name}: {e}")
 
             cod = getattr(result, 'CodRespuesta', None)
             if cod == RESP_TOKEN_INVALIDO and attempt == 1:
@@ -179,10 +193,41 @@ class CorreosCRClient:
         }
 
     # ───────────── Geo ─────────────
+    def get_cantones(self, cod_provincia):
+        r = self._call('ccrCodCanton', CodProvincia=str(cod_provincia))
+        self._check(r, 'ccrCodCanton')
+        out = []
+        _w = getattr(r, 'Cantones', None); items = getattr(_w, 'ccrItemGeografico', None) if _w else None
+        for i in (items or []):
+            cod = getattr(i, 'Codigo', None)
+            desc = getattr(i, 'Descripcion', None) or getattr(i, 'Nombre', None)
+            if cod and desc:
+                out.append((cod, desc))
+        return out
+
+    def get_distritos(self, cod_provincia, cod_canton):
+        r = self._call('ccrCodDistrito', CodProvincia=str(cod_provincia), CodCanton=str(cod_canton))
+        self._check(r, 'ccrCodDistrito')
+        out = []
+        _w = getattr(r, 'Distritos', None); items = getattr(_w, 'ccrItemGeografico', None) if _w else None
+        for i in (items or []):
+            cod = getattr(i, 'Codigo', None)
+            desc = getattr(i, 'Descripcion', None) or getattr(i, 'Nombre', None)
+            if cod and desc:
+                out.append((cod, desc))
+        return out
+
     def get_provincias(self):
         r = self._call('ccrCodProvincia')
         self._check(r, 'ccrCodProvincia')
-        return [(i.Codigo, i.Descripcion) for i in (r.Provincias or [])]
+        out = []
+        _w = getattr(r, 'Provincias', None); items = getattr(_w, 'ccrItemGeografico', None) if _w else None
+        for i in (items or []):
+            cod = getattr(i, 'Codigo', None) or getattr(i, 'codigo', None)
+            desc = getattr(i, 'Descripcion', None) or getattr(i, 'descripcion', None) or getattr(i, 'Nombre', None)
+            if cod and desc:
+                out.append((cod, desc))
+        return out
 
     def get_codigo_postal(self, prov, canton, distrito) -> str:
         r = self._call('ccrCodPostal',

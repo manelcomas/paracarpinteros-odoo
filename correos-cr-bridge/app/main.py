@@ -6,6 +6,7 @@ FastAPI application con scheduler integrado.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -15,6 +16,7 @@ from fastapi import Depends, FastAPI, HTTPException, Header
 
 from .config import settings
 from .processor import Processor
+from .api_panel import router as panel_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,20 +50,26 @@ def run_worker():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Arranque: primera pasada + scheduler
+    # Arranque: scheduler condicional
     _logger.info("Correos CR bridge arrancando...")
-    scheduler.add_job(
-        run_worker,
-        trigger=IntervalTrigger(minutes=settings.poll_interval_minutes),
-        id='poll-pickings',
-        next_run_time=datetime.now(),  # ejecuta una vez al arrancar
-        max_instances=1,
-        coalesce=True,
-    )
-    scheduler.start()
-    _logger.info("Scheduler arrancado (intervalo %d min)", settings.poll_interval_minutes)
+    # WORKER_AUTO=0 desactiva el polling automático (generación solo desde panel)
+    auto = os.environ.get('WORKER_AUTO', '0').strip() not in ('0', 'false', 'no', '')
+    if auto:
+        scheduler.add_job(
+            run_worker,
+            trigger=IntervalTrigger(minutes=settings.poll_interval_minutes),
+            id='poll-pickings',
+            next_run_time=datetime.now(),
+            max_instances=1,
+            coalesce=True,
+        )
+        scheduler.start()
+        _logger.info("Scheduler arrancado (intervalo %d min)", settings.poll_interval_minutes)
+    else:
+        _logger.info("WORKER_AUTO=0 → polling automático DESACTIVADO. Generación solo desde panel.")
     yield
-    scheduler.shutdown(wait=False)
+    if auto:
+        scheduler.shutdown(wait=False)
     _logger.info("Bridge detenido.")
 
 
@@ -71,6 +79,25 @@ app = FastAPI(
     version='1.0.0',
     lifespan=lifespan,
 )
+
+# CORS — permite llamadas desde el panel servido en panel.paracarpinteros.com
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        'http://panel.paracarpinteros.com',
+        'https://panel.paracarpinteros.com',
+        'http://66.94.99.220',
+        'http://localhost',
+        'http://127.0.0.1',
+    ],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
+# Registrar router del panel
+app.include_router(panel_router)
 
 
 def verify_token(x_api_token: str = Header(None)):

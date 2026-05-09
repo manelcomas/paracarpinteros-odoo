@@ -41,15 +41,23 @@ class OdooClient:
     def execute_kw(self, model: str, method: str, args: list, kwargs: dict = None):
         uid = self.authenticate()
         kwargs = kwargs or {}
-        try:
-            return self._models.execute_kw(
-                self.db, uid, self.api_key,
-                model, method, args, kwargs,
-            )
-        except xmlrpc.client.Fault as e:
-            raise OdooError(f"Odoo fault en {model}.{method}: {e.faultString}")
-        except Exception as e:
-            raise OdooError(f"Error Odoo en {model}.{method}: {e}")
+        for intento in range(2):
+            try:
+                return self._models.execute_kw(
+                    self.db, uid, self.api_key,
+                    model, method, args, kwargs,
+                )
+            except xmlrpc.client.Fault as e:
+                raise OdooError(f"Odoo fault en {model}.{method}: {e.faultString}")
+            except Exception as e:
+                err_str = str(e)
+                # Errores de socket cerrado / Request-sent -> reintentar con nueva conexión
+                if intento == 0 and ('Request-sent' in err_str or 'CannotSendRequest' in err_str
+                                      or 'BrokenPipe' in err_str or 'Connection' in err_str):
+                    _logger.warning(f"Conexion XMLRPC corrupta en {model}.{method}, reabriendo: {err_str}")
+                    self._models = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/object", allow_none=True)
+                    continue
+                raise OdooError(f"Error Odoo en {model}.{method}: {e}")
 
     # ───────────── Pickings ─────────────
 
@@ -62,7 +70,9 @@ class OdooClient:
             ('state', '=', 'done'),
             ('carrier_tracking_ref', '=', False),
             ('partner_id.country_id.code', '=', 'CR'),
-            ('picking_type_code', '=', 'outgoing'),  # solo salidas
+            ('picking_type_code', '=', 'outgoing'),
+            ('carrier_id', '=', 2),  # solo Pymexpress
+            ('date_done', '>=', '2026-04-23 18:00:00'),  # solo salidas
         ]
         ids = self.execute_kw(
             'stock.picking', 'search',
@@ -76,7 +86,7 @@ class OdooClient:
             [ids],
             {'fields': [
                 'id', 'name', 'partner_id', 'origin', 'date_done',
-                'carrier_tracking_ref', 'weight', 'move_ids_without_package',
+                'carrier_tracking_ref', 'weight', 'move_ids',
                 'company_id',
             ]}
         )
@@ -86,7 +96,7 @@ class OdooClient:
             'res.partner', 'read', [[partner_id]],
             {'fields': [
                 'id', 'name', 'street', 'street2', 'city', 'zip',
-                'phone', 'mobile', 'email', 'country_id', 'state_id',
+                'phone', 'email', 'country_id', 'state_id', 'comment',
             ]}
         )
         return r[0] if r else {}

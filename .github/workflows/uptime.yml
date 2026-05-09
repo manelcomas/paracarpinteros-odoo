@@ -2,32 +2,45 @@ name: Uptime monitor
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # cada 5 minutos
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Health check bridge
+      - name: Health check bridge (directo a VPS, salta Cloudflare)
         run: |
           for i in 1 2 3; do
-            STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" --max-time 15 https://panel.paracarpinteros.com/health)
+            STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" \
+              --max-time 15 \
+              --resolve panel.paracarpinteros.com:443:66.94.99.220 \
+              -k \
+              https://panel.paracarpinteros.com/health)
             echo "Intento $i: HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
+              cat /tmp/body.txt
               exit 0
             fi
             sleep 10
           done
+          echo "FALLO. Cuerpo último intento:"
           cat /tmp/body.txt
           exit 1
 
       - name: Verify panel HTML loads
         if: success()
         run: |
-          BODY=$(curl -sS --max-time 15 https://panel.paracarpinteros.com/)
+          BODY=$(curl -sS --max-time 15 \
+            --resolve panel.paracarpinteros.com:443:66.94.99.220 \
+            -k \
+            https://panel.paracarpinteros.com/)
           if ! echo "$BODY" | grep -q "LA JUGUETERÍA"; then
-            echo "HTML no contiene LA JUGUETERIA - panel posiblemente roto"
+            echo "HTML no contiene LA JUGUETERIA"
             exit 1
           fi
           echo "HTML OK"

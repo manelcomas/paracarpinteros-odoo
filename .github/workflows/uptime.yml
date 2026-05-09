@@ -1,0 +1,57 @@
+name: Uptime monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # cada 5 minutos
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check bridge
+        run: |
+          for i in 1 2 3; do
+            STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" --max-time 15 https://panel.paracarpinteros.com/health)
+            echo "Intento $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          cat /tmp/body.txt
+          exit 1
+
+      - name: Verify panel HTML loads
+        if: success()
+        run: |
+          BODY=$(curl -sS --max-time 15 https://panel.paracarpinteros.com/)
+          if ! echo "$BODY" | grep -q "LA JUGUETERÍA"; then
+            echo "HTML no contiene LA JUGUETERIA - panel posiblemente roto"
+            exit 1
+          fi
+          echo "HTML OK"
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Panel down - ${new Date().toISOString().slice(0,16)}`;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'monitoring'
+            });
+            const existing = issues.data.find(i => i.title.startsWith('Panel down'));
+            const body = `Panel paracarpinteros no responde.\n- Endpoint: https://panel.paracarpinteros.com/health\n- Hora: ${new Date().toISOString()}\n- Run: ${context.runId}\n[Ver logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body: body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: title, body: body, labels: ['monitoring','bug']
+              });
+            }

@@ -1,0 +1,27 @@
+services:
+  fe-signer:
+    build: .
+    container_name: fe-signer
+    restart: unless-stopped
+    ports:
+      # Solo expuesto a localhost del host; nginx hará el proxy con TLS
+      - "127.0.0.1:8089:80"
+    environment:
+      SIGNER_API_KEY: ${SIGNER_API_KEY}
+      # v31: Buzón Recepción OAuth Gmail
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      GOOGLE_OAUTH_REDIRECT: ${GOOGLE_OAUTH_REDIRECT}
+      OAUTH_ENC_KEY_DERIVE: ${OAUTH_ENC_KEY_DERIVE}
+      BUZON_DB_PATH: /var/www/html/buzon-rx/storage/buzon.db
+      GMAIL_QUERY: ${GMAIL_QUERY}
+      RECEPTOR_CEDULA: ${RECEPTOR_CEDULA}
+    volumes:
+      # Persistencia de la SQLite del buzón entre rebuilds
+      - ./storage:/var/www/html/buzon-rx/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

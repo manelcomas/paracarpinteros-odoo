@@ -1,0 +1,4 @@
+# fe-signer: secretos y datos persistentes (NO versionar)
+.env
+.env.bak*
+storage/

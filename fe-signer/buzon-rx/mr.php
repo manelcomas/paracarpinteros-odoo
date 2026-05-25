@@ -89,8 +89,11 @@ try {
     $correlativo = (int) $sel->fetchColumn();
     $pdo->commit();
     if ($correlativo < 1) {
-        bx_json(['error' => "la tabla consec_mr no tiene fila para tipo=$tipo; "
-                          . "sembrarla con: INSERT INTO consec_mr (tipo, ultimo_consec) VALUES ('$tipo', 0)"], 500);
+        bx_json([
+            'error' => 'la tabla consec_mr no tiene fila para este tipo',
+            'tipo' => $tipo,
+            'seed_sql' => 'INSERT INTO consec_mr (tipo, ultimo_consec) VALUES (?, 0)',
+        ], 500);
     }
 
     // Mapa tipo MR → valor del nodo <Mensaje> (XSD v4.4) y estado del buzón.

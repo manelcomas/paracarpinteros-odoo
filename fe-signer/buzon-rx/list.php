@@ -22,10 +22,15 @@ try {
         $args[] = $st;
     }
     if ($since > 0) { $sql .= " AND fecha_recibido >= ?"; $args[] = $since; }
-    $sql .= " ORDER BY fecha_recibido DESC LIMIT " . $limit;
+    $sql .= " ORDER BY fecha_recibido DESC LIMIT ?";
+    $args[] = $limit;
 
     $stm = bx_db()->prepare($sql);
-    $stm->execute($args);
+    // LIMIT necesita bind como entero (PDO emula prepares por defecto).
+    foreach ($args as $i => $v) {
+        $stm->bindValue($i + 1, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+    }
+    $stm->execute();
     $rows = $stm->fetchAll(PDO::FETCH_ASSOC);
 
     // Plazo legal: 8 días hábiles desde recepción (aprox: 8 días naturales + margen)

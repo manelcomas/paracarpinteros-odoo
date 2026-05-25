@@ -2,6 +2,8 @@
 import base64
 import logging
 
+from markupsafe import escape
+
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
 
@@ -23,7 +25,11 @@ class StockPicking(models.Model):
         readonly=True,
     )
 
-    @api.depends('move_ids_without_package.product_id', 'move_ids_without_package.product_uom_qty')
+    @api.depends(
+        'move_ids_without_package.product_id',
+        'move_ids_without_package.product_id.weight',
+        'move_ids_without_package.product_uom_qty',
+    )
     def _compute_correos_cr_peso(self):
         ICP = self.env['ir.config_parameter'].sudo()
         default_g = int(ICP.get_param('delivery_correos_cr.default_weight_g', '500'))
@@ -108,7 +114,7 @@ class StockPicking(models.Model):
         if not dest:
             raise UserError(_("El picking no tiene cliente asignado."))
 
-        # Validación de campos CR
+        # Validación de campos CR (destinatario)
         missing_dest = []
         if not dest.correos_cr_zip:
             missing_dest.append('Código postal')
@@ -120,6 +126,19 @@ class StockPicking(models.Model):
                 "Revisa el contacto antes de validar el picking.",
                 name=dest.name,
                 fields=', '.join(missing_dest),
+            ))
+
+        # Validación del remitente — el WS rechaza SEND_ZIP/dirección vacíos.
+        missing_send = []
+        if not company_partner or not getattr(company_partner, 'correos_cr_zip', None):
+            missing_send.append('Código postal del remitente (compañía)')
+        if not company_partner or not (company_partner.street or company_partner.street2):
+            missing_send.append('Dirección del remitente (compañía)')
+        if missing_send:
+            raise UserError(_(
+                "Datos del remitente incompletos: falta %(fields)s. "
+                "Configura la compañía antes de generar guías.",
+                fields=', '.join(missing_send),
             ))
 
         direccion_dest = ', '.join(filter(None, [dest.street, dest.street2, dest.city]))
@@ -170,7 +189,11 @@ class StockPicking(models.Model):
             return True
         html = "<b>Rastreo Correos CR:</b><ul>"
         for e in eventos:
-            html += f"<li>{e['fecha']} — {e['evento']} ({e['unidad']})</li>"
+            html += "<li>%s — %s (%s)</li>" % (
+                escape(e.get('fecha', '')),
+                escape(e.get('evento', '')),
+                escape(e.get('unidad', '')),
+            )
         html += "</ul>"
         self.message_post(body=html)
         return True

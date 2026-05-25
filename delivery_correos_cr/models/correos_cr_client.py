@@ -219,17 +219,22 @@ class CorreosCRClient:
         Devuelve tuple (codigo_respuesta, mensaje, pdf_base64).
         """
         # Construcción del payload siguiendo ccrDatosEnvio del PDF.
-        now_ms = int(time.time() * 1000)
+        fecha = envio_data.get('fecha_envio') or datetime.now()
+        if hasattr(fecha, 'isoformat'):
+            fecha = fecha.isoformat()
+        # DEST_APARTADO: apartado postal real si se provee; si no, cae al ZIP por
+        # compatibilidad con el comportamiento previo (el WS requiere algún valor).
+        dest_apartado = (envio_data.get('dest_apartado') or envio_data['dest_zip'])[:20]
         payload = {
             'COD_CLIENTE': str(self.codigo_cliente),
-            'FECHA_ENVIO': envio_data.get('fecha_envio') or datetime.now(),
+            'FECHA_ENVIO': fecha,
             'ENVIO_ID': envio_id,
             'SERVICIO': str(self.servicio_id),
             'MONTO_FLETE': envio_data.get('monto_flete', 0),
             'DEST_NOMBRE': envio_data['dest_nombre'][:200],
             'DEST_DIRECCION': envio_data['dest_direccion'][:500],
             'DEST_TELEFONO': envio_data.get('dest_telefono', '')[:15],
-            'DEST_APARTADO': envio_data['dest_zip'][:20],  # requerido
+            'DEST_APARTADO': dest_apartado,
             'DEST_ZIP': envio_data['dest_zip'][:8],
             'SEND_NOMBRE': envio_data['send_nombre'][:200],
             'SEND_DIRECCION': envio_data['send_direccion'][:500],

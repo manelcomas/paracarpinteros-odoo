@@ -31,8 +31,9 @@ import time
 from datetime import datetime
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Header, Response
 from pydantic import BaseModel, Field
+import requests as _requests  # alias para evitar shadow con otras importaciones
 
 from .config import settings
 from .processor import Processor, _in_flight, _in_flight_lock, build_dest_direccion, _m2o_name
@@ -95,7 +96,7 @@ else:
     SESSION_SECRET = hashlib.sha256(
         (settings.api_token + '::panel-session').encode()
     ).hexdigest()
-SESSION_TTL_S = 12 * 3600  # 12 horas
+SESSION_TTL_S = 30 * 24 * 3600  # 30 días (sesión persistente — uso interno)
 
 def _sign(payload: str) -> str:
     return hmac.new(SESSION_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
@@ -1415,6 +1416,127 @@ def entrega_mano(picking_id: int, payload: EntregaManoPayload):
 @router.get('/auth/verify', dependencies=[Depends(verify_session)])
 def auth_verify():
     return {'ok': True}
+
+
+# ─── OCR Tavo: extraer datos de un pantallazo de pedido (Claude Vision) ───
+@router.post('/ocr/tavo', dependencies=[Depends(verify_session)])
+def ocr_tavo(payload: dict = Body(...)):
+    """
+    Recibe {image_b64, media_type} y devuelve {ok, data:{nombre,direccion,canton,cp,telefono}}.
+    image_b64 puede traer prefijo data:image/...;base64, o no.
+    """
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        raise HTTPException(503, 'ANTHROPIC_API_KEY no configurada en el .env del bridge')
+
+    image_b64 = (payload or {}).get('image_b64', '')
+    if not image_b64:
+        raise HTTPException(400, 'falta image_b64')
+
+    media_type = (payload or {}).get('media_type') or 'image/png'
+    if image_b64.startswith('data:'):
+        # data:image/png;base64,<bytes>  o  data:application/pdf;base64,<bytes>
+        try:
+            head, image_b64 = image_b64.split(',', 1)
+            # extraer media_type del prefijo (image/png, image/jpeg, application/pdf, etc.)
+            m = head.replace('data:', '').split(';')[0].strip()
+            if m:
+                media_type = m
+        except ValueError:
+            raise HTTPException(400, 'data URL malformado')
+
+    # Claude Vision soporta image/* directamente y application/pdf como document
+    is_pdf = media_type == 'application/pdf'
+    if not is_pdf and not media_type.startswith('image/'):
+        raise HTTPException(400, f'media_type no soportado: {media_type}. Use image/* o application/pdf.')
+
+    prompt = (
+        "Extraé del pantallazo de pedido los datos del destinatario que va a recibir el paquete en Costa Rica:\n"
+        "- nombre: nombre completo (puede aparecer como 'cliente', 'destinatario', 'para', etc.)\n"
+        "- direccion: dirección física (calle/avenida/casa/edificio). NO incluyas cantón ni provincia ahí.\n"
+        "- canton: cantón o distrito (p. ej. 'San José centro', 'Cartago', 'Heredia')\n"
+        "- cp: código postal de Costa Rica (5 dígitos, p. ej. '10101' o '30504'). Si no aparece dejalo vacío.\n"
+        "- telefono: teléfono de contacto en CR (8 dígitos típicamente)\n\n"
+        "Respondé EXCLUSIVAMENTE un objeto JSON con esas 5 claves y nada más. "
+        "Si algún dato no aparece, ponelo como string vacío \"\". Sin markdown, sin explicaciones, solo el JSON."
+    )
+
+    # Para PDF se usa type=document (con media_type application/pdf);
+    # para imágenes se usa type=image.
+    if is_pdf:
+        content_block = {
+            'type': 'document',
+            'source': {'type': 'base64', 'media_type': 'application/pdf', 'data': image_b64},
+        }
+    else:
+        content_block = {
+            'type': 'image',
+            'source': {'type': 'base64', 'media_type': media_type, 'data': image_b64},
+        }
+
+    try:
+        r = _requests.post(
+            'https://api.anthropic.com/v1/messages',
+            headers={
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json',
+            },
+            json={
+                'model': 'claude-haiku-4-5-20251001',
+                'max_tokens': 512,
+                'messages': [{
+                    'role': 'user',
+                    'content': [
+                        content_block,
+                        {'type': 'text', 'text': prompt},
+                    ],
+                }],
+            },
+            timeout=60,
+        )
+    except _requests.RequestException as e:
+        raise HTTPException(502, f'No pude contactar Claude: {e}')
+
+    if r.status_code != 200:
+        # Propagamos el mensaje exacto de Anthropic (saldo bajo, modelo inválido, etc.)
+        # en vez del 502 genérico, para que el frontend lo muestre claro.
+        try:
+            err = r.json().get('error', {}).get('message') or r.text[:300]
+        except Exception:
+            err = r.text[:300]
+        # Si es problema de saldo, devolvemos 402 (Payment Required) que es más correcto
+        status_code = 402 if ('credit balance' in err.lower() or 'billing' in err.lower()) else 502
+        raise HTTPException(status_code, f'Claude API: {err}')
+
+    body = r.json()
+    text = (body.get('content') or [{}])[0].get('text', '{}')
+    text = text.strip()
+    # Limpiar cercos de markdown si los hubiera
+    if text.startswith('```'):
+        text = text.strip('`').strip()
+        if text.startswith('json'):
+            text = text[4:].strip()
+        if '```' in text:
+            text = text.split('```', 1)[0].strip()
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        raise HTTPException(502, f'Claude devolvió respuesta no-JSON: {text[:300]}')
+
+    # Normalizar y devolver solo los campos esperados
+    return {
+        'ok': True,
+        'data': {
+            'nombre': str(data.get('nombre', '') or ''),
+            'direccion': str(data.get('direccion', '') or ''),
+            'canton': str(data.get('canton', '') or ''),
+            'cp': str(data.get('cp', '') or ''),
+            'telefono': str(data.get('telefono', '') or ''),
+        },
+        'usage': body.get('usage', {}),
+    }
 
 
 # ─── Servir imágenes de productos como PNG ───

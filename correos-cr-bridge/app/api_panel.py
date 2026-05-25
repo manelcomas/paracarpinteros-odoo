@@ -40,6 +40,22 @@ from .processor import Processor, _in_flight, _in_flight_lock
 _logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api', tags=['panel'])
 
+# Etiquetas en español para los estados de stock.picking de Odoo.
+# Se envían como 'state_label' junto al 'state' raw para que el panel los muestre
+# sin tener que traducir en cliente.
+STATE_LABELS = {
+    'draft': 'Borrador',
+    'waiting': 'En espera',
+    'confirmed': 'Esperando stock',
+    'assigned': 'Listo',
+    'done': 'Hecho',
+    'cancel': 'Cancelado',
+}
+
+
+def _state_label(state: Optional[str]) -> str:
+    return STATE_LABELS.get(state or '', state or '')
+
 # ───────── PANEL AUTH (login con password compartido) ─────────
 # Password leído de .env: PANEL_PASSWORD
 PANEL_PASSWORD = os.environ.get('PANEL_PASSWORD', '')
@@ -467,6 +483,7 @@ def list_pendientes(limit: int = 50, courier: str = 'pymex', solo_sin_agendar: b
             'partner_name': pk['partner_id'][1] if pk.get('partner_id') else '',
             'date_done': pk.get('date_done') or pk.get('scheduled_date') or '',
             'state': pk.get('state'),
+            'state_label': _state_label(pk.get('state')),
             'amount_total': sale.get('amount_total', 0),
             'currency': (sale.get('currency_id') or [None, 'CRC'])[1],
             'lines_count': len(moves),
@@ -561,6 +578,7 @@ def get_picking_detail(picking_id: int):
             'origin': pk.get('origin'),
             'date_done': pk.get('date_done'),
             'state': pk.get('state'),
+            'state_label': _state_label(pk.get('state')),
             'tracking_ref': pk.get('carrier_tracking_ref'),
         },
         'partner': {
@@ -680,11 +698,24 @@ def generar_guia_picking(picking_id: int, payload: GenerarPayload):
             )
         p.odoo.set_tracking(picking_id, envio_id)
 
+        # Releer el picking para devolver el estado post-write — así el frontend
+        # puede actualizar la fila localmente sin re-fetch de toda la agenda.
+        updated = p.odoo.execute_kw('stock.picking', 'read', [[picking_id]],
+            {'fields': ['state', 'carrier_tracking_ref']})
+        upd = updated[0] if updated else {}
+
         return {
             'ok': True,
             'tracking': envio_id,
             'pdf_b64': pdf_b64,
             'message': msg,
+            'picking': {
+                'id': picking_id,
+                'state': upd.get('state'),
+                'state_label': _state_label(upd.get('state')),
+                'tracking': upd.get('carrier_tracking_ref') or envio_id,
+                'has_guide': True,
+            },
         }
     finally:
         with _in_flight_lock:
@@ -1088,6 +1119,7 @@ def agenda(fecha: str):
             'sale': pk.get('origin') or '',
             'cliente': pk['partner_id'][1] if pk.get('partner_id') else '',
             'state': pk.get('state'),
+            'state_label': _state_label(pk.get('state')),
             'tracking': pk.get('carrier_tracking_ref') or '',
             'scheduled': pk.get('scheduled_date'),
             'has_guide': bool(pk.get('carrier_tracking_ref')),
@@ -1195,6 +1227,7 @@ def agenda_semana(desde: str):
             'sale': pk.get('origin') or '',
             'cliente': pk['partner_id'][1] if pk.get('partner_id') else '',
             'state': pk.get('state'),
+            'state_label': _state_label(pk.get('state')),
             'tracking': pk.get('carrier_tracking_ref') or '',
             'scheduled': pk.get('scheduled_date'),
             'has_guide': bool(pk.get('carrier_tracking_ref')),

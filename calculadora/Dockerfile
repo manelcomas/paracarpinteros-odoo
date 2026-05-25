@@ -24,5 +24,11 @@ COPY logo.png /app/
 ENV DB_PATH=/data/pedidos.db
 ENV PORT=8001
 
+# Usuario no-root y /data accesible para él
+RUN useradd --create-home --shell /bin/bash appuser \
+    && mkdir -p /data \
+    && chown -R appuser:appuser /app /data
+USER appuser
+
 EXPOSE 8001
 CMD ["python", "-u", "servidor.py"]

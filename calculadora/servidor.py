@@ -15,6 +15,7 @@ import sys
 import json
 import base64
 import io
+import subprocess
 import webbrowser
 import threading
 import sqlite3
@@ -33,7 +34,10 @@ def install_if_missing(pkg, import_name=None):
         __import__(import_name or pkg)
     except ImportError:
         print(f"  Instalando {pkg}...")
-        os.system(f'"{sys.executable}" -m pip install {pkg} --quiet')
+        subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', pkg, '--quiet'],
+            check=False,
+        )
 
 install_if_missing('openpyxl')
 install_if_missing('Pillow', 'PIL')

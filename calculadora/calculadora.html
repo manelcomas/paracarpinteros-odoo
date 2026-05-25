@@ -1206,7 +1206,7 @@ function renderTable(){
   const fx=parseFloat(document.getElementById('fxUsdCrc').value)||525;
 
   tb.innerHTML=products.map((p,i)=>{
-    const img=p.imgSrc?`<img class="prod-img" src="${p.imgSrc}" onclick="zoomImg(this.src)" oncontextmenu="event.preventDefault();clickImg(${i})">`
+    const img=p.imgSrc?`<img class="prod-img" src="${esc(p.imgSrc)}" onclick="zoomImg(this.src)" oncontextmenu="event.preventDefault();clickImg(${i})">`
       :`<div class="prod-img-placeholder" onclick="clickImg(${i})">+</div>`;
 
     // Odoo data - buscar por ref exacta o limpia (sin "Ref." prefijo)
@@ -1589,7 +1589,7 @@ async function saveOdooConfig(){
     const res=await resp.json();
     console.log('Respuesta save:',res);
     if(res.ok&&res.verified) st.innerHTML='<span style="color:var(--accent2)">Guardado y verificado en BD</span>';
-    else st.innerHTML='<span style="color:var(--warn)">Guardado pero verificacion fallo: '+JSON.stringify(res)+'</span>';
+    else st.innerHTML='<span style="color:var(--warn)">Guardado pero verificacion fallo: '+esc(JSON.stringify(res))+'</span>';
   }catch(e){st.innerHTML='<span style="color:var(--danger)">Error guardando: '+e.message+'</span>';}
 }
 

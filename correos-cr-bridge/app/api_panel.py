@@ -35,7 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Response
 from pydantic import BaseModel, Field
 
 from .config import settings
-from .processor import Processor, _in_flight, _in_flight_lock
+from .processor import Processor, _in_flight, _in_flight_lock, build_dest_direccion, _m2o_name
 
 _logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api', tags=['panel'])
@@ -55,6 +55,33 @@ STATE_LABELS = {
 
 def _state_label(state: Optional[str]) -> str:
     return STATE_LABELS.get(state or '', state or '')
+
+
+def _cr_codes_from_zip(zip_str: Optional[str]) -> dict:
+    """
+    Deriva los códigos provincia/cantón/distrito de un ZIP CR (5 dígitos).
+
+    Formato oficial: PCCDD
+      - P = provincia (1 dígito, 1=SJO, 2=Alajuela, 3=Cartago, 4=Heredia,
+            5=Guanacaste, 6=Puntarenas, 7=Limón)
+      - CC = cantón (2 dígitos)
+      - DD = distrito (2 dígitos)
+
+    Lo usamos para precargar los selects del modal de generación de guía sin
+    depender de campos custom en el partner (que no existen en este Odoo
+    porque el módulo delivery_correos_cr no está instalado allá).
+
+    Devuelve {'provincia_code', 'canton_code', 'distrito_code'} con strings
+    vacíos si el ZIP no tiene formato válido.
+    """
+    z = ''.join(c for c in (zip_str or '') if c.isdigit())
+    if len(z) != 5 or z[0] not in '1234567':
+        return {'provincia_code': '', 'canton_code': '', 'distrito_code': ''}
+    return {
+        'provincia_code': z[0],
+        'canton_code': z[1:3],
+        'distrito_code': z[3:5],
+    }
 
 # ───────── PANEL AUTH (login con password compartido) ─────────
 # Password leído de .env: PANEL_PASSWORD
@@ -275,9 +302,24 @@ def verify_token(x_api_token: str = Header(None)):
         raise HTTPException(status_code=401, detail='Invalid API token')
 
 # ─── SQLite local: estado de líneas preparadas + envíos manuales ───
-DB_PATH = '/app/panel.sqlite'
+# /app/data está montado como volumen en docker-compose, así sobrevive a
+# rebuilds del contenedor. Si por alguna razón el directorio no existe (uso
+# fuera de Docker, p.ej. tests), caemos a /app/panel.sqlite legacy.
+DB_DIR = '/app/data' if os.path.isdir('/app/data') else '/app'
+DB_PATH = os.path.join(DB_DIR, 'panel.sqlite')
+
+# Migración perezosa: si todavía existe la DB vieja en /app/panel.sqlite y
+# /app/data está vacío, la movemos. Una sola vez, al arrancar.
+_LEGACY_DB = '/app/panel.sqlite'
+if DB_DIR == '/app/data' and os.path.isfile(_LEGACY_DB) and not os.path.isfile(DB_PATH):
+    try:
+        os.rename(_LEGACY_DB, DB_PATH)
+        _logger.info('Migrada panel.sqlite legacy a %s', DB_PATH)
+    except OSError as e:
+        _logger.warning('No se pudo migrar panel.sqlite: %s', e)
 
 def db_init():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS line_prepared (
@@ -591,6 +633,23 @@ def get_picking_detail(picking_id: int):
             'phone': partner.get('phone'),
             'email': partner.get('email'),
             'state_id': partner.get('state_id'),
+            # Nombres del partner para que el modal los muestre como texto,
+            # no como [id, name] (que era el bug "Distrito 10" → IDs en
+            # vez de nombres). Vacío si el partner no tiene el campo.
+            'cr_address': {
+                'provincia_name': _m2o_name(partner.get('state_id')).replace(' (CR)', '').strip(),
+                'canton_id': partner.get('x_studio_canton_cr')[0]
+                    if partner.get('x_studio_canton_cr') else None,
+                'canton_name': _m2o_name(partner.get('x_studio_canton_cr')),
+                'distrito_id': partner.get('x_studio_distrito_cr')[0]
+                    if partner.get('x_studio_distrito_cr') else None,
+                'distrito_name': _m2o_name(partner.get('x_studio_distrito_cr')),
+                'senas': partner.get('x_studio_senas') or partner.get('street') or '',
+            },
+            # Códigos CR derivados del ZIP (PCCDD). El modal los usa para
+            # precargar los selects cuando el partner no tiene los Studio
+            # fields rellenos.
+            'cr_codes': _cr_codes_from_zip(partner.get('zip')),
         },
         'lines': lines,
         'peso_total_g': peso_g,
@@ -612,6 +671,10 @@ class PrepararPayload(BaseModel):
 
 @router.post('/picking/{picking_id}/preparar', dependencies=[Depends(verify_session)])
 def toggle_preparar(picking_id: int, payload: PrepararPayload):
+    _logger.info(
+        'toggle_preparar: picking_id=%s move_id=%s prepared=%s',
+        picking_id, payload.move_id, payload.prepared,
+    )
     conn = db()
     if payload.prepared:
         conn.execute(
@@ -656,11 +719,18 @@ def generar_guia_picking(picking_id: int, payload: GenerarPayload):
     try:
         # Verificar que sigue elegible (con el lock ya tomado)
         pks = p.odoo.execute_kw('stock.picking', 'read', [[picking_id]],
-            {'fields': ['name', 'state', 'carrier_tracking_ref']})
+            {'fields': ['name', 'state', 'carrier_tracking_ref', 'partner_id']})
         if not pks:
             raise HTTPException(404, 'Picking no encontrado')
         if pks[0].get('carrier_tracking_ref'):
             raise HTTPException(409, f"Ya tiene guía: {pks[0]['carrier_tracking_ref']}")
+
+        # Releer el partner para enriquecer la dirección con prov/cantón/distrito.
+        # Sin esto, la etiqueta de Correos solo imprime las señas y se pierde
+        # la info geográfica que el cartero necesita.
+        partner_id = pks[0]['partner_id'][0] if pks[0].get('partner_id') else None
+        partner_data = p.odoo.read_partner(partner_id) if partner_id else {}
+        dest_direccion_full = build_dest_direccion(partner_data, senas_override=payload.dest_direccion)
 
         # 1) Generar guía
         envio_id = p.correos.generar_guia()
@@ -671,7 +741,7 @@ def generar_guia_picking(picking_id: int, payload: GenerarPayload):
             'fecha_envio': datetime.now(),
             'monto_flete': 0,
             'dest_nombre': payload.dest_nombre,
-            'dest_direccion': payload.dest_direccion,
+            'dest_direccion': dest_direccion_full,
             'dest_telefono': payload.dest_telefono.replace(' ', '').replace('-', ''),
             'dest_zip': payload.dest_zip,
             'send_nombre': settings.sender_name,

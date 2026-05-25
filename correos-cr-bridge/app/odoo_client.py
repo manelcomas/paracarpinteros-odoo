@@ -99,6 +99,11 @@ class OdooClient:
             {'fields': [
                 'id', 'name', 'street', 'street2', 'city', 'zip',
                 'phone', 'email', 'country_id', 'state_id', 'comment',
+                # Studio fields de Paracarpinteros (verificados en prod):
+                # cantón y distrito CR como Many2one a modelos custom,
+                # señas como texto. Sin estos, la etiqueta de Correos
+                # no incluye prov/cantón/distrito y solo imprime la dirección.
+                'x_studio_canton_cr', 'x_studio_distrito_cr', 'x_studio_senas',
             ]}
         )
         return r[0] if r else {}

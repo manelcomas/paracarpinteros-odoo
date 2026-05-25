@@ -21,6 +21,46 @@ _in_flight: set[int] = set()
 _in_flight_lock = threading.Lock()
 
 
+def _m2o_name(value):
+    """Devuelve el 'name' de un campo Many2one de Odoo ([id, name]) o ''."""
+    if value and isinstance(value, (list, tuple)) and len(value) > 1:
+        return (value[1] or '').strip()
+    return ''
+
+
+def build_dest_direccion(partner: dict, senas_override: str = '') -> str:
+    """
+    Construye el DEST_DIRECCION que se envía a Correos CR concatenando
+    señas + distrito + cantón + provincia, separados por coma.
+
+    Correos imprime literalmente este campo en la etiqueta como "Dirección",
+    así que para que aparezcan provincia/cantón/distrito en el PDF hay que
+    incluirlos aquí (el WS no tiene campos separados para ellos).
+
+    - senas_override: texto que ya viene del modal del panel (lo que el
+      usuario editó). Si está vacío, cae a x_studio_senas y luego a street.
+    - El nombre de la provincia que devuelve Odoo viene con sufijo
+      " (CR)" — se limpia.
+    - Se trunca a 500 chars (límite del WS).
+    """
+    senas = (senas_override or '').strip()
+    if not senas:
+        senas = (partner.get('x_studio_senas') or partner.get('street') or '').strip()
+
+    canton = _m2o_name(partner.get('x_studio_canton_cr'))
+    distrito = _m2o_name(partner.get('x_studio_distrito_cr'))
+    provincia = _m2o_name(partner.get('state_id')).replace(' (CR)', '').strip()
+
+    parts = [senas]
+    if distrito:
+        parts.append(f'Distrito {distrito}')
+    if canton:
+        parts.append(f'Cantón {canton}')
+    if provincia:
+        parts.append(provincia)
+    return ', '.join(p for p in parts if p)[:500]
+
+
 class Processor:
     def __init__(self):
         self.correos = CorreosCRClient(
@@ -114,11 +154,7 @@ class Processor:
         # Validaciones mínimas
         if not partner.get('zip'):
             raise Exception(f"Cliente '{partner.get('name')}' sin código postal")
-        provincia = partner.get('state_id')
-        provincia_name = provincia[1] if provincia and isinstance(provincia, (list, tuple)) and len(provincia) > 1 else None
-        direccion_dest = ', '.join(filter(None, [
-            partner.get('street'), partner.get('street2'), partner.get('city'), provincia_name,
-        ]))
+        direccion_dest = build_dest_direccion(partner)
         if not direccion_dest:
             raise Exception(f"Cliente '{partner.get('name')}' sin dirección")
 

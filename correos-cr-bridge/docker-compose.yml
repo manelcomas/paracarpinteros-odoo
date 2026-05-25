@@ -8,6 +8,10 @@ services:
       - "127.0.0.1:8000:8000"  # solo local, nginx hace proxy
     volumes:
       - ./logs:/app/logs
+      # Estado persistente del panel (líneas preparadas, envíos manuales,
+      # entregas en mano). Sin este volumen, cada `docker compose up --build`
+      # borraba toda la base de datos del panel.
+      - ./data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"]
       interval: 30s

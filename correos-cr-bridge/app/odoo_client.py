@@ -39,9 +39,9 @@ class OdooClient:
         return uid
 
     def execute_kw(self, model: str, method: str, args: list, kwargs: dict = None):
-        uid = self.authenticate()
         kwargs = kwargs or {}
         for intento in range(2):
+            uid = self.authenticate()
             try:
                 return self._models.execute_kw(
                     self.db, uid, self.api_key,
@@ -51,11 +51,13 @@ class OdooClient:
                 raise OdooError(f"Odoo fault en {model}.{method}: {e.faultString}")
             except Exception as e:
                 err_str = str(e)
-                # Errores de socket cerrado / Request-sent -> reintentar con nueva conexión
+                # Errores de socket cerrado / Request-sent -> reabrir transport y re-autenticar
                 if intento == 0 and ('Request-sent' in err_str or 'CannotSendRequest' in err_str
                                       or 'BrokenPipe' in err_str or 'Connection' in err_str):
                     _logger.warning(f"Conexion XMLRPC corrupta en {model}.{method}, reabriendo: {err_str}")
+                    self._common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common", allow_none=True)
                     self._models = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/object", allow_none=True)
+                    self._uid = None
                     continue
                 raise OdooError(f"Error Odoo en {model}.{method}: {e}")
 

@@ -35,7 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Response
 from pydantic import BaseModel, Field
 
 from .config import settings
-from .processor import Processor
+from .processor import Processor, _in_flight, _in_flight_lock
 
 _logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api', tags=['panel'])
@@ -43,11 +43,19 @@ router = APIRouter(prefix='/api', tags=['panel'])
 # ───────── PANEL AUTH (login con password compartido) ─────────
 # Password leído de .env: PANEL_PASSWORD
 PANEL_PASSWORD = os.environ.get('PANEL_PASSWORD', '')
-SESSION_SECRET = settings.api_token  # reutilizamos para firmar tokens
+# SESSION_SECRET: env var dedicado; si no está, derivamos del api_token con
+# un dominio distinto para no compartir el mismo secreto entre dos sistemas.
+_explicit_secret = os.environ.get('PANEL_SESSION_SECRET', '')
+if _explicit_secret:
+    SESSION_SECRET = _explicit_secret
+else:
+    SESSION_SECRET = hashlib.sha256(
+        (settings.api_token + '::panel-session').encode()
+    ).hexdigest()
 SESSION_TTL_S = 12 * 3600  # 12 horas
 
 def _sign(payload: str) -> str:
-    return hmac.new(SESSION_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()[:32]
+    return hmac.new(SESSION_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
 
 def _make_token() -> str:
     expires = int(time.time()) + SESSION_TTL_S
@@ -621,56 +629,66 @@ def generar_guia_picking(picking_id: int, payload: GenerarPayload):
     p = get_processor()
     p.odoo.authenticate()
 
-    # Verificar que sigue elegible
-    pks = p.odoo.execute_kw('stock.picking', 'read', [[picking_id]],
-        {'fields': ['name', 'state', 'carrier_tracking_ref']})
-    if not pks:
-        raise HTTPException(404, 'Picking no encontrado')
-    if pks[0].get('carrier_tracking_ref'):
-        raise HTTPException(409, f"Ya tiene guía: {pks[0]['carrier_tracking_ref']}")
+    # Lock por picking_id: evita carrera entre panel y worker automático.
+    with _in_flight_lock:
+        if picking_id in _in_flight:
+            raise HTTPException(409, 'Esta guía se está generando en este momento')
+        _in_flight.add(picking_id)
 
-    # 1) Generar guía
-    envio_id = p.correos.generar_guia()
-    _logger.info(f'API: guía {envio_id} para picking {picking_id}')
+    try:
+        # Verificar que sigue elegible (con el lock ya tomado)
+        pks = p.odoo.execute_kw('stock.picking', 'read', [[picking_id]],
+            {'fields': ['name', 'state', 'carrier_tracking_ref']})
+        if not pks:
+            raise HTTPException(404, 'Picking no encontrado')
+        if pks[0].get('carrier_tracking_ref'):
+            raise HTTPException(409, f"Ya tiene guía: {pks[0]['carrier_tracking_ref']}")
 
-    # 2) Registrar envío
-    envio_data = {
-        'fecha_envio': datetime.now(),
-        'monto_flete': 0,
-        'dest_nombre': payload.dest_nombre,
-        'dest_direccion': payload.dest_direccion,
-        'dest_telefono': payload.dest_telefono.replace(' ', '').replace('-', ''),
-        'dest_zip': payload.dest_zip,
-        'send_nombre': settings.sender_name,
-        'send_direccion': settings.sender_address,
-        'send_zip': settings.sender_zip,
-        'send_telefono': settings.sender_phone.replace(' ', '').replace('-', ''),
-        'observaciones': payload.observaciones,
-        'peso': int(payload.peso_g),
-    }
-    cod, msg, pdf_b64 = p.correos.registrar_envio(envio_id, envio_data)
+        # 1) Generar guía
+        envio_id = p.correos.generar_guia()
+        _logger.info(f'API: guía {envio_id} para picking {picking_id}')
 
-    # 3) Adjuntar PDF al picking + tracking
-    if pdf_b64:
-        att_id = p.odoo.attach_pdf(
-            picking_id,
-            f'Etiqueta_CorreosCR_{envio_id}.pdf',
-            pdf_b64 if isinstance(pdf_b64, str) else base64.b64encode(pdf_b64).decode()
-        )
-        p.odoo.post_message(
-            picking_id,
-            f'✅ <b>Guía Correos CR generada desde panel</b><br/>'
-            f'Número: <b>{envio_id}</b><br/>Peso: {payload.peso_g} g',
-            attachment_ids=[att_id]
-        )
-    p.odoo.set_tracking(picking_id, envio_id)
+        # 2) Registrar envío
+        envio_data = {
+            'fecha_envio': datetime.now(),
+            'monto_flete': 0,
+            'dest_nombre': payload.dest_nombre,
+            'dest_direccion': payload.dest_direccion,
+            'dest_telefono': payload.dest_telefono.replace(' ', '').replace('-', ''),
+            'dest_zip': payload.dest_zip,
+            'send_nombre': settings.sender_name,
+            'send_direccion': settings.sender_address,
+            'send_zip': settings.sender_zip,
+            'send_telefono': settings.sender_phone.replace(' ', '').replace('-', ''),
+            'observaciones': payload.observaciones,
+            'peso': int(payload.peso_g),
+        }
+        cod, msg, pdf_b64 = p.correos.registrar_envio(envio_id, envio_data)
 
-    return {
-        'ok': True,
-        'tracking': envio_id,
-        'pdf_b64': pdf_b64,
-        'message': msg,
-    }
+        # 3) Adjuntar PDF al picking + tracking
+        if pdf_b64:
+            att_id = p.odoo.attach_pdf(
+                picking_id,
+                f'Etiqueta_CorreosCR_{envio_id}.pdf',
+                pdf_b64 if isinstance(pdf_b64, str) else base64.b64encode(pdf_b64).decode()
+            )
+            p.odoo.post_message(
+                picking_id,
+                f'✅ <b>Guía Correos CR generada desde panel</b><br/>'
+                f'Número: <b>{envio_id}</b><br/>Peso: {payload.peso_g} g',
+                attachment_ids=[att_id]
+            )
+        p.odoo.set_tracking(picking_id, envio_id)
+
+        return {
+            'ok': True,
+            'tracking': envio_id,
+            'pdf_b64': pdf_b64,
+            'message': msg,
+        }
+    finally:
+        with _in_flight_lock:
+            _in_flight.discard(picking_id)
 
 
 # ────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ y adjunta el PDF de la etiqueta al picking.
 
 import base64
 import logging
+import threading
 from datetime import datetime
 
 from .config import settings
@@ -13,6 +14,11 @@ from .correos_client import CorreosCRClient, CorreosCRError
 from .odoo_client import OdooClient, OdooError
 
 _logger = logging.getLogger(__name__)
+
+# Lock por picking_id: evita que el worker automático y /process-now generen
+# dos guías para el mismo picking. Es proceso-local (workers=1 en Docker).
+_in_flight: set[int] = set()
+_in_flight_lock = threading.Lock()
 
 
 class Processor:
@@ -73,7 +79,31 @@ class Processor:
     def _process_one(self, picking: dict):
         pk_id = picking['id']
         pk_name = picking['name']
+
+        # Lock por picking_id: si otro hilo/worker ya lo está procesando, salir.
+        with _in_flight_lock:
+            if pk_id in _in_flight:
+                _logger.info("Picking %s ya está siendo procesado por otro flujo, salto", pk_name)
+                return
+            _in_flight.add(pk_id)
+
+        try:
+            self._process_one_locked(picking, pk_id, pk_name)
+        finally:
+            with _in_flight_lock:
+                _in_flight.discard(pk_id)
+
+    def _process_one_locked(self, picking: dict, pk_id: int, pk_name: str):
         _logger.info("Procesando picking %s (id=%d)", pk_name, pk_id)
+
+        # Recheck en Odoo justo antes de generar la guía: si ya tiene tracking,
+        # otro proceso o el módulo Odoo nativo se adelantó.
+        check = self.odoo.execute_kw('stock.picking', 'read', [[pk_id]],
+                                     {'fields': ['carrier_tracking_ref']})
+        if check and check[0].get('carrier_tracking_ref'):
+            _logger.info("Picking %s ya tiene tracking %s, salto",
+                         pk_name, check[0]['carrier_tracking_ref'])
+            return
 
         # 1) Leer partner destino
         partner_id = picking['partner_id'][0] if picking.get('partner_id') else None

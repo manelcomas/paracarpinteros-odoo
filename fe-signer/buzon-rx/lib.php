@@ -8,6 +8,17 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
+// ─── CORS ────────────────────────────────────────────────────────
+// El conversor FE corre en www.paracarpinteros.com y consume estos
+// endpoints por fetch(): el preflight OPTIONS necesita estos headers
+// emitidos SIEMPRE (también cuando el handler hace exit en OPTIONS).
+if (!headers_sent()) {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
+    header('Access-Control-Max-Age: 86400');
+}
+
 // ─── Configuración ───────────────────────────────────────────────
 function bx_env($key, $default = '') {
     $v = getenv($key);

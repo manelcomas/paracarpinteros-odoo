@@ -157,7 +157,32 @@ cd /opt/whatsapp-bot && docker compose up -d --build
 docker compose logs -f whatsapp-bot
 ```
 
-Container: `wa-bot-paracarpinteros`, expone `127.0.0.1:8002`. Nginx del host lo rutea para los webhooks de WhatsApp Cloud.
+Container: `wa-bot-paracarpinteros`, expone `127.0.0.1:8002`. Nginx del host lo expone públicamente en `https://wa.paracarpinteros.com/` (config `/etc/nginx/sites-enabled/wa-bot.conf`, proxy directo a `127.0.0.1:8002` sin auth a nivel nginx — el bot maneja su propio login con cookie).
+
+### wa-bot: superficie expuesta
+
+El bot sirve **dos audiencias** desde el mismo proceso FastAPI:
+
+**Webhook público (Meta WhatsApp Cloud API)**:
+- `GET /webhook` — verificación con `hub.verify_token` (= `WA_VERIFY_TOKEN` del `.env`)
+- `POST /webhook` — entrega de mensajes entrantes
+
+**Panel admin (login con `WA_PANEL_PASSWORD`)**: HTML servido en `GET /` (LOGIN_HTML si no hay cookie válida, PANEL_HTML si la hay). Endpoints `/api/*` requieren cookie de sesión vía `require_auth`:
+- `POST /login`, `POST /logout`
+- `GET /api/stats`, `GET /api/conversations`
+- `GET|POST /api/conversation/{phone}` y sub-rutas (`/status`, `/reply`, `/reply-image`, `/wizard`, `/ask-balance`, `/quote-shipping`, `/set-carrier`, `/manual-quote`, `/confirm-order`, `/escalate`)
+- `POST /api/conversation/create`
+- `POST /api/partner/{partner_id}/update`, `GET /api/partner/{partner_id}/full`
+- `GET /api/odoo/carriers`, `POST /api/odoo/carriers/{carrier_id}/quote`
+- `GET /api/backups`, `GET /api/backups/{filename}`, `POST /api/backups/run-now`
+- `GET|POST /api/bot/mode` — interruptor auto/manual del bot
+- `GET /api/knowledge` — vuelca el bloque que se inyecta a Claude como contexto
+- `GET /api/push/vapid-key`, `GET /api/push/status` — Web Push (VAPID)
+- `GET /api/meta/health`
+
+**PWA + estáticos**: `/manifest.webmanifest`, `/manifest.json`, `/sw.js`, `/pwa/{filename}`, `/apple-touch-icon*.png`, `/media/{filename}` (sirve archivos del volumen `data/media/`).
+
+**Sin auth**: `GET /health`.
 
 ## The `.env` baúl pattern
 

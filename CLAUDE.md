@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Monorepo del negocio Paracarpinteros (carpintería CR, Gabriela Brenes Solano). Una sola persona (Manel) desarrolla esto y suele tener **dos sesiones Claude en paralelo**: una local en WSL y otra en el VPS por SSH. Cuidado con sincronización — leer la sección "Multi-session workflow" antes de actuar.
 
-Contiene **un módulo Odoo + tres microservicios independientes**, deployados a **dos targets distintos**:
+Contiene **un módulo Odoo + cuatro microservicios independientes**, deployados a **dos targets distintos**:
 
 | Pieza | Lenguaje | Target de deploy | Cómo se despliega |
 |---|---|---|---|
@@ -14,8 +14,9 @@ Contiene **un módulo Odoo + tres microservicios independientes**, deployados a 
 | `correos-cr-bridge/` | Python (FastAPI) | VPS Contabo `66.94.99.220` | SSH al VPS, `git pull && docker compose up -d --build` en `/opt/paracarpinteros-odoo/correos-cr-bridge/` |
 | `calculadora/` | Python (HTTP server + HTML SPA) | Local del usuario + opcionalmente VPS | `docker compose up -d` en `calculadora/` |
 | `fe-signer/` | PHP (Apache + CRLibre) | VPS Contabo | `git pull && docker compose up -d --build` en `/opt/paracarpinteros-odoo/fe-signer/` |
+| `whatsapp-bot/` | Python (FastAPI) | VPS Contabo, vive en `/opt/whatsapp-bot/` (fuera del clon del monorepo) | Ver "wa-bot deploy" abajo |
 
-El panel web (`https://panel.paracarpinteros.com`) es **frontend que vive sólo en el VPS** y no está en este repo todavía. Llama a varios endpoints del bridge y del fe-signer. Si los cambios afectan al panel, hay que coordinarlos con la sesión Claude del VPS.
+El panel web (`https://panel.paracarpinteros.com`) lo sirve nginx del host VPS desde `/var/www/html/`. El archivo principal `panel-envios.html` es un **symlink a `correos-cr-bridge/panel-envios.html`** del repo, así que editarlo local + `git pull` en VPS lo refresca. Resto de assets (backups `.bak-*`) son históricos.
 
 ## Critical context for safe edits
 
@@ -137,6 +138,27 @@ curl -s -X POST https://panel.paracarpinteros.com/sign \
 
 Ambos comparten el patrón: `oauth-start.php` → `oauth-callback.php` → `poll.php` (cron) → `list.php` (lectura por panel) → `mr.php` o equivalente (acción).
 
+### wa-bot deploy
+
+`whatsapp-bot/` **no se despliega con `git pull`** porque vive en `/opt/whatsapp-bot/` (fuera del clon del monorepo en `/opt/paracarpinteros-odoo/`). El layout en VPS quedó así por historia: nació antes que el monorepo y se mantiene ahí porque tiene su volumen `./data` (media + `conversations.db`) y `/var/backups/whatsapp-bot` mapeado fuera.
+
+Flujo de despliegue actual (manual):
+
+```bash
+# Desde local, sincronizar el código al VPS sin tocar data/ ni .env:
+rsync -av --delete \
+  --exclude='.env' --exclude='.env.bak*' \
+  --exclude='data/' --exclude='__pycache__/' --exclude='*.pyc' \
+  --exclude='*.bak.*' --exclude='*.bak-*' \
+  whatsapp-bot/ root@66.94.99.220:/opt/whatsapp-bot/
+
+# En VPS:
+cd /opt/whatsapp-bot && docker compose up -d --build
+docker compose logs -f whatsapp-bot
+```
+
+Container: `wa-bot-paracarpinteros`, expone `127.0.0.1:8002`. Nginx del host lo rutea para los webhooks de WhatsApp Cloud.
+
 ## The `.env` baúl pattern
 
 El proyecto tiene **un `.env` raíz** que centraliza credenciales para los scripts en `scripts/`:
@@ -162,6 +184,7 @@ Manel suele tener una sesión Claude local (este repo) y otra Claude por SSH en 
 | `delivery_correos_cr` | Odoo.sh staging/prod | Auto al push a main | Hay que ir a UI Odoo: Apps → Update list |
 | `correos-cr-bridge` | VPS Contabo Docker | NO automatico | SSH + `git pull && docker compose up -d --build` |
 | `fe-signer` | VPS Contabo Docker | NO automatico | SSH + `git pull && docker compose up -d --build` |
+| `whatsapp-bot` | VPS Contabo Docker (`/opt/whatsapp-bot/`, fuera del monorepo) | NO automatico | `rsync` desde local → SSH + `docker compose up -d --build`. Ver "wa-bot deploy" |
 | `calculadora` | Local del usuario | NO automatico (es local) | `docker compose up -d` |
 
 **No hay CI/CD que despliegue al VPS**. El único workflow GitHub Actions es `.github/workflows/uptime.yml` que solo monitorea `https://panel.paracarpinteros.com/health` cada 5 minutos y abre un issue si cae.

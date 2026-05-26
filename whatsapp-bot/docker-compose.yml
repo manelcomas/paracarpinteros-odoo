@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  whatsapp-bot:
+    build: .
+    container_name: wa-bot-paracarpinteros
+    restart: always
+    ports:
+      - "127.0.0.1:8002:8000"
+    volumes:
+      - ./data:/opt/whatsapp-bot/data
+      - /var/backups/whatsapp-bot:/var/backups/whatsapp-bot
+    env_file: .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

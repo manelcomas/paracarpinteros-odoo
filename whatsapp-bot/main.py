@@ -3976,8 +3976,13 @@ body{font-family:'Helvetica Neue',Helvetica,'Lucida Grande',Arial,Ubuntu,Cantare
 .msg{margin-bottom:4px;display:flex;padding:0 4px}
 .msg.in{justify-content:flex-start}
 .msg.out{justify-content:flex-end}
+/* Wrapper interno: marca el max-width real de la burbuja respecto al chat,
+   no respecto al shrink-to-fit ambiguo del flex item. Sin esto, las burbujas
+   cortas se rompían en 3 líneas (p.ej. "Cuáles son los de nylon"). */
+.msg > div{max-width:520px;min-width:0}
+@media(max-width:767px){.msg > div{max-width:78%}}
 .bubble{
-  max-width:65%;padding:6px 9px 8px 11px;border-radius:7.5px;
+  max-width:100%;padding:6px 9px 8px 11px;border-radius:7.5px;
   font-size:.9rem;line-height:1.35;word-wrap:break-word;white-space:pre-wrap;
   position:relative;color:var(--text);
   box-shadow:var(--bubble-shadow);
@@ -4027,9 +4032,9 @@ body{font-family:'Helvetica Neue',Helvetica,'Lucida Grande',Arial,Ubuntu,Cantare
 .sb-pagado{background:#d9fdd3;color:#0f5a3b}
 .sb-a_despachar{background:#ede1ff;color:#6a3bb5}
 .sb-cerrado{background:#f0f2f5;color:#8696a0}
-button.status-badge{border:none;cursor:pointer;font-family:inherit;transition:.15s}
-button.status-badge::after{content:' ▾';font-size:.6rem;opacity:.6}
-button.status-badge:hover{filter:brightness(.96)}
+button.status-badge{border:none;cursor:pointer;font-family:inherit;transition:.15s;display:inline-flex;align-items:center;gap:4px}
+button.status-badge::after{content:'▾';font-size:.85rem;opacity:.75;margin-left:1px}
+button.status-badge:hover{filter:brightness(.94);box-shadow:0 0 0 2px rgba(0,128,105,.15)}
 
 /* Menú flotante de cambio de estado */
 .status-menu{
@@ -4799,7 +4804,16 @@ async function renderShipmentWizard(st, name){
       <button class="banner-btn ${CURRENT_INFO?.escalated?'warning':''}" onclick="toggleEscalate()">${CURRENT_INFO?.escalated?'⚠ Bot desactivado':'👤 Tomar conversación'}</button>
       ${order ? `<a class="banner-btn" target="_blank" href="${order.url}">👁 Ver ${escapeHtml(order.name)} en Odoo</a>` : ''}
       ${st === 'pagado' ? `<button class="banner-btn warning" onclick="confirmRevertPayment()">❓ El pago no cuadra</button>` : ''}
+      <button class="banner-btn danger" onclick="confirmCloseWithoutShipment()" title="Cerrar sin envío — cliente no responde, canceló, lo entregaste a mano, etc.">✕ Cerrar conversación</button>
     </div>`;
+}
+
+// Cerrar conversación desde el wizard de despacho sin marcar como enviado.
+// Útil cuando el cliente desaparece, lo entregaste a mano, fue contacto telefónico, etc.
+function confirmCloseWithoutShipment(){
+  if(!CURRENT_PHONE) return;
+  if(!confirm('¿Cerrar esta conversación sin generar guía?\\n\\nNo se marca como enviado en el sistema. Si el cliente vuelve a escribir, reabre automáticamente.')) return;
+  markStatus('cerrado');
 }
 
 function askBalanceModal(amountDue){

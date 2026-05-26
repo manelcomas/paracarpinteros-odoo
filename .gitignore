@@ -27,3 +27,4 @@ clientes_incompletos.csv
 .DS_Store
 Thumbs.db
 *.bak-*
+*.bak.*

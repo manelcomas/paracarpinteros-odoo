@@ -1,0 +1,2947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de Envíos · La Juguetería</title>
+<style>
+:root{
+  /* Paleta WhatsApp Web light - teal (alto contraste) */
+  --yellow:#bf8a00; --yellow-lt:#fbc02d;
+  --bg:#e8ebf0; --surface:#ffffff; --card:#f0f2f5; --card2:#dde1e5;
+  --border:#d1d7db; --border2:#aebac1;
+  --text:#0b141a; --text2:#3b4a54; --text3:#54656f;
+  --green:#008069; --red:#c53030; --blue:#3b6cb5; --purple:#6a3bb5;
+  --r:8px; --rsm:6px;
+  --touch:44px; --topbar:56px; --bottomnav:64px;
+  --shadow-md:0 2px 6px rgba(11,20,26,.15);
+  --shadow-lg:0 8px 24px rgba(11,20,26,.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Segoe UI','Helvetica Neue',Helvetica,Arial,Inter,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased; min-height:100vh;
+}
+.app{display:grid; grid-template-columns:240px 1fr; min-height:100vh}
+
+/* ───── SIDEBAR ───── */
+.sidebar{background:var(--surface); border-right:1px solid var(--border); padding:18px 14px; display:flex; flex-direction:column; gap:6px}
+.brand{padding:8px 4px 18px; border-bottom:1px solid var(--border); margin-bottom:14px}
+.brand .logo{font-family:inherit; font-size:1.1rem; letter-spacing:.2px; color:var(--text); line-height:1.2; font-weight:600}
+.brand .sub{font-size:.7rem; letter-spacing:.3px; text-transform:none; color:var(--text2); margin-top:4px}
+.nav-item{display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:var(--rsm); color:var(--text2); cursor:pointer; font-size:.82rem; transition:.15s}
+.nav-item:hover{background:var(--card); color:var(--text)}
+.nav-item.active{background:#d9fdd3; color:#0f5a3b; font-weight:600}
+.nav-item .badge{margin-left:auto; background:var(--green); color:#fff; font-size:.6rem; padding:2px 7px; border-radius:10px; font-weight:700}
+.nav-item.active .badge{background:#0f5a3b; color:#fff}
+.nav-icon{width:18px; text-align:center; font-size:.95rem}
+.sidebar-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--border); font-size:.65rem; color:var(--text3); text-align:center}
+
+/* ───── MAIN ───── */
+.main{padding:18px 28px 40px; overflow-x:hidden}
+.topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; padding:0 0 14px; border-bottom:1px solid var(--border); gap:12px}
+.page-title{font-family:inherit; font-size:1.4rem; letter-spacing:.2px; font-weight:700; color:var(--text)}
+.page-sub{font-size:.85rem; color:var(--text2); margin-top:4px; font-weight:500}
+.user-chip{display:flex; align-items:center; gap:10px; background:var(--surface); padding:5px 14px 5px 5px; border-radius:30px; border:1px solid var(--border)}
+.avatar{width:32px; height:32px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:.85rem}
+.user-chip span{font-size:.85rem; color:var(--text)}
+
+/* ───── KPIs ───── */
+.kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px}
+.kpi{background:var(--surface); border:1px solid var(--border2); border-radius:var(--r); padding:16px 18px; box-shadow:0 1px 3px rgba(11,20,26,.08)}
+.kpi-label{font-size:.7rem; letter-spacing:.4px; text-transform:uppercase; color:var(--text2); margin-bottom:8px; font-weight:600}
+.kpi-value{font-family:inherit; font-size:1.85rem; line-height:1; font-weight:700; color:var(--text)}
+.kpi-value.yellow{color:#bf8a00}
+.kpi-value.green{color:var(--green)}
+.kpi-value.red{color:var(--red)}
+.kpi-foot{font-size:.78rem; color:var(--text2); margin-top:8px; font-weight:500}
+
+/* ───── TABS ───── */
+.tabs{display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--border)}
+.tab{padding:9px 16px; cursor:pointer; font-size:.82rem; color:var(--text2); border-bottom:2px solid transparent; transition:.15s; font-weight:500}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--green); border-color:var(--green); font-weight:600}
+
+/* ───── TABLE ───── */
+.card{background:var(--surface); border:1px solid var(--border2); border-radius:var(--r); overflow:hidden; box-shadow:0 1px 3px rgba(11,20,26,.08)}
+table{width:100%; border-collapse:collapse}
+thead{background:var(--card2); border-bottom:1px solid var(--border)}
+th{text-align:left; padding:12px 14px; font-size:.72rem; letter-spacing:.3px; text-transform:uppercase; color:var(--text2); font-weight:700}
+td{padding:13px 14px; font-size:.88rem; border-bottom:1px solid var(--border); color:var(--text); font-weight:500}
+tbody tr{transition:.12s}
+tbody tr:hover{background:#f5f6f6}
+tbody tr:last-child td{border-bottom:none}
+.cliente-col{display:flex; flex-direction:column; gap:2px}
+.cliente-col b{font-weight:600}
+.cliente-col small{font-size:.65rem; color:var(--text3)}
+.tag{display:inline-block; padding:2px 9px; border-radius:10px; font-size:.66rem; font-weight:600; letter-spacing:.2px}
+.tag-pendiente{background:#fff3d6; color:#a87800; border:1px solid #f5d57a}
+.tag-listo{background:#d9fdd3; color:#0f5a3b; border:1px solid #80d4ad}
+.tag-error{background:#fff5f5; color:#c53030; border:1px solid #fbb}
+.tag-incompleto{background:#ede1ff; color:#6a3bb5; border:1px solid #c6b1f0}
+.btn{font-family:inherit; font-size:.75rem; padding:6px 14px; border-radius:18px; border:1px solid transparent; cursor:pointer; font-weight:500; letter-spacing:.2px; transition:.15s; display:inline-flex; align-items:center; gap:5px}
+.btn-prim{background:var(--green); color:#fff; border-color:var(--green)}
+.btn-prim:hover{background:#006a55; border-color:#006a55}
+.btn-sec{background:var(--surface); color:var(--text); border:1px solid var(--border2)}
+.btn-sec:hover{border-color:var(--green); color:var(--green); background:#f0fdf6}
+.btn-ghost{background:transparent; color:var(--text2); border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text); border-color:var(--border2); background:var(--card)}
+.btn-icon{padding:6px 9px; font-size:.85rem}
+
+/* ───── ANNOTATION ───── */
+.annot{background:#f5edff; border:1px dashed #c6b1f0; border-radius:var(--r); padding:12px 16px; font-size:.78rem; color:#6a3bb5; margin:14px 0; display:flex; gap:10px; align-items:flex-start; line-height:1.5}
+.annot::before{content:'🔌'; font-size:1rem; flex-shrink:0}
+.annot b{color:#4a2c80}
+.annot code{background:#fff; padding:1px 6px; border-radius:3px; font-family:'Consolas','Monaco',monospace; font-size:.92em; color:#4a2c80; border:1px solid #e9d5ff}
+
+/* ───── MODAL ───── */
+.modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(3px); display:none; align-items:flex-start; justify-content:center; padding:40px 20px; z-index:100; overflow-y:auto}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface); border:1px solid var(--border); border-radius:8px; max-width:780px; width:100%; max-height:calc(100vh - 80px); overflow-y:auto}
+.modal-head{padding:18px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--surface); z-index:1}
+.modal-head h2{font-family:inherit; font-size:1.05rem; letter-spacing:.2px; font-weight:600; color:var(--text)}
+.modal-close{background:none; border:none; color:var(--text2); cursor:pointer; font-size:1.4rem; padding:4px 10px; border-radius:var(--rsm); transition:.15s}
+.modal-close:hover{background:var(--card); color:var(--text)}
+.modal-body{padding:22px}
+.modal-foot{padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:10px; position:sticky; bottom:0; background:var(--surface)}
+.modal-foot .left{display:flex; gap:8px}
+.modal-foot .right{display:flex; gap:8px}
+.field-section{margin-bottom:20px}
+.field-section h3{font-size:.78rem; letter-spacing:.2px; text-transform:none; color:var(--green); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; font-weight:600}
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.field{display:flex; flex-direction:column; gap:4px}
+.field.full{grid-column:1/-1}
+.field label{font-size:.55rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); font-weight:600}
+.field input, .field select, .field textarea{
+  background:var(--surface); border:1px solid var(--border2); border-radius:var(--rsm);
+  padding:9px 12px; color:var(--text); font-family:inherit; font-size:.88rem; outline:none; transition:.15s
+}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--green); box-shadow:0 0 0 1px var(--green)}
+.field textarea{resize:vertical; min-height:60px}
+.field .hint{font-size:.6rem; color:var(--text3)}
+.field.warning input{border-color:rgba(251,191,36,.5); background:rgba(245,158,11,.04)}
+.field.warning .hint{color:#fbbf24}
+.summary-box{background:var(--card); border:1px solid var(--border); border-radius:var(--rsm); padding:12px 16px; font-size:.78rem; line-height:1.6; margin-bottom:18px}
+.summary-box b{color:var(--yellow)}
+
+/* ───── PDF VIEWER ───── */
+.pdf-preview{background:#fff; color:#000; padding:24px; border-radius:var(--rsm); font-family:Arial,sans-serif; max-width:380px; margin:10px auto; border:2px solid #000}
+.pdf-bc{text-align:center; margin-bottom:12px}
+.pdf-bc-bars{display:inline-block; background:repeating-linear-gradient(90deg,#000 0,#000 1px,#fff 1px,#fff 3px,#000 3px,#000 5px,#fff 5px,#fff 6px,#000 6px,#000 9px,#fff 9px,#fff 11px,#000 11px,#000 12px,#fff 12px,#fff 14px,#000 14px,#000 17px,#fff 17px,#fff 18px,#000 18px,#000 19px,#fff 19px,#fff 22px,#000 22px,#000 24px,#fff 24px,#fff 25px); width:280px; height:50px}
+.pdf-track{font-size:.85rem; font-weight:700; letter-spacing:2px; margin-top:5px; font-family:'Courier New',monospace}
+.pdf-section{border-top:1px solid #000; padding-top:10px; margin-top:10px}
+.pdf-section h4{font-size:.85rem; font-weight:700; margin-bottom:6px}
+.pdf-line{font-size:.78rem; line-height:1.45; margin-bottom:2px}
+.pdf-line b{font-weight:700}
+.pdf-foot{font-size:.6rem; color:#666; margin-top:12px; line-height:1.4}
+
+/* ───── CALENDAR ───── */
+.cal-controls{display:flex; align-items:center; gap:14px; margin-bottom:14px}
+.cal-controls h2{font-family:'Bebas Neue','Impact',sans-serif; font-size:1.4rem; letter-spacing:1.5px; flex:1}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; background:var(--surface); padding:10px; border-radius:var(--r); border:1px solid var(--border)}
+.cal-dow{font-size:.55rem; letter-spacing:1.8px; text-transform:uppercase; color:var(--text3); padding:6px 4px; text-align:center; font-weight:700}
+.cal-cell{background:var(--bg); border:1px solid var(--border); border-radius:var(--rsm); min-height:90px; padding:6px; position:relative; transition:.15s; cursor:pointer}
+.cal-cell:hover{border-color:var(--yellow)}
+.cal-cell.empty{opacity:.3; cursor:default}
+.cal-cell.empty:hover{border-color:var(--border)}
+.cal-day{font-size:.75rem; font-weight:700; color:var(--text2); margin-bottom:4px}
+.cal-cell.today .cal-day{color:var(--yellow)}
+.cal-cell.today{border-color:var(--yellow); background:rgba(232,168,0,.05)}
+.cal-event{background:var(--card2); border-left:3px solid var(--green); padding:3px 6px; margin-bottom:3px; border-radius:2px; font-size:.65rem; line-height:1.3; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.cal-event.error{border-color:var(--red)}
+.cal-count{position:absolute; top:6px; right:6px; background:var(--yellow); color:#000; font-size:.55rem; font-weight:800; padding:1px 6px; border-radius:8px}
+
+.cal-legend{display:flex; gap:20px; margin-top:12px; font-size:.7rem; color:var(--text2)}
+.cal-legend-item{display:flex; align-items:center; gap:6px}
+.cal-legend-item .dot{width:10px; height:10px; border-radius:50%}
+.cal-legend-item .dot.green{background:var(--green)}
+.cal-legend-item .dot.red{background:var(--red)}
+
+/* Expand row */
+.expand-arrow{cursor:pointer; padding:4px 8px; color:var(--text2); transition:.15s; display:inline-block; user-select:none}
+.expand-arrow:hover{color:var(--yellow)}
+.expand-arrow.open{transform:rotate(90deg); color:var(--yellow)}
+tr.detail-row{display:none; background:rgba(0,0,0,.25)}
+tr.detail-row.show{display:table-row}
+tr.detail-row td{padding:14px 18px}
+.line-item{display:grid; grid-template-columns:32px 60px 1fr 80px 70px; gap:14px; align-items:center; padding:10px 12px; border-radius:var(--rsm); background:var(--card); margin-bottom:6px; transition:.15s}
+.line-item.checked{background:rgba(76,175,110,.07); border:1px solid rgba(76,175,110,.25)}
+.line-item.checked .line-name{text-decoration:line-through; opacity:.55}
+.line-check{width:20px; height:20px; border:2px solid var(--border2); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; background:var(--bg)}
+.line-check.checked{background:var(--green); border-color:var(--green); color:#fff; font-weight:700}
+.line-img{width:50px; height:50px; border-radius:4px; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:1.5rem; overflow:hidden}
+.line-img img{width:100%; height:100%; object-fit:cover}
+.line-info{min-width:0}
+.line-code{font-size:.6rem; color:var(--yellow); font-weight:700; letter-spacing:.5px; margin-bottom:2px}
+.line-name{font-size:.78rem; line-height:1.35; margin-bottom:3px; word-break:break-word}
+.line-name b{font-weight:600}
+.line-desc{font-size:.65rem; color:var(--text3); line-height:1.4}
+.line-qty{text-align:right; font-weight:700; font-size:.85rem}
+.line-qty small{display:block; font-size:.6rem; color:var(--text3); font-weight:400; margin-top:2px}
+.line-price{text-align:right; font-size:.7rem; color:var(--text2)}
+.detail-summary{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--card2); border-radius:var(--rsm); margin-top:10px; font-size:.75rem}
+.detail-summary .progress{display:flex; align-items:center; gap:8px}
+.progress-bar{width:140px; height:6px; background:var(--border); border-radius:3px; overflow:hidden}
+.progress-fill{height:100%; background:var(--green); transition:width .25s}
+.btn-gen-disabled{opacity:.4; cursor:not-allowed}
+.btn-gen-disabled:hover{transform:none; background:var(--yellow)}
+.tag-prep{background:rgba(59,130,246,.12); color:#7eb1ff; border:1px solid rgba(59,130,246,.3)}
+
+/* Courier button selector */
+.courier-btn{font-size:.72rem; padding:7px 12px}
+.courier-btn.active{background:var(--yellow); color:#000; border-color:var(--yellow)}
+.courier-btn.active:hover{background:var(--yellow-lt); color:#000}
+
+/* Courier badges en tablas */
+.courier-tag{display:inline-block; padding:2px 8px; border-radius:10px; font-size:.6rem; font-weight:700; letter-spacing:.5px}
+.courier-tag.pymex{background:rgba(76,175,110,.15); color:#5cd684}
+.courier-tag.tavo{background:rgba(59,130,246,.15); color:#7eb1ff}
+.courier-tag.dual{background:rgba(168,85,247,.15); color:#c084fc}
+.courier-tag.unknown{background:rgba(168,168,168,.15); color:#a8a8a8}
+
+/* Calendar event coloring por courier */
+.cal-event.pymex{background:rgba(76,175,110,.16); color:#5cd684}
+.cal-event.tavo{background:rgba(59,130,246,.16); color:#7eb1ff}
+.cal-event.dual{background:rgba(168,85,247,.16); color:#c084fc}
+
+/* ───────── MOBILE TOPBAR ───────── */
+.mobile-topbar{display:none; position:sticky; top:0; z-index:30; height:var(--topbar);
+  align-items:center; gap:12px; padding:0 14px;
+  background:var(--surface); border-bottom:1px solid var(--border)}
+.mt-burger,.mt-action{width:40px; height:40px; border-radius:50%;
+  background:transparent; border:none; color:var(--text);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; cursor:pointer; transition:.15s}
+.mt-burger:hover,.mt-action:hover{background:var(--card)}
+.mt-title{flex:1; font-family:'Bebas Neue','Impact',sans-serif;
+  font-size:1.05rem; letter-spacing:1.5px; color:var(--yellow); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mt-search{flex:1; background:var(--card); border:1px solid var(--border);
+  border-radius:20px; height:36px; padding:0 14px;
+  color:var(--text); font-size:.85rem; outline:none; display:none}
+.mt-search.show{display:block}
+.mt-title.hide{display:none}
+
+/* ───────── DRAWER OVERLAY ───────── */
+.drawer-overlay{display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.6); backdrop-filter:blur(2px); z-index:55;
+  opacity:0; pointer-events:none; transition:opacity .25s}
+.drawer-overlay.show{opacity:1; pointer-events:auto}
+
+/* ───────── BOTTOM NAV ───────── */
+.bottom-nav{display:none; position:fixed; left:0; right:0; bottom:0;
+  height:calc(var(--bottomnav) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:var(--surface); border-top:1px solid var(--border);
+  grid-template-columns:repeat(5,1fr); z-index:40}
+.bn-item{background:none; border:none; color:var(--text2);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; font-size:.6rem; padding:6px 4px; cursor:pointer; position:relative; transition:.15s; font-family:inherit}
+.bn-item:hover{color:var(--text)}
+.bn-item.active{color:var(--yellow)}
+.bn-item.active::before{content:''; position:absolute; top:0; left:30%; right:30%;
+  height:3px; background:var(--yellow); border-radius:0 0 3px 3px}
+.bn-icon{font-size:1.25rem; line-height:1}
+.bn-label{font-weight:600; letter-spacing:.3px}
+.bn-badge{position:absolute; top:6px; right:calc(50% - 24px);
+  background:var(--red); color:#fff; font-size:.55rem; font-weight:800;
+  padding:1px 5px; border-radius:8px; min-width:16px; text-align:center}
+
+/* ───────── RESPONSIVE BREAKPOINTS ───────── */
+/* TABLET 768-1023px ─ sidebar como drawer */
+@media (min-width:768px) and (max-width:1023px){
+  .app{display:block !important; grid-template-columns:none !important}
+  .sidebar{position:fixed !important; left:0; top:0; bottom:0; width:260px;
+    transform:translateX(-100%); transition:transform .25s ease;
+    z-index:60; box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:translateX(0)}
+  .mobile-topbar{display:flex}
+  .main{padding:14px 22px 90px; width:100%; max-width:100%}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .field-grid{grid-template-columns:1fr 1fr}
+  .topbar{display:none}
+}
+
+/* MOBILE <768px ─ bottom nav + cards */
+@media (max-width:767px){
+  .app{display:block !important; grid-template-columns:none !important; padding-bottom:calc(var(--bottomnav) + env(safe-area-inset-bottom))}
+  .sidebar{position:fixed !important; left:0; top:0; bottom:0; width:84vw; max-width:300px;
+    transform:translateX(-100%); transition:transform .25s ease;
+    z-index:60; box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:translateX(0)}
+  .mobile-topbar{display:flex}
+  .bottom-nav{display:grid}
+  .main{padding:14px 14px 24px; width:100%; max-width:100%}
+  .topbar{display:none}
+  .kpi-row{display:flex; gap:10px; overflow-x:auto; overflow-y:hidden;
+    scroll-snap-type:x mandatory; margin:0 -14px 18px; padding:2px 14px 6px;
+    -webkit-overflow-scrolling:touch}
+  .kpi-row::-webkit-scrollbar{display:none}
+  .kpi{min-width:148px; scroll-snap-align:start; flex-shrink:0}
+  .field-grid{grid-template-columns:1fr}
+  .cal-grid{font-size:.65rem; padding:6px; gap:3px}
+  .cal-cell{min-height:64px; padding:4px}
+  .cal-day{font-size:.7rem}
+  .cal-event{font-size:.55rem; padding:2px 4px}
+  /* Tabla → cards verticales */
+  .card.list-wrap, .card.list-wrap > table{background:transparent; border:none; overflow:visible}
+  .card.list-wrap table, .card.list-wrap thead, .card.list-wrap tbody, .card.list-wrap tr, .card.list-wrap td{display:block; width:100%}
+  .card.list-wrap thead{display:none}
+  .card.list-wrap tbody tr{background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r); margin-bottom:10px; padding:14px; transition:.15s}
+  .card.list-wrap tbody tr:hover{background:var(--card); border-color:var(--yellow)}
+  .card.list-wrap td{border:none; padding:5px 0;
+    display:flex; justify-content:space-between; align-items:center;
+    gap:12px; font-size:.85rem; text-align:left !important}
+  .card.list-wrap td[data-label]::before{content:attr(data-label);
+    font-size:.6rem; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--text3); font-weight:700; flex-shrink:0}
+  .card.list-wrap td.row-actions{flex-wrap:wrap; gap:8px; margin-top:10px;
+    padding-top:12px; border-top:1px solid var(--border)}
+  .card.list-wrap td.row-actions .btn{min-height:var(--touch); flex:1; justify-content:center; font-size:.78rem}
+  .card.list-wrap td.row-actions::before{display:none}
+  /* Detail rows (expandibles) sin pseudo-label */
+  .card.list-wrap tr.detail-row{padding:0; background:rgba(0,0,0,.25); border-radius:var(--r); margin-bottom:10px}
+  .card.list-wrap tr.detail-row td{padding:14px; flex-direction:column; align-items:stretch}
+  .card.list-wrap tr.detail-row td::before{display:none}
+  /* Botones más cómodos */
+  .btn{min-height:var(--touch); font-size:.82rem; padding:10px 14px}
+  .btn-icon{padding:10px 12px}
+  /* Modal full-screen */
+  .modal-bg{padding:0 !important; align-items:stretch}
+  .modal{max-width:100% !important; max-height:100vh !important; height:100vh !important;
+    border-radius:0; border:none; display:flex; flex-direction:column}
+  .modal-body{flex:1; overflow-y:auto}
+  .modal-foot{flex-wrap:wrap}
+  .modal-foot .btn{flex:1; min-height:var(--touch)}
+  /* Tabs scroll horizontal */
+  .tabs{overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{white-space:nowrap; flex-shrink:0}
+  /* iframes a alto razonable */
+  #view-calc, #view-fe{height:calc(100vh - var(--topbar) - var(--bottomnav) - 20px) !important; margin:-14px !important}
+}
+
+/* DESKTOP ≥1024px ─ esconder mobile chrome */
+@media (min-width:1024px){
+  .mobile-topbar, .bottom-nav, .drawer-overlay{display:none !important}
+}
+
+/* ───────── ZOOM modal por encima del modalItems ───────── */
+#modalZoom{z-index:150}
+#modalZoom .modal-body{padding:14px}
+.agenda-item:hover{transform:translateY(-1px); box-shadow:var(--shadow-md)}
+.item-zoom-btn:hover{background:var(--yellow-lt); transform:scale(1.1)}
+
+/* ───────── ROW HAS-GUIDE (visual feedback "ya tiene guía") ───────── */
+tr.row-has-guide td{background:rgba(76,175,110,.06)}
+tr.row-has-guide td:first-child{border-left:3px solid var(--green)}
+tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
+@media (max-width:767px){
+  .card.list-wrap tbody tr.row-has-guide{
+    background:rgba(76,175,110,.06);
+    border-color:rgba(76,175,110,.4);
+    border-left:3px solid var(--green);
+  }
+  .card.list-wrap tbody tr.row-has-guide td{background:transparent}
+}
+</style>
+</head>
+<body>
+
+<!-- ╔═══ LOGIN MODAL ═══╗ -->
+<div id="loginScreen" style="position:fixed; inset:0; background:#0a0a0a; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px">
+  <div style="max-width:380px; width:100%; background:#1a1a1a; border:1px solid #333; border-radius:8px; overflow:hidden">
+    <div style="background:#111; border-bottom:3px solid #e8a800; padding:24px 28px; text-align:center">
+      <div style="font-family:'Bebas Neue','Impact',sans-serif; font-size:1.6rem; letter-spacing:3px; color:#e8a800">LA JUGUETERÍA.</div>
+      <div style="font-size:.55rem; letter-spacing:2.5px; text-transform:uppercase; color:#666; margin-top:4px">Panel de envíos</div>
+    </div>
+    <div style="padding:28px">
+      <div style="font-size:.7rem; color:#a8a8a8; margin-bottom:18px; text-align:center">Acceso restringido</div>
+      <input id="loginPwd" type="password" placeholder="Contraseña" autocomplete="current-password"
+        style="width:100%; background:#222; border:1px solid #3e3e3e; border-radius:4px; padding:11px 14px; color:#f0f0f0; font-size:.9rem; outline:none; margin-bottom:14px"
+        onkeydown="if(event.key==='Enter') doLogin()">
+      <button onclick="doLogin()" id="loginBtn"
+        style="width:100%; background:#e8a800; color:#000; border:none; border-radius:4px; padding:11px; font-weight:700; cursor:pointer; font-size:.85rem">
+        Entrar
+      </button>
+      <div id="loginErr" style="color:#e05252; font-size:.7rem; margin-top:12px; text-align:center; min-height:18px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appMain" style="display:none">
+
+  <!-- ╔═══ SIDEBAR ═══╗ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">LA JUGUETERÍA.</div>
+      <div class="sub">Para Carpinteros</div>
+    </div>
+    <div class="nav-item active" onclick="switchTab('pendientes', this)">
+      <span class="nav-icon">📦</span> Pendientes
+      <span class="badge" id="badgePendientes">·</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('manual', this)">
+      <span class="nav-icon">✋</span> Envío manual
+    </div>
+    <div class="nav-item" onclick="switchTab('agenda', this)">
+      <span class="nav-icon">🗓️</span> Agenda del día
+    </div>
+    <div class="nav-item" onclick="switchTab('historial', this)">
+      <span class="nav-icon">📋</span> Histórico
+    </div>
+    <div class="nav-item" onclick="switchTab('calendario', this)">
+      <span class="nav-icon">📅</span> Calendario
+    </div>
+    <div class="nav-item" onclick="switchTab('calc', this)">
+      <span class="nav-icon">💰</span> Calculadora
+    </div>
+    <div class="nav-item" onclick="switchTab('fe', this)">
+      <span class="nav-icon">📄</span> FE Converter
+    </div>
+    <div class="nav-item" onclick="switchTab('alibaba', this)">
+      <span class="nav-icon">🏭</span> Alibaba
+      <span class="badge" id="badgeAlibaba" style="display:none">·</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('wa', this)">
+      <span class="nav-icon">💬</span> WhatsApp Bot
+    </div>
+    <div class="nav-item" onclick="logout()">
+      <span class="nav-icon">🚪</span> Cerrar sesión
+    </div>
+    <div class="sidebar-foot">
+      Pymex · Tavo · Dual<br/>
+      Conectado a Odoo
+    </div>
+  </aside>
+
+  <!-- ╔═══ DRAWER OVERLAY (móvil/tablet) ═══╗ -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- ╔═══ MAIN ═══╗ -->
+  <main class="main">
+
+    <!-- Mobile topbar -->
+    <div class="mobile-topbar">
+      <button class="mt-burger" onclick="toggleDrawer()" aria-label="Menú">☰</button>
+      <div class="mt-title" id="mtTitle">PANEL DE ENVÍOS</div>
+      <input class="mt-search" id="mtSearch" placeholder="Buscar..." oninput="onMobileSearch(this.value)" />
+      <button class="mt-action" onclick="toggleMobileSearch()" aria-label="Buscar">🔍</button>
+    </div>
+
+    <div class="topbar">
+      <div>
+        <h1 class="page-title" id="pageTitle">PEDIDOS PENDIENTES DE GUÍA</h1>
+        <div class="page-sub" id="pageSub">Lista de envíos a domicilio CR sin guía de Correos generada</div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar">G</div>
+        <span>Gabriela Brenes</span>
+      </div>
+    </div>
+
+    <!-- ───── VIEW: PENDIENTES ───── -->
+    <section id="view-pendientes">
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label" id="kpiCourierLbl">Pendientes Pymex</div>
+          <div class="kpi-value yellow" id="kpiPendientes">·</div>
+          <div class="kpi-foot" id="kpiCourierFoot">Carrier = Pymexpress</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Listos</div>
+          <div class="kpi-value green" id="kpiListos">·</div>
+          <div class="kpi-foot">Datos completos del cliente</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Incompletos</div>
+          <div class="kpi-value red" id="kpiIncompletos">·</div>
+          <div class="kpi-foot">Falta CP o dirección</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">En preparación</div>
+          <div class="kpi-value" id="kpiPreparando" style="color:#c084fc">·</div>
+          <div class="kpi-foot">Líneas marcadas pero no completas</div>
+        </div>
+      </div>
+
+      <!-- Selector de courier -->
+      <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; align-items:center">
+        <span style="font-size:.65rem; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; margin-right:6px">Método de envío</span>
+        <button class="btn btn-sec courier-btn active" data-courier="pymex" onclick="setCourier('pymex')">📮 Pymexpress</button>
+        <button class="btn btn-sec courier-btn" data-courier="tavo" onclick="setCourier('tavo')">🚚 Tavo</button>
+        <button class="btn btn-sec courier-btn" data-courier="dual" onclick="setCourier('dual')">📦 Dual Global</button>
+        <button class="btn btn-ghost courier-btn" data-courier="all" onclick="setCourier('all')">Todos</button>
+        <button class="btn btn-ghost btn-icon" onclick="loadPendientes()" title="Recargar">↻</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" id="btnHiddenPending" onclick="showHiddenModal()" style="display:none" title="Ver pedidos ocultos">👁 Ocultos (<span id="hiddenCount">0</span>)</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="filterRows('todos', this)" id="tabTodos">Todos (·)</div>
+        <div class="tab" onclick="filterRows('listos', this)" id="tabListos">Listos (·)</div>
+        <div class="tab" onclick="filterRows('incompletos', this)" id="tabIncompletos">Datos incompletos (·)</div>
+        <div class="tab" onclick="filterRows('preparando', this)" id="tabPreparando">En preparación (·)</div>
+      </div>
+
+      <div class="card list-wrap">
+        <table id="tablaPendientes">
+          <thead>
+            <tr>
+              <th style="width:30px"></th>
+              <th style="width:90px">Pedido</th>
+              <th>Cliente</th>
+              <th>Provincia / Cantón</th>
+              <th style="text-align:center;width:75px">Líneas</th>
+              <th style="text-align:right">Total CRC</th>
+              <th>Peso</th>
+              <th style="width:110px">Estado</th>
+              <th style="width:130px">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="rowsPendientes">
+            <!-- Se rellena con JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- ───── VIEW: ENVÍO MANUAL ───── -->
+    <section id="view-manual" style="display:none">
+      <div class="annot">
+        <span><b>Envío manual no facturable:</b> genera una guía Pymexpress sin crear pedido ni factura en Odoo. Útil para muestras, garantías, devoluciones, regalos, envíos a empleados, etc. La guía se guarda solo en el VPS (no aparece en pickings de Odoo). Endpoint: <code>POST /api/generar-guia-manual</code>.</span>
+      </div>
+      <div class="card" style="padding:22px">
+        <div class="field-section">
+          <h3>Destinatario</h3>
+          <div class="field full" style="margin-bottom:14px">
+            <label>Buscar partner Odoo o escribir destinatario nuevo</label>
+            <input placeholder="🔍 Buscar por nombre, email o teléfono... (autocompletar desde Odoo)">
+            <div class="hint">Si lo encuentras, autocompleta abajo. Si no, déjalo vacío y rellena a mano.</div>
+          </div>
+          <div class="field-grid">
+            <div class="field full"><label>Nombre completo</label><input placeholder="Ej: Juan Pérez Solano"></div>
+            <div class="field full"><label>Dirección</label><input placeholder="Calle, señas, referencias"></div>
+            <div class="field"><label>Provincia</label>
+              <select><option>San José</option><option>Alajuela</option><option>Cartago</option><option>Heredia</option><option>Guanacaste</option><option>Puntarenas</option><option>Limón</option></select>
+            </div>
+            <div class="field"><label>Cantón</label><input></div>
+            <div class="field"><label>Distrito</label><input></div>
+            <div class="field"><label>Código postal</label><input placeholder="5 dígitos"></div>
+            <div class="field full"><label>Teléfono</label><input placeholder="8 dígitos sin guiones"></div>
+          </div>
+        </div>
+        <div class="field-section">
+          <h3>Paquete</h3>
+          <div class="field-grid">
+            <div class="field"><label>Peso (gramos)</label><input type="number" value="500"></div>
+            <div class="field"><label>Tipo de envío</label>
+              <select>
+                <option>Muestra gratuita</option>
+                <option>Garantía / cambio</option>
+                <option>Devolución a cliente</option>
+                <option>Regalo / cortesía</option>
+                <option>Envío a empleado</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="field full"><label>Contenido / observaciones</label>
+              <input value="Herramientas (muestra)">
+            </div>
+            <div class="field full"><label>Notas internas (no aparece en etiqueta)</label>
+              <textarea placeholder="Ej: muestra solicitada por correo el 28/4, autorizado por Manel"></textarea>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px">
+          <button class="btn btn-ghost" onclick="alert('Limpia el formulario')">Limpiar</button>
+          <button class="btn btn-prim" onclick="alert('Envío manual: pendiente conectar al endpoint /api/manual/generar. Por ahora, genera Pymex desde Pendientes.')">🖨 Generar guía manual</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── VIEW: HISTORIAL ───── -->
+    <section id="view-historial" style="display:none">
+      <!-- KPIs del mes -->
+      <div class="kpi-row" style="margin-bottom:14px">
+        <div class="kpi"><div class="kpi-label">Mes total</div><div class="kpi-value yellow" id="statTotal">·</div><div class="kpi-foot" id="statRange">—</div></div>
+        <div class="kpi"><div class="kpi-label">Pymex</div><div class="kpi-value green" id="statPymex">·</div><div class="kpi-foot">Correos CR</div></div>
+        <div class="kpi"><div class="kpi-label">Tavo</div><div class="kpi-value" style="color:#7eb1ff" id="statTavo">·</div><div class="kpi-foot">Encomiendas Tavo</div></div>
+        <div class="kpi"><div class="kpi-label">Dual</div><div class="kpi-value" style="color:#c084fc" id="statDual">·</div><div class="kpi-foot">Dual Global</div></div>
+      </div>
+      <div class="card" style="padding:14px 16px; margin-bottom:14px">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end">
+          <div style="display:flex; flex-direction:column; gap:4px; flex:2; min-width:200px">
+            <label style="font-size:.6rem; letter-spacing:1.5px; color:var(--text3); text-transform:uppercase">Buscar</label>
+            <input id="histQ" placeholder="Tracking, cliente, picking..." style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:8px 10px; border-radius:var(--rsm); font-size:.8rem">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; min-width:120px">
+            <label style="font-size:.6rem; letter-spacing:1.5px; color:var(--text3); text-transform:uppercase">Courier</label>
+            <select id="histCourier" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:8px 10px; border-radius:var(--rsm); font-size:.8rem">
+              <option value="all">Todos</option>
+              <option value="pymex">Pymexpress</option>
+              <option value="tavo">Tavo</option>
+              <option value="dual">Dual Global</option>
+            </select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; min-width:130px">
+            <label style="font-size:.6rem; letter-spacing:1.5px; color:var(--text3); text-transform:uppercase">Desde</label>
+            <input id="histDesde" type="date" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:7px 8px; border-radius:var(--rsm); font-size:.8rem">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; min-width:130px">
+            <label style="font-size:.6rem; letter-spacing:1.5px; color:var(--text3); text-transform:uppercase">Hasta</label>
+            <input id="histHasta" type="date" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:7px 8px; border-radius:var(--rsm); font-size:.8rem">
+          </div>
+          <button class="btn btn-prim" onclick="loadHistorico()">Filtrar</button>
+          <button class="btn btn-ghost" onclick="resetHistFilters()">Limpiar</button>
+        </div>
+      </div>
+      <div id="histResultsCard"></div>
+    </section>
+
+    <!-- ───── VIEW: AGENDA DEL DÍA ───── -->
+    <section id="view-agenda" style="display:none">
+      <div class="card" style="padding:14px 16px; margin-bottom:14px">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          <button class="btn btn-sec" onclick="agendaQuick(0)">Hoy</button>
+          <button class="btn btn-sec" onclick="agendaQuick(1)">Mañana</button>
+          <button class="btn btn-sec" onclick="agendaQuick(2)">Pasado</button>
+          <span style="margin-left:14px; font-size:.65rem; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase">Fecha</span>
+          <input id="agendaFecha" type="date" onchange="loadAgenda()" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:7px 10px; border-radius:var(--rsm); font-size:.85rem">
+          <button class="btn btn-ghost btn-icon" onclick="loadAgenda()" title="Recargar">↻</button>
+          <span id="agendaBigDate" style="margin-left:auto; font-family:'Bebas Neue','Impact',sans-serif; font-size:1.4rem; letter-spacing:1.5px; color:var(--yellow)"></span>
+        </div>
+      </div>
+
+      <!-- Tarjetas resumen por courier -->
+      <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi"><div class="kpi-label">Pymexpress</div><div class="kpi-value green" id="agendaCntPymex">·</div><div class="kpi-foot">Correos CR</div></div>
+        <div class="kpi"><div class="kpi-label">Tavo</div><div class="kpi-value" style="color:#7eb1ff" id="agendaCntTavo">·</div><div class="kpi-foot">Encomiendas Tavo</div></div>
+        <div class="kpi"><div class="kpi-label">Dual</div><div class="kpi-value" style="color:#c084fc" id="agendaCntDual">·</div><div class="kpi-foot">Dual Global</div></div>
+        <div class="kpi"><div class="kpi-label">Sin asignar</div><div class="kpi-value" style="color:#a8a8a8" id="agendaCntUn">·</div><div class="kpi-foot">Courier por definir</div></div>
+      </div>
+
+      <!-- Listado -->
+      <div id="agendaList"></div>
+    </section>
+
+    <!-- ───── VIEW: CALENDARIO ───── -->
+    <section id="view-calendario" style="display:none">
+
+      <div class="cal-controls">
+        <button class="btn btn-ghost btn-icon" onclick="calNav(-1)">‹</button>
+        <h2 id="calTitle">—</h2>
+        <button class="btn btn-ghost btn-icon" onclick="calNav(1)">›</button>
+        <button class="btn btn-sec" onclick="calToday()">Hoy</button>
+        <span style="margin-left:18px; font-size:.65rem; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase">Courier</span>
+        <select id="calCourier" onchange="loadCalendario()" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:6px 10px; border-radius:var(--rsm); font-size:.75rem">
+          <option value="all">Todos</option>
+          <option value="pymex">Pymexpress</option>
+          <option value="tavo">Tavo</option>
+          <option value="dual">Dual Global</option>
+        </select>
+      </div>
+
+      <div class="cal-grid" id="calendar"></div>
+
+      <div class="cal-legend">
+        <div class="cal-legend-item"><span class="dot green"></span> Pymexpress</div>
+        <div class="cal-legend-item"><span class="dot" style="background:#3b82f6"></span> Tavo</div>
+        <div class="cal-legend-item"><span class="dot" style="background:#a855f7"></span> Dual</div>
+      </div>
+
+    </section>
+
+    <!-- ───── VIEW: CALCULADORA ───── -->
+    <section id="view-calc" style="display:none; height:calc(100vh - 110px); margin:-18px; padding:0">
+      <iframe id="calcFrame" src="about:blank"
+              style="width:100%; height:100%; border:0; background:var(--card)"
+              allow="clipboard-read; clipboard-write"></iframe>
+    </section>
+
+    <!-- ───── VIEW: FE CONVERTER ───── -->
+    <section id="view-fe" style="display:none; height:calc(100vh - 110px); margin:-18px; padding:0">
+      <iframe id="feFrame" src="about:blank"
+              style="width:100%; height:100%; border:0; background:var(--card)"
+              allow="clipboard-read; clipboard-write"></iframe>
+    </section>
+
+    <!-- ───── VIEW: WHATSAPP BOT ───── -->
+    <section id="view-wa" style="display:none; height:calc(100vh - 110px); margin:-18px; padding:0">
+      <iframe id="waFrame" src="about:blank"
+              style="width:100%; height:100%; border:0; background:#f0f2f5"
+              allow="clipboard-read; clipboard-write; camera; microphone"></iframe>
+    </section>
+
+    <!-- ───── VIEW: ALIBABA ───── -->
+    <section id="view-alibaba" style="display:none">
+      <!-- Banner conexión OAuth -->
+      <div id="abConnPanel" style="display:none; padding:14px 18px; background:rgba(232,168,0,.12); border:1px solid var(--yellow); border-radius:var(--r); margin-bottom:14px; font-size:.78rem">
+        <b>Gmail no conectado.</b> Para empezar a recibir actualizaciones, autorizá la cuenta de Manel.
+        <a href="/alibaba-rx/oauth-start" class="btn btn-prim" target="_blank" style="margin-left:10px">Conectar manelcomasbre@gmail.com</a>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">Activos</div><div class="kpi-value yellow" id="abKpiActivos">·</div><div class="kpi-foot">en camino / acción</div></div>
+        <div class="kpi"><div class="kpi-label">En camino</div><div class="kpi-value" id="abKpiEnCamino">·</div><div class="kpi-foot">enviados por proveedor</div></div>
+        <div class="kpi"><div class="kpi-label">Reseña pendiente</div><div class="kpi-value" id="abKpiResena">·</div><div class="kpi-foot">a calificar</div></div>
+        <div class="kpi"><div class="kpi-label">✈ Shenzhen</div><div class="kpi-value" id="abKpiShenzhen">·</div><div class="kpi-foot">consolidando</div></div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-row" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center">
+        <select id="abFiltComprador" onchange="abApplyFilters()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:var(--rsm); font-size:.78rem">
+          <option value="">👥 Todos los compradores</option>
+          <option value="manel">👨 Manel</option>
+          <option value="gabriela">👩 Gabriela</option>
+        </select>
+        <select id="abFiltEstado" onchange="abApplyFilters()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:var(--rsm); font-size:.78rem">
+          <option value="">Cualquier estado</option>
+          <option value="en_camino,enviado,cerca_entrega">✈️ En camino</option>
+          <option value="entregado,envio_completo">✅ Entregado</option>
+          <option value="resena_pendiente">⭐ Reseña pendiente</option>
+          <option value="pendiente_pago,pago_fallido,esperando_pago,pago_recibido,pago_confirmacion_proveedor,actualizado,pago_cambio">⚡ Acción</option>
+          <option value="cancelado,revocado">❌ Cancelado</option>
+        </select>
+        <input id="abFiltProveedor" placeholder="Buscar proveedor..." oninput="abApplyFilters()"
+               style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:var(--rsm); font-size:.78rem; min-width:180px" />
+        <button class="btn btn-ghost" id="abBtnShenzhen" onclick="abShowOnlyShenzhen=!abShowOnlyShenzhen; document.getElementById('abBtnShenzhen').classList.toggle('btn-prim', abShowOnlyShenzhen); abApplyFilters()">✈ Solo Shenzhen</button>
+        <button class="btn btn-ghost" id="abBtnTerminal" onclick="abShowTerminal=!abShowTerminal; document.getElementById('abBtnTerminal').classList.toggle('btn-prim', abShowTerminal); abApplyFilters()">Incluir cerrados</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-sec" onclick="abSyncNow()">↻ Sincronizar ahora</button>
+      </div>
+
+      <!-- Grupos Shenzhen -->
+      <div id="abShenzhenGroups" style="margin-bottom:14px"></div>
+
+      <!-- Tabla principal -->
+      <div class="card list-wrap">
+        <table id="abTabla">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Comprador</th>
+              <th>Proveedor</th>
+              <th>Estado</th>
+              <th>Última actividad</th>
+              <th>Monto</th>
+              <th style="text-align:center">✈ Shenzhen</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="abTablaBody">
+            <tr><td colspan="8" style="text-align:center; color:var(--text3); padding:30px">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="text-align:center; font-size:.65rem; color:var(--text3); margin-top:10px" id="abLastSync">—</div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ╔═══ BOTTOM NAV (móvil) ═══╗ -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bn-item active" data-view="pendientes" onclick="bnSwitch('pendientes', this)">
+    <span class="bn-icon">📦</span>
+    <span class="bn-label">Pend.</span>
+    <span class="bn-badge" id="bnBadgePend" style="display:none">·</span>
+  </button>
+  <button class="bn-item" data-view="agenda" onclick="bnSwitch('agenda', this)">
+    <span class="bn-icon">🗓️</span>
+    <span class="bn-label">Hoy</span>
+  </button>
+  <button class="bn-item" data-view="historial" onclick="bnSwitch('historial', this)">
+    <span class="bn-icon">📋</span>
+    <span class="bn-label">Histor.</span>
+  </button>
+  <button class="bn-item" data-view="calendario" onclick="bnSwitch('calendario', this)">
+    <span class="bn-icon">📅</span>
+    <span class="bn-label">Cal.</span>
+  </button>
+  <button class="bn-item" onclick="toggleDrawer()">
+    <span class="bn-icon">•••</span>
+    <span class="bn-label">Más</span>
+  </button>
+</nav>
+
+<!-- ╔═══ MODAL: GENERAR GUÍA ═══╗ -->
+<div class="modal-bg" id="modalGenerar">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalTitle">GENERAR GUÍA · S06968</h2>
+        <div class="page-sub" id="modalSub">Cliente · Picking WH/OUT/04210</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="annot">
+        <span><b>Pre-relleno automático:</b> los datos abajo se cargan desde <code>GET /api/preview-guia/{order_id}</code>. Tomamos cliente del partner Odoo, peso de los productos del picking, sender desde la compañía. <b>Todos los campos son editables</b> antes de generar.</span>
+      </div>
+
+      <div class="field-section">
+        <h3>Remitente (fijo)</h3>
+        <div class="summary-box">
+          <b>Gabriela Brenes Solano</b> · Cédula 304410837<br>
+          Alto Cruz A22, Santa Cruz, Turrialba, Cartago · CP 30504<br>
+          Tel: 8606-9717
+        </div>
+      </div>
+
+      <div class="field-section">
+        <h3>Destinatario</h3>
+        <div class="field-grid">
+          <div class="field full">
+            <label>Nombre completo</label>
+            <input id="m-nombre" value="Rodolfo Ortíz">
+          </div>
+          <div class="field full">
+            <label>Dirección física</label>
+            <input id="m-direccion" value="Turrialba centro, 200 m oeste de la municipalidad">
+            <div class="hint">Si la dirección no es clara, añade señas concretas. Esto sale en la etiqueta.</div>
+          </div>
+          <div class="field">
+            <label>Provincia</label>
+            <select id="m-provincia">
+              <option value="">—</option>
+              <option value="1">San José</option>
+              <option value="2">Alajuela</option>
+              <option value="3">Cartago</option>
+              <option value="4">Heredia</option>
+              <option value="5">Guanacaste</option>
+              <option value="6">Puntarenas</option>
+              <option value="7">Limón</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cantón</label>
+            <input id="m-canton" value="">
+          </div>
+          <div class="field">
+            <label>Distrito</label>
+            <input id="m-distrito" value="">
+          </div>
+          <div class="field">
+            <label>Código postal</label>
+            <input id="m-cp" value="" oninput="updateGeoFromZip()">
+          </div>
+          <div class="field full">
+            <label>Teléfono</label>
+            <input id="m-telefono" value="83777894">
+          </div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <h3>Paquete</h3>
+        <div class="field-grid">
+          <div class="field warning">
+            <label>Peso (gramos)</label>
+            <input id="m-peso" value="500" type="number">
+            <div class="hint">⚠ Este producto no tiene peso en Odoo, se usó default. Pesa el paquete real antes de imprimir.</div>
+          </div>
+          <div class="field">
+            <label>Servicio</label>
+            <input value="Pymexpress" readonly style="opacity:.6">
+          </div>
+          <div class="field full">
+            <label>Contenido / observaciones</label>
+            <input value="Herramientas">
+          </div>
+        </div>
+      </div>
+
+      <div class="annot">
+        <span>Al pulsar <b>Generar e imprimir</b>: <code>POST /api/generar-guia</code> con todos los campos editados. El bridge llama a <code>ccrGenerarGuia</code> + <code>ccrRegistroEnvio</code> de Correos CR, recibe PDF, lo adjunta al picking en Odoo, actualiza tracking y abre el PDF para impresión directa.</span>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <div class="left">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-sec" onclick="alert('Solo guarda los cambios en el partner Odoo, sin generar guía.')">💾 Guardar cambios partner</button>
+        <button class="btn btn-prim" onclick="closeModal(); openPdfModal()">🖨 Generar e imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══ MODAL: AGENDAR FECHA ═══╗ -->
+<div class="modal-bg" id="modalSchedule">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head">
+      <div>
+        <h2>📅 AGENDAR ENVÍO</h2>
+        <div class="page-sub" id="schedSub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeSchedule()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.7rem; color:var(--text2); margin-bottom:14px; line-height:1.5">
+        Elegí cuándo se va a despachar este envío. La guía se generará desde
+        <b style="color:var(--yellow)">Agenda del día</b> el día que corresponda.
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px">
+        <button class="btn btn-sec" onclick="setScheduleQuick(0)">Hoy</button>
+        <button class="btn btn-sec" onclick="setScheduleQuick(1)">Mañana</button>
+        <button class="btn btn-sec" onclick="setScheduleQuick(2)">Pasado</button>
+        <button class="btn btn-ghost" onclick="setScheduleQuick(7)">+1 semana</button>
+      </div>
+      <div class="field full">
+        <label>Fecha de despacho</label>
+        <input type="date" id="schedFecha" style="font-size:1rem; padding:10px 12px">
+      </div>
+      <div id="schedErr" style="color:var(--red); font-size:.78rem; margin-top:10px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeSchedule()">Cancelar</button>
+      <button class="btn btn-prim" onclick="confirmSchedule()">📅 Agendar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══ MODAL: PRODUCTOS DEL PICKING (agenda/histórico) ═══╗ -->
+<div class="modal-bg" id="modalItems">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <h2 id="modalItemsTitle">PRODUCTOS DEL PICKING</h2>
+      <button class="modal-close" onclick="closeItemsModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalItemsBody"></div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeItemsModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══ MODAL: ZOOM IMAGEN PRODUCTO ═══╗ -->
+<div class="modal-bg" id="modalZoom" onclick="closeZoom(event)">
+  <div style="max-width:90vw; max-height:92vh; background:transparent; display:flex; flex-direction:column; align-items:center; gap:14px; position:relative">
+    <button onclick="document.getElementById('modalZoom').classList.remove('show')"
+            title="Cerrar (Esc)"
+            style="position:absolute; top:-46px; right:0; width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,.3); background:rgba(0,0,0,.6); color:#fff; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:5">✕</button>
+    <img id="zoomImg" style="max-width:90vw; max-height:60vh; border-radius:6px; background:#fff; padding:12px; box-shadow:0 8px 32px rgba(0,0,0,.6)">
+    <div id="zoomCaption" style="color:#fff; font-size:.85rem; text-align:left; max-width:600px; width:90vw; padding:14px 18px; background:rgba(0,0,0,.75); border-radius:6px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,.1)"></div>
+  </div>
+</div>
+
+<!-- ╔═══ MODAL: GENERAR ETIQUETA TAVO / DUAL ═══╗ -->
+<div class="modal-bg" id="modalTavoDual">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalTDTitle">ETIQUETA · —</h2>
+        <div class="page-sub" id="modalTDSub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeTDModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">
+        <h3>Remitente (fijo)</h3>
+        <div class="summary-box">
+          <b>Gabriela Brenes Solano</b> · Cédula 304410837<br>
+          Alto Cruz A22, Santa Cruz, Turrialba, Cartago · CP 30504<br>
+          Tel: 8606-9717
+        </div>
+      </div>
+
+      <div class="field-section">
+        <h3>Tracking <span style="font-size:.65rem; color:var(--text3); font-weight:normal">(opcional)</span></h3>
+        <div class="field-grid">
+          <div class="field full">
+            <label id="td-track-lbl">Número de guía si lo tienes</label>
+            <input id="td-tracking" placeholder="Déjalo vacío para autogenerar TV0001 / DG0001">
+            <div class="hint">Si no tienes número del courier, déjalo vacío: el panel asigna un consecutivo interno y NO imprime código de barras.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <h3>🪄 Cargar datos desde pantallazo <small style="font-size:.65rem; color:var(--text3); font-weight:normal">(opcional, usa Claude Vision)</small></h3>
+        <div id="td-ocr-area" tabindex="0"
+             style="border:2px dashed var(--border2); border-radius:6px; padding:18px; text-align:center; cursor:pointer; font-size:.78rem; color:var(--text2); transition:.15s; outline:none"
+             onclick="document.getElementById('td-ocr-file').click()"
+             ondragover="event.preventDefault(); event.currentTarget.style.borderColor='var(--yellow)'; event.currentTarget.style.background='rgba(232,168,0,.06)'"
+             ondragleave="event.currentTarget.style.borderColor='var(--border2)'; event.currentTarget.style.background=''"
+             ondrop="ocrTavoDrop(event)"
+             onpaste="ocrTavoPaste(event)">
+          <div id="td-ocr-prompt" style="line-height:1.4">
+            📋 <b>Pegá</b> (Ctrl+V) un pantallazo del pedido<br>
+            o <b>arrastrá</b> una imagen / PDF / <b>click</b> para elegir archivo
+          </div>
+          <input type="file" id="td-ocr-file" accept="image/*,application/pdf" style="display:none" onchange="ocrTavoFile(event)">
+        </div>
+        <div id="td-ocr-status" style="margin-top:8px; font-size:.7rem; color:var(--text3); text-align:center"></div>
+        <img id="td-ocr-preview" style="display:none; max-width:100%; max-height:140px; margin-top:8px; border-radius:4px; border:1px solid var(--border)">
+      </div>
+
+      <div class="field-section">
+        <h3>Destinatario</h3>
+        <div class="field-grid">
+          <div class="field full"><label>Nombre completo</label><input id="td-nombre"></div>
+          <div class="field full"><label>Dirección física</label><input id="td-direccion"></div>
+          <div class="field"><label>Cantón / Distrito</label><input id="td-canton"></div>
+          <div class="field"><label>Código postal</label><input id="td-cp"></div>
+          <div class="field full"><label>Teléfono</label><input id="td-telefono"></div>
+        </div>
+      </div>
+
+      <div class="field-section" id="td-tavo-block" style="display:none">
+        <h3>Datos Tavo</h3>
+        <div class="field-grid">
+          <div class="field"><label>Tipo identificación</label>
+            <select id="td-idt">
+              <option value="Cédula">Cédula física</option>
+              <option value="Jurídica">Jurídica</option>
+              <option value="DIMEX">DIMEX</option>
+              <option value="Pasaporte">Pasaporte</option>
+            </select>
+          </div>
+          <div class="field"><label>Número identificación</label><input id="td-cedula"></div>
+          <div class="field full"><label>Sucursal de retiro</label><input id="td-sucursal" placeholder="Ej: Tavo Cartago centro"></div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <h3>Paquete</h3>
+        <div class="field-grid">
+          <div class="field"><label>Peso (gramos)</label><input id="td-peso" type="number" value="500"></div>
+          <div class="field full"><label>Contenido</label><input id="td-obs" value="Herramientas"></div>
+        </div>
+      </div>
+
+      <div id="td-error" style="color:var(--red); font-size:.78rem; margin-top:10px"></div>
+    </div>
+    <div class="modal-foot">
+      <div class="left">
+        <button class="btn btn-ghost" onclick="closeTDModal()">Cancelar</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-prim" onclick="generarTavoDual()">🖨 Generar e imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══ MODAL: PDF GENERADO ═══╗ -->
+<div class="modal-bg" id="modalPdf">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div>
+        <h2 style="color:var(--green)">✓ GUÍA GENERADA</h2>
+        <div class="page-sub">Número PY002035176CR · Pymexpress · 29 abr 2026</div>
+      </div>
+      <button class="modal-close" onclick="closePdfModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="pdf-preview">
+        <div class="pdf-bc">
+          <div class="pdf-bc-bars"></div>
+          <div class="pdf-track">PY002035176CR</div>
+        </div>
+        <div class="pdf-section">
+          <h4>Remitente</h4>
+          <div class="pdf-line"><b>Gabriela Brenes Solano</b></div>
+          <div class="pdf-line">Alto Cruz A22, Santa Cruz, Turrialba</div>
+          <div class="pdf-line">CP 30504 · Tel 8606-9717</div>
+        </div>
+        <div class="pdf-section">
+          <h4>Destinatario</h4>
+          <div class="pdf-line"><b>Rodolfo Ortíz</b></div>
+          <div class="pdf-line">Turrialba centro, 200 m oeste de la municipalidad</div>
+          <div class="pdf-line">CP 30504 · Tel 83777894</div>
+        </div>
+        <div class="pdf-section">
+          <h4>Detalle</h4>
+          <div class="pdf-line">Contenido: Herramientas</div>
+          <div class="pdf-line">Peso: 500 g</div>
+          <div class="pdf-line">Servicio: Pymexpress</div>
+        </div>
+        <div class="pdf-foot">
+          AUTORIZO de forma expresa a CORREOS DE COSTA RICA S.A. para que en caso de presentarse alguna alerta el paquete pueda ser inspeccionado.
+        </div>
+      </div>
+      <div class="annot" style="margin:14px 0 0">
+        <span>El PDF real lo devuelve Correos CR en Base64 dentro de la respuesta SOAP. El bridge lo adjunta automáticamente al picking en Odoo y se muestra aquí para imprimir desde el navegador.</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="left">
+        <button class="btn btn-ghost" onclick="alert('Abriría el picking en Odoo en otra pestaña')">Ver en Odoo →</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-sec">↓ Descargar PDF</button>
+        <button class="btn btn-prim" onclick="window.print()">🖨 Imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Librerías para generar etiquetas Tavo/Dual cliente-side -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+
+<script>
+// ══════ AUTH + API CLIENT ══════
+const API = window.location.origin;  // mismo dominio (panel.paracarpinteros.com)
+let TOKEN = localStorage.getItem('panel_token') || '';
+
+// ── Bridge token al iframe de la calculadora ──
+window.addEventListener('message', e => {
+  if(e.data && e.data.type === 'PANEL_TOKEN_REQUEST'){
+    try{ e.source.postMessage({type:'PANEL_TOKEN', token: TOKEN}, '*'); }catch(_){}
+  }
+});
+
+async function api(path, opts={}){
+  const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+  if(TOKEN) headers['X-Panel-Token'] = TOKEN;
+  const r = await fetch(API + path, {...opts, headers});
+  if(r.status === 401){ logout(); throw new Error('No autorizado'); }
+  if(!r.ok){ const t = await r.text(); throw new Error(`${r.status}: ${t.substring(0,200)}`); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+
+async function doLogin(){
+  const pwd = document.getElementById('loginPwd').value;
+  const err = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  err.textContent = '';
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  try {
+    const r = await fetch(API + '/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({password: pwd})
+    });
+    if(!r.ok){
+      const t = await r.text();
+      throw new Error(t.includes('incorrecta') ? 'Contraseña incorrecta' : 'Error de servidor');
+    }
+    const data = await r.json();
+    TOKEN = data.token;
+    localStorage.setItem('panel_token', TOKEN);
+    showApp();
+  } catch(e){
+    err.textContent = e.message;
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+function logout(){
+  TOKEN = '';
+  localStorage.removeItem('panel_token');
+  document.getElementById('appMain').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPwd').value = '';
+}
+
+async function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appMain').style.display = 'grid';
+  await loadPendientes();
+}
+
+// Verificar si ya hay sesión válida al cargar
+(async function init(){
+  if(!TOKEN){ return; }
+  try{
+    const r = await fetch(API + '/api/auth/check', {headers:{'X-Panel-Token': TOKEN}});
+    const d = await r.json();
+    if(d.valid){ showApp(); }
+    else { logout(); }
+  } catch(e){ logout(); }
+})();
+
+// Toast simple — feedback transitorio de éxito/error
+function toast(msg, type){
+  let wrap = document.getElementById('toastWrap');
+  if(!wrap){
+    wrap = document.createElement('div');
+    wrap.id = 'toastWrap';
+    wrap.style.cssText = 'position:fixed; left:50%; bottom:80px; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none';
+    document.body.appendChild(wrap);
+  }
+  const t = document.createElement('div');
+  const color = type === 'error' ? 'var(--red)' : 'var(--green)';
+  t.style.cssText = `background:var(--card); border:1px solid var(--border); border-left:3px solid ${color}; border-radius:var(--rsm); padding:12px 18px; font-size:.82rem; color:var(--text); box-shadow:var(--shadow-md); opacity:0; transform:translateY(10px); transition:.25s`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(()=>t.remove(), 250); }, 3000);
+}
+
+// Escape cierra el modal frontal (priority: zoom > items > schedule > generar > tavoDual)
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  const zoom = document.getElementById('modalZoom');
+  if(zoom && zoom.classList.contains('show')){ zoom.classList.remove('show'); return; }
+  const items = document.getElementById('modalItems');
+  if(items && items.classList.contains('show')){ closeItemsModal(); return; }
+  const sched = document.getElementById('modalSchedule');
+  if(sched && sched.classList.contains('show')){ closeSchedule(); return; }
+  const gen = document.getElementById('modalGenerar');
+  if(gen && gen.classList.contains('show')){ closeModal(); return; }
+  const td = document.getElementById('modalTavoDual');
+  if(td && td.classList.contains('show')){ closeTDModal(); return; }
+});
+
+// ══════ ZOOM IMAGEN ══════
+function openZoom(url, caption){
+  document.getElementById('zoomImg').src = url;
+  document.getElementById('zoomCaption').textContent = caption || '';
+  document.getElementById('modalZoom').classList.add('show');
+}
+function closeZoom(ev){
+  // Solo cerrar si el click fue sobre el fondo (modal-bg), no sobre el contenido
+  if(ev && ev.target.id !== 'modalZoom') return;
+  document.getElementById('modalZoom').classList.remove('show');
+}
+
+// ══════ HELPERS ══════
+const DOW_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DOW_ES_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function _toDate(s){
+  if(!s) return null;
+  if(s instanceof Date) return s;
+  // 'YYYY-MM-DD' o 'YYYY-MM-DD HH:MM:SS' o 'YYYY-MM-DDTHH:MM:SS'
+  // Fix zona horaria: si es solo fecha (YYYY-MM-DD), construir en hora LOCAL
+  // (sin esto new Date('2026-05-22') se interpreta UTC y en CR (UTC-6) resta un día)
+  const str = String(s);
+  const onlyDate = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(onlyDate){
+    return new Date(parseInt(onlyDate[1]), parseInt(onlyDate[2])-1, parseInt(onlyDate[3]));
+  }
+  const d = new Date(str.replace(' ','T'));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// 'DD-MM-YYYY'
+function fmtDate(s){
+  const d = _toDate(s);
+  if(!d) return '—';
+  const dd=String(d.getDate()).padStart(2,'0'),
+        mm=String(d.getMonth()+1).padStart(2,'0'),
+        yy=d.getFullYear();
+  return `${dd}-${mm}-${yy}`;
+}
+// 'Lunes 02-05-2026'
+function fmtDateLong(s){
+  const d = _toDate(s);
+  if(!d) return '—';
+  return `${DOW_ES[d.getDay()]} ${fmtDate(d)}`;
+}
+// YYYY-MM-DD en hora LOCAL del browser (no UTC).
+// new Date().toISOString().substring(0,10) usaría UTC y en CR (UTC-6) salta
+// al día siguiente cada noche pasadas las 18:00 — bug visible en Agenda/calendario.
+function dateLocal(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function todayLocal(){ return dateLocal(new Date()); }
+function monthLocal(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+
+// 'Lun 02-05'
+function fmtDateShort(s){
+  const d = _toDate(s);
+  if(!d) return '—';
+  const dd=String(d.getDate()).padStart(2,'0'),
+        mm=String(d.getMonth()+1).padStart(2,'0');
+  return `${DOW_ES_SHORT[d.getDay()]} ${dd}-${mm}`;
+}
+// 'DD-MM-YYYY HH:MM'
+function fmtDateTime(s){
+  const d = _toDate(s);
+  if(!d) return '—';
+  return `${fmtDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ══════ ESTADO ══════
+let PEDIDOS = [];
+let CURRENT_COURIER = 'pymex';     // pymex | tavo | dual | all
+let CURRENT_FILTER = 'todos';      // todos | listos | incompletos | preparando
+const PREPARADO = {};
+
+// Etiquetas humanas por courier
+const COURIER_LBL = {
+  pymex: {nm:'Pymexpress', short:'Pymex', color:'green'},
+  tavo:  {nm:'Encomiendas Tavo', short:'Tavo', color:'blue'},
+  dual:  {nm:'Dual Global', short:'Dual', color:'purple'},
+  all:   {nm:'Todos', short:'Todos', color:''},
+};
+
+function setCourier(c){
+  CURRENT_COURIER = c;
+  document.querySelectorAll('.courier-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.courier === c);
+  });
+  const lbl = COURIER_LBL[c] || COURIER_LBL.all;
+  document.getElementById('kpiCourierLbl').textContent = `Pendientes ${lbl.short}`;
+  document.getElementById('kpiCourierFoot').textContent = c==='all' ? 'Todos los couriers' : `Carrier = ${lbl.nm}`;
+  loadPendientes();
+}
+
+// ══════ PENDIENTES (LIST) ══════
+async function loadPendientes(){
+  const tbody = document.getElementById('rowsPendientes');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text3)">Cargando...</td></tr>';
+  try {
+    const data = await api(`/api/pendientes?limit=50&courier=${CURRENT_COURIER}`);
+    PEDIDOS = (data.items || []).map(p => ({
+      picking_id: p.picking_id,
+      partner_id: p.partner_id,
+      id: p.sale_name || p.picking_name,
+      picking: p.picking_name,
+      cliente: p.partner_name,
+      email: '',
+      prov: '',
+      canton: p.partner_city || '',
+      cp: p.partner_zip || '',
+      telefono: p.partner_phone || '',
+      total: (p.amount_total || 0).toLocaleString('es-CR', {maximumFractionDigits:0}),
+      peso: '—',
+      estado: p.estado || 'listo',
+      warn: p.warn || '',
+      lineas: null,
+      lines_count: p.lines_count,
+      lines_prepared: p.lines_prepared,
+      courier_slug: p.carrier_slug || 'unknown',
+      carrier_name: p.carrier_name || '',
+    }));
+
+    // KPIs y badges
+    const cListos = PEDIDOS.filter(p => p.estado === 'listo').length;
+    const cInc    = PEDIDOS.filter(p => p.estado === 'incompleto').length;
+    const cPrep   = PEDIDOS.filter(p => p.estado === 'preparando').length;
+    document.getElementById('badgePendientes').textContent = PEDIDOS.length;
+    document.getElementById('kpiPendientes').textContent = PEDIDOS.length;
+    const bnB = document.getElementById('bnBadgePend');
+    const sbB = document.getElementById('badgePendientes');
+    if(bnB){ bnB.textContent = PEDIDOS.length; bnB.style.display = PEDIDOS.length>0 ? '' : 'none'; }
+    if(sbB) sbB.textContent = PEDIDOS.length;
+    document.getElementById('kpiListos').textContent = cListos;
+    document.getElementById('kpiIncompletos').textContent = cInc;
+    document.getElementById('kpiPreparando').textContent = cPrep;
+
+    document.getElementById('tabTodos').textContent = `Todos (${PEDIDOS.length})`;
+    document.getElementById('tabListos').textContent = `Listos (${cListos})`;
+    document.getElementById('tabIncompletos').textContent = `Datos incompletos (${cInc})`;
+    document.getElementById('tabPreparando').textContent = `En preparación (${cPrep})`;
+
+    // Actualizar contador de ocultos
+    const hidden = hiddenPickingIds();
+    const btnHidden = document.getElementById('btnHiddenPending');
+    if(btnHidden){
+      if(hidden.size > 0){
+        btnHidden.style.display = '';
+        document.getElementById('hiddenCount').textContent = hidden.size;
+      } else {
+        btnHidden.style.display = 'none';
+      }
+    }
+
+    renderRows(CURRENT_FILTER);
+  } catch(e){
+    console.error('loadPendientes:', e);
+    tbody.innerHTML =
+      `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--red)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function loadPickingDetail(picking_id){
+  // Carga el detalle completo (cliente + líneas con fotos) y lo cachea en PEDIDOS
+  const idx = PEDIDOS.findIndex(p => p.picking_id === picking_id);
+  if(idx < 0) return null;
+  if(PEDIDOS[idx].lineas) return PEDIDOS[idx];
+
+  const data = await api(`/api/picking/${picking_id}`);
+  const partner = data.partner || {};
+  PEDIDOS[idx] = {
+    ...PEDIDOS[idx],
+    cliente: partner.name || PEDIDOS[idx].cliente,
+    email: partner.email || '',
+    prov: (partner.state_id && partner.state_id[1]) || '',
+    canton: partner.city || '',
+    cp: partner.zip || '(falta)',
+    telefono: partner.phone || '',
+    direccion: [partner.street, partner.street2].filter(Boolean).join(', '),
+    peso: data.peso_total_g ? `${data.peso_total_g}g` : '—',
+    lineas: (data.lines || []).map(l => ({
+      move_id: l.move_id,
+      product_id: l.product_id,
+      code: l.product_code,
+      name: l.product_name,
+      desc: l.description,
+      qty: l.qty,
+      precio: (l.unit_price || 0).toLocaleString('es-CR', {maximumFractionDigits:0}),
+      img_url: l.image_url ? `${l.image_url}?t=${encodeURIComponent(TOKEN)}` : null,
+      prepared: l.prepared,
+    })),
+    estado: (!partner.zip || !partner.street) ? 'incompleto' : 'listo',
+    warn: !partner.zip ? 'Falta CP' : (!partner.street ? 'Falta dirección' : ''),
+  };
+  // Sincronizar PREPARADO con backend
+  PEDIDOS[idx].lineas.forEach((l, li) => { if(l.prepared) PREPARADO[`${idx}_${li}`] = true; });
+  return PEDIDOS[idx];
+}
+
+// ══════ Ocultos (localStorage por dispositivo) ══════
+function hiddenPickingIds(){
+  try { return new Set(JSON.parse(localStorage.getItem('panelHiddenPickings') || '[]')); }
+  catch(e){ return new Set(); }
+}
+function isPickingHidden(id){ return hiddenPickingIds().has(id); }
+function hidePending(picking_id){
+  if(!confirm('¿Ocultar este pedido del listado?\n\n(El picking sigue en Odoo. Podés restaurarlo con el botón "👁 Ocultos" arriba.)')) return;
+  const s = hiddenPickingIds(); s.add(picking_id);
+  localStorage.setItem('panelHiddenPickings', JSON.stringify([...s]));
+  loadPendientes();
+}
+function unhidePending(picking_id){
+  const s = hiddenPickingIds(); s.delete(picking_id);
+  localStorage.setItem('panelHiddenPickings', JSON.stringify([...s]));
+  loadPendientes();
+}
+function unhideAll(){
+  if(!confirm('¿Restaurar TODOS los pedidos ocultos?')) return;
+  localStorage.removeItem('panelHiddenPickings');
+  loadPendientes();
+}
+function showHiddenModal(){
+  const ids = [...hiddenPickingIds()];
+  if(!ids.length){ alert('No hay pedidos ocultos.'); return; }
+  const list = ids.map(id => `• picking ${id}`).join('\n');
+  if(confirm(`Tenés ${ids.length} pedido${ids.length===1?'':'s'} oculto${ids.length===1?'':'s'}:\n\n${list}\n\n¿Restaurar todos?`)){
+    unhideAll();
+  }
+}
+
+// ══════ RENDER ══════
+function renderRows(filter='todos'){
+  const tbody = document.getElementById('rowsPendientes');
+  let lista = PEDIDOS;
+  if(filter==='listos') lista = PEDIDOS.filter(p=>p.estado==='listo');
+  if(filter==='incompletos') lista = PEDIDOS.filter(p=>p.estado==='incompleto');
+  if(filter==='preparando') lista = PEDIDOS.filter(p=>p.estado==='preparando');
+  // Excluir los ocultos por el usuario en este dispositivo
+  const hidden = hiddenPickingIds();
+  if(hidden.size) lista = lista.filter(p => !hidden.has(p.picking_id));
+
+  if(!lista.length){
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text3)">Sin pedidos pendientes 🎉</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map((p, pi)=>{
+    let tag, action;
+    const courierTag = `<span class="courier-tag ${p.courier_slug}" title="${p.carrier_name}">${COURIER_LBL[p.courier_slug]?.short || p.carrier_name || '?'}</span>`;
+    // Selector courier inline: por defecto el detectado, el usuario puede sobreescribir
+    const sel = (p.courier_slug && ['pymex','tavo','dual'].includes(p.courier_slug)) ? p.courier_slug : 'pymex';
+    const courierSelect = `
+      <select id="cs-${p.picking_id}" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:4px 6px; border-radius:var(--rsm); font-size:.7rem; width:90px">
+        <option value="pymex" ${sel==='pymex'?'selected':''}>Pymex</option>
+        <option value="tavo" ${sel==='tavo'?'selected':''}>Tavo</option>
+        <option value="dual" ${sel==='dual'?'selected':''}>Dual</option>
+      </select>`;
+    const safeCliente = (p.cliente||'').replace(/'/g,"\\'");
+    if(p.estado==='listo'){
+      tag = `<span class="tag tag-listo">● Listo</span>`;
+      action = `${courierSelect}<button class="btn btn-prim" style="margin-left:4px" onclick="openSchedulePicker(${p.picking_id}, '${safeCliente}')">📅 Agendar</button>`;
+    } else if(p.estado==='preparando'){
+      tag = `<span class="tag tag-prep">● Preparando</span>`;
+      action = `<button class="btn btn-sec" onclick="toggleDetail(${pi})">▸ Revisar</button><button class="btn btn-prim" style="margin-left:4px" onclick="openSchedulePicker(${p.picking_id}, '${safeCliente}')">📅 Agendar</button>`;
+    } else {
+      tag = `<span class="tag tag-incompleto" title="${p.warn}">● ${p.warn || 'Incompleto'}</span>`;
+      action = `${courierSelect}<button class="btn btn-sec" style="margin-left:4px" onclick="openModalGen(${p.picking_id}, document.getElementById('cs-${p.picking_id}').value)">✎ Editar datos</button>`;
+    }
+    // Botón ocultar (solo del listado, no toca Odoo)
+    action += `<button class="btn btn-ghost" style="margin-left:4px; color:var(--text3)" onclick="hidePending(${p.picking_id})" title="Ocultar del panel (sigue en Odoo)">🗑</button>`;
+
+    const provCol = (p.courier_slug === 'tavo' || p.courier_slug === 'dual')
+      ? `<small style="color:var(--text3)">Sucursal: a definir<br>al generar</small>`
+      : `${p.canton||'—'}<br><small style="color:var(--text3)">CP ${p.cp||'—'}</small>`;
+    return `<tr>
+      <td data-label=""><span class="expand-arrow" id="arr-${pi}" onclick="toggleDetail(${pi})">▸</span></td>
+      <td data-label="Pedido"><b>${p.id}</b><br><small style="color:var(--text3)">${p.picking}</small> ${courierTag}</td>
+      <td data-label="Cliente"><div class="cliente-col"><b>${p.cliente}</b><small>${p.telefono||''}</small></div></td>
+      <td data-label="Provincia">${provCol}</td>
+      <td data-label="Líneas" style="text-align:center"><b>${p.lines_count}</b><br><small style="color:var(--text3)">líneas</small></td>
+      <td data-label="Total CRC" style="text-align:right; font-weight:600">₡ ${p.total}</td>
+      <td data-label="Peso">${p.peso}</td>
+      <td data-label="Estado">${tag}</td>
+      <td class="row-actions">${action}</td>
+    </tr>
+    <tr class="detail-row" id="det-${pi}"><td colspan="9" id="det-content-${pi}">
+      <div style="text-align:center; padding:14px; color:var(--text3); font-size:.75rem">▸ Click flecha para ver productos</div>
+    </td></tr>`;
+  }).join('');
+}
+
+async function toggleDetail(pi){
+  const det = document.getElementById('det-'+pi);
+  const arr = document.getElementById('arr-'+pi);
+  if(!det) return;
+  const open = det.classList.toggle('show');
+  arr.classList.toggle('open', open);
+  if(open && PEDIDOS[pi] && !PEDIDOS[pi].lineas){
+    document.getElementById('det-content-'+pi).innerHTML =
+      `<div style="text-align:center; padding:14px; color:var(--text3)">Cargando productos...</div>`;
+    await loadPickingDetail(PEDIDOS[pi].picking_id);
+    renderDetail(pi);
+  } else if(open){
+    renderDetail(pi);
+  }
+}
+
+function renderDetail(pi){
+  const p = PEDIDOS[pi];
+  if(!p || !p.lineas){ return; }
+  const lineasHtml = p.lineas.map((l, li) => {
+    const k = `${pi}_${li}`;
+    const checked = PREPARADO[k] ? 'checked' : '';
+    const captionTxt = ((l.code?'['+l.code+'] ':'') + (l.name||'')).replace(/'/g,"&#39;");
+    const img = l.img_url
+      ? `<img src="${l.img_url}" alt="" style="cursor:zoom-in" onclick="openZoom('${l.img_url}','${captionTxt}')" onerror="this.style.display='none'; this.parentNode.innerHTML='📦'">`
+      : '📦';
+    return `<div class="line-item ${checked}" id="line-${k}">
+      <div class="line-check ${checked}" onclick="toggleLine(${pi}, ${li}, ${p.lineas[li].move_id}, ${p.picking_id})">${PREPARADO[k]?'✓':''}</div>
+      <div class="line-img">${img}</div>
+      <div class="line-info">
+        <div class="line-code">${l.code ? '['+l.code+']' : ''}</div>
+        <div class="line-name"><b>${l.name||''}</b></div>
+        <div class="line-desc">${l.desc||''}</div>
+      </div>
+      <div class="line-qty">${l.qty} <small>uds</small></div>
+      <div class="line-price">₡ ${l.precio||0}</div>
+    </div>`;
+  }).join('');
+  const total = p.lineas.length;
+  const checkedCount = p.lineas.filter((_,li)=>PREPARADO[`${pi}_${li}`]).length;
+  const pct = total ? Math.round(100*checkedCount/total) : 0;
+  const allReady = checkedCount === total && total > 0;
+  document.getElementById('det-content-'+pi).innerHTML = `
+    ${lineasHtml}
+    <div class="detail-summary">
+      <div class="progress">
+        <span><b>${checkedCount}/${total}</b> productos preparados</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      <button class="btn btn-prim ${allReady?'':'btn-gen-disabled'}"
+        ${allReady?`onclick="openModalGen(${p.picking_id})"`:''}>
+        🖨 Generar guía
+      </button>
+    </div>
+  `;
+}
+
+async function toggleLine(pi, li, move_id, picking_id){
+  const k = `${pi}_${li}`;
+  const newState = !PREPARADO[k];
+  PREPARADO[k] = newState;
+  try {
+    await api(`/api/picking/${picking_id}/preparar`, {
+      method:'POST', body: JSON.stringify({move_id, prepared: newState})
+    });
+    renderDetail(pi);
+  } catch(e){
+    PREPARADO[k] = !newState;  // revertir
+    alert('Error guardando: ' + e.message);
+  }
+}
+
+function filterRows(filter, btn){
+  CURRENT_FILTER = filter;
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderRows(filter);
+}
+
+// ══════ MODAL GENERAR ══════
+let MODAL_PICKING_ID = null;
+let MODAL_COURIER = null;
+
+// Compara campos editados vs valores originales del partner; si hay cambios, los guarda en Odoo.
+async function syncPartnerIfChanged(picking_id, edited){
+  const idx = PEDIDOS.findIndex(p => p.picking_id === picking_id);
+  if(idx < 0) return;
+  const p = PEDIDOS[idx];
+  const partner_id = p.partner_id || (p.lineas && p._partner_id_cache) || null;
+  if(!partner_id){ return; }
+  const diff = {};
+  if(edited.name !== undefined && edited.name !== p.cliente) diff.name = edited.name;
+  if(edited.street !== undefined && edited.street !== (p.direccion||'')) diff.street = edited.street;
+  if(edited.city !== undefined && edited.city !== (p.canton||'')) diff.city = edited.city;
+  if(edited.zip !== undefined && edited.zip !== (p.cp||'')) diff.zip = edited.zip;
+  if(edited.phone !== undefined && edited.phone !== (p.telefono||'')) diff.phone = edited.phone;
+  if(Object.keys(diff).length === 0) return;
+  try{
+    await api(`/api/partner/${partner_id}/update`, {
+      method:'POST', body: JSON.stringify(diff)
+    });
+    // Actualizar cache local
+    Object.assign(p, {
+      cliente: diff.name ?? p.cliente,
+      direccion: diff.street ?? p.direccion,
+      canton: diff.city ?? p.canton,
+      cp: diff.zip ?? p.cp,
+      telefono: diff.phone ?? p.telefono,
+    });
+  } catch(e){
+    console.warn('No se pudo sincronizar partner:', e.message);
+  }
+}
+
+async function openModalGen(picking_id, courierOverride){
+  MODAL_PICKING_ID = picking_id;
+  // Cargar detalle si no está
+  const idx = PEDIDOS.findIndex(p => p.picking_id === picking_id);
+  if(idx < 0) return;
+  if(!PEDIDOS[idx].lineas) await loadPickingDetail(picking_id);
+  const p = PEDIDOS[idx];
+  MODAL_COURIER = courierOverride || p.courier_slug || 'pymex';
+
+  // Tavo / Dual van por modal cliente-side
+  if(MODAL_COURIER === 'tavo' || MODAL_COURIER === 'dual'){
+    return openTavoDualModal(p);
+  }
+
+  // Pymex (y unknown) → modal API real
+  document.getElementById('modalTitle').textContent = `GENERAR GUÍA PYMEX · ${p.id}`;
+  document.getElementById('modalSub').textContent = `${p.cliente} · Picking ${p.picking}`;
+  document.getElementById('m-nombre').value = p.cliente || '';
+  document.getElementById('m-direccion').value = p.direccion || '';
+  document.getElementById('m-cp').value = p.cp === '(falta)' ? '' : (p.cp || '');
+  document.getElementById('m-peso').value = (p.peso || '500g').replace(/\D/g,'') || 500;
+  // Resetear y derivar provincia/cantón/distrito desde el ZIP del partner.
+  // Cantón usa partner.city de Odoo como referencia visual (la API real sólo usa dest_zip).
+  document.getElementById('m-canton').value = (p.canton && p.canton !== '—') ? p.canton : '';
+  document.getElementById('m-distrito').value = '';
+  updateGeoFromZip();
+  document.getElementById('modalGenerar').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalGenerar').classList.remove('show'); }
+
+// ZIP CR = PCCDD (1 dígito provincia + 2 cantón + 2 distrito). Correos CR deriva todo del ZIP,
+// estos campos son sólo visuales/de confirmación.
+function updateGeoFromZip(){
+  const zip = (document.getElementById('m-cp')?.value || '').replace(/\D/g,'');
+  const provSel = document.getElementById('m-provincia');
+  const cantInp = document.getElementById('m-canton');
+  const distInp = document.getElementById('m-distrito');
+  if(!provSel) return;
+  if(zip.length < 5){
+    provSel.value = '';
+    return;
+  }
+  const pCode = zip[0];
+  const cCode = zip.substring(1, 3);
+  const dCode = zip.substring(3, 5);
+  provSel.value = (pCode >= '1' && pCode <= '7') ? pCode : '';
+  // Si el cantón ya tiene un nombre del partner, lo dejamos; si no, mostramos el código.
+  if(!cantInp.value || /^Cantón \d+$/.test(cantInp.value)) cantInp.value = `Cantón ${cCode}`;
+  if(!distInp.value || /^Distrito \d+$/.test(distInp.value)) distInp.value = `Distrito ${dCode}`;
+}
+
+// ══════ MODAL TAVO / DUAL (cliente-side) ══════
+function openTavoDualModal(p){
+  const isTavo = MODAL_COURIER === 'tavo';
+  const lbl = COURIER_LBL[MODAL_COURIER];
+  document.getElementById('modalTDTitle').textContent = `ETIQUETA ${lbl.nm.toUpperCase()} · ${p.id}`;
+  document.getElementById('modalTDSub').textContent = `${p.cliente} · Picking ${p.picking}`;
+  document.getElementById('td-track-lbl').textContent = `Número de guía ${lbl.short}`;
+  document.getElementById('td-tracking').value = '';
+  document.getElementById('td-nombre').value = p.cliente || '';
+  document.getElementById('td-direccion').value = p.direccion || '';
+  document.getElementById('td-canton').value = p.canton || '';
+  document.getElementById('td-cp').value = p.cp === '(falta)' ? '' : (p.cp || '');
+  document.getElementById('td-telefono').value = p.telefono || '';
+  document.getElementById('td-peso').value = (p.peso || '500g').replace(/\D/g,'') || 500;
+  document.getElementById('td-tavo-block').style.display = isTavo ? '' : 'none';
+  document.getElementById('td-cedula').value = '';
+  document.getElementById('td-sucursal').value = '';
+  document.getElementById('td-error').textContent = '';
+  document.getElementById('modalTavoDual').classList.add('show');
+}
+function closeTDModal(){
+  document.getElementById('modalTavoDual').classList.remove('show');
+  // limpiar el área de OCR para la próxima
+  const prev = document.getElementById('td-ocr-preview'); if(prev){ prev.style.display='none'; prev.src=''; }
+  const st = document.getElementById('td-ocr-status'); if(st) st.textContent='';
+  const f = document.getElementById('td-ocr-file'); if(f) f.value='';
+}
+
+// ══════ OCR pantallazo Tavo/Dual ══════
+function ocrTavoPaste(ev){
+  const items = (ev.clipboardData || ev.originalEvent?.clipboardData)?.items || [];
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){
+      ev.preventDefault();
+      const file = it.getAsFile();
+      ocrTavoSendFile(file);
+      return;
+    }
+  }
+}
+function ocrTavoDrop(ev){
+  ev.preventDefault();
+  const area = document.getElementById('td-ocr-area');
+  area.style.borderColor='var(--border2)'; area.style.background='';
+  const file = ev.dataTransfer?.files?.[0];
+  if(file && ocrTavoAccepts(file)) ocrTavoSendFile(file);
+}
+function ocrTavoFile(ev){
+  const file = ev.target.files?.[0];
+  if(file && ocrTavoAccepts(file)) ocrTavoSendFile(file);
+}
+function ocrTavoAccepts(file){
+  if(!file) return false;
+  const t = (file.type || '').toLowerCase();
+  return t.startsWith('image/') || t === 'application/pdf';
+}
+async function ocrTavoSendFile(file){
+  const statusEl = document.getElementById('td-ocr-status');
+  const preview = document.getElementById('td-ocr-preview');
+  if(!file){ return; }
+  const isPdf = (file.type || '').toLowerCase() === 'application/pdf';
+  // Preview inmediato (solo imágenes — los PDF no se previsualizan en <img>)
+  const url = URL.createObjectURL(file);
+  if(isPdf){
+    preview.style.display = 'none';
+  } else {
+    preview.src = url; preview.style.display = '';
+  }
+  statusEl.style.color = 'var(--text3)';
+  statusEl.textContent = isPdf ? '⏳ Procesando PDF con Claude…' : '⏳ Procesando con Claude Vision…';
+  try {
+    const dataUrl = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const resp = await api('/api/ocr/tavo', {
+      method: 'POST',
+      body: JSON.stringify({ image_b64: dataUrl, media_type: file.type || 'image/png' })
+    });
+    if(!resp.ok){ throw new Error(resp.error || 'OCR sin respuesta'); }
+    const d = resp.data || {};
+    // Autocompletar campos (sin pisar lo que el usuario ya hubiese tipeado)
+    const fillIfEmpty = (id, val) => {
+      const el = document.getElementById(id);
+      if(el && !el.value && val) el.value = val;
+    };
+    fillIfEmpty('td-nombre', d.nombre);
+    fillIfEmpty('td-direccion', d.direccion);
+    fillIfEmpty('td-canton', d.canton);
+    fillIfEmpty('td-cp', d.cp);
+    fillIfEmpty('td-telefono', d.telefono);
+    const filled = ['nombre','direccion','canton','cp','telefono'].filter(k => d[k]).length;
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✓ ${filled}/5 campos extraídos · revisá y corregí lo que haga falta`;
+  } catch(e){
+    statusEl.style.color = 'var(--red)';
+    // Extraer detail si el mensaje viene como "402: {\"detail\":\"...\"}"
+    let msg = e.message || 'Error en OCR';
+    const m = msg.match(/^(\d+):\s*(\{[\s\S]*\})\s*$/);
+    if(m){
+      try { msg = JSON.parse(m[2]).detail || msg; } catch(_){}
+    }
+    // Casos típicos con tip accionable
+    if(/credit balance|billing/i.test(msg)){
+      msg = '💳 Saldo Anthropic agotado. Cargá crédito en console.anthropic.com → Plans & Billing.';
+    } else if(/413|too large|payload/i.test(msg)){
+      msg = '📦 Archivo muy grande. Probá con una imagen menor a 2MB o un PDF de menos páginas.';
+    }
+    statusEl.textContent = '✗ ' + msg;
+  }
+}
+
+async function generarTavoDual(){
+  const errEl = document.getElementById('td-error');
+  errEl.textContent = '';
+  const tracking = document.getElementById('td-tracking').value.trim();
+  const nombre = document.getElementById('td-nombre').value.trim();
+  const direccion = document.getElementById('td-direccion').value.trim();
+  const canton = document.getElementById('td-canton').value.trim();
+  const cp = document.getElementById('td-cp').value.trim();
+  const telefono = document.getElementById('td-telefono').value.trim();
+  const peso = parseInt(document.getElementById('td-peso').value) || 500;
+  const obs = document.getElementById('td-obs').value.trim();
+  const isTavo = MODAL_COURIER === 'tavo';
+  const idt = document.getElementById('td-idt').value;
+  const cedula = document.getElementById('td-cedula').value.trim();
+  const sucursal = document.getElementById('td-sucursal').value.trim();
+
+  if(!nombre){ errEl.textContent = 'Falta nombre'; return; }
+  if(isTavo && !sucursal){ errEl.textContent = 'Tavo requiere sucursal de retiro'; return; }
+
+  // Sincronizar cambios al partner en Odoo (solo lo que tenga valor)
+  await syncPartnerIfChanged(MODAL_PICKING_ID, {
+    name: nombre,
+    street: direccion || undefined,
+    city: canton || undefined,
+    zip: cp || undefined,
+    phone: telefono || undefined,
+  });
+
+  const lbl = COURIER_LBL[MODAL_COURIER];
+  const userProvidedTracking = !!tracking;
+
+  // Si tracking vacío, pedir al backend el siguiente consecutivo para usarlo en el PDF
+  let finalTracking = tracking;
+  if(!finalTracking){
+    try{
+      const r = await api(`/api/next-tracking?courier=${MODAL_COURIER}`);
+      finalTracking = r.tracking;
+    } catch(e){
+      errEl.textContent = 'No pude reservar consecutivo: ' + e.message;
+      return;
+    }
+  }
+
+  // Construir PDF con el tracking definitivo
+  const pdfB64 = buildLabelPDF({
+    courier: MODAL_COURIER,
+    courierName: lbl.nm,
+    tracking: finalTracking,
+    showBarcode: userProvidedTracking,  // solo barcode si el usuario aportó número real
+    nombre, direccion, canton, cp, telefono,
+    peso, obs, idt, cedula, sucursal,
+  });
+
+  // Registrar todo en una sola llamada
+  try{
+    await api(`/api/picking/${MODAL_PICKING_ID}/registrar-manual`, {
+      method:'POST', body: JSON.stringify({
+        courier: MODAL_COURIER,
+        tracking: finalTracking,
+        pdf_b64: pdfB64,
+        dest_nombre: nombre,
+        dest_direccion: direccion,
+        dest_telefono: telefono,
+        dest_zip: cp,
+        sucursal: sucursal,
+        identificacion: isTavo ? `${idt} ${cedula}`.trim() : '',
+        peso_g: peso,
+        observaciones: obs,
+      })
+    });
+  } catch(e){
+    errEl.textContent = 'Error guardando en Odoo: ' + e.message;
+    return;
+  }
+
+  closeTDModal();
+  showPdfResult(finalTracking, pdfB64, MODAL_COURIER);
+  await loadPendientes();
+}
+
+// Construir PDF etiqueta Tavo / Dual con jsPDF + JsBarcode
+function buildLabelPDF(d){
+  const { jsPDF } = window.jspdf;
+  // Tamaño 100x150mm (etiqueta térmica estándar)
+  const doc = new jsPDF({orientation:'p', unit:'mm', format:[100,150]});
+
+  // Cabecera (color por courier)
+  const courierColor = d.courier === 'tavo' ? [59,130,246] : [168,85,247];
+  doc.setFillColor(...courierColor);
+  doc.rect(0,0,100,16,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.text(d.courierName, 5, 10);
+  doc.setFontSize(8);
+  doc.text(fmtDate(new Date()), 95, 10, {align:'right'});
+
+  doc.setTextColor(0,0,0);
+  // Barcode (solo si hay tracking real del courier)
+  if(d.showBarcode){
+    const cnv = document.createElement('canvas');
+    try {
+      JsBarcode(cnv, d.tracking, {format:'CODE128', width:2, height:50, displayValue:false, margin:0});
+      const img = cnv.toDataURL('image/png');
+      doc.addImage(img, 'PNG', 10, 20, 80, 18);
+    } catch(e){ console.warn('barcode err', e); }
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.text(d.tracking, 50, 44, {align:'center'});
+  } else {
+    // Sin barcode: solo número de referencia interno bien grande
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9); doc.setTextColor(120,120,120);
+    doc.text('REFERENCIA INTERNA', 50, 26, {align:'center'});
+    doc.setFontSize(20); doc.setTextColor(0,0,0);
+    doc.text(d.tracking, 50, 38, {align:'center'});
+  }
+
+  // Remitente
+  let y = 52;
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(120,120,120);
+  doc.text('REMITENTE', 5, y); y+=4;
+  doc.setTextColor(0,0,0); doc.setFontSize(9);
+  doc.text('Gabriela Brenes Solano', 5, y); y+=4;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text('Cédula 304410837', 5, y); y+=4;
+  doc.text('Alto Cruz A22, Santa Cruz, Turrialba', 5, y); y+=4;
+  doc.text('CP 30504 · Cartago · Tel 8606-9717', 5, y); y+=6;
+
+  // Destinatario
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(120,120,120);
+  doc.text('DESTINATARIO', 5, y); y+=4;
+  doc.setTextColor(0,0,0); doc.setFontSize(11);
+  doc.text(d.nombre, 5, y); y+=5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  // Wrap dirección a varias líneas
+  const dirLines = doc.splitTextToSize(d.direccion, 90);
+  dirLines.forEach(ln => { doc.text(ln, 5, y); y+=4; });
+  if(d.canton){ doc.text(d.canton, 5, y); y+=4; }
+  if(d.cp){ doc.text(`CP ${d.cp}`, 5, y); y+=4; }
+  if(d.telefono){ doc.text(`Tel: ${d.telefono}`, 5, y); y+=5; }
+
+  // Datos Tavo (si aplica)
+  if(d.courier === 'tavo'){
+    y+=2;
+    doc.setDrawColor(180,180,180); doc.line(5,y,95,y); y+=4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(120,120,120);
+    doc.text('ENCOMIENDAS TAVO · SUCURSAL', 5, y); y+=4;
+    doc.setTextColor(0,0,0); doc.setFontSize(10);
+    doc.text(d.sucursal || '-', 5, y); y+=5;
+    if(d.cedula){
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text(`${d.idt}: ${d.cedula}`, 5, y); y+=4;
+    }
+  }
+
+  // Footer: peso + obs
+  y = 138;
+  doc.setDrawColor(180,180,180); doc.line(5,y-3,95,y-3);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80,80,80);
+  doc.text(`Peso: ${d.peso} g`, 5, y);
+  doc.text(d.obs || '', 95, y, {align:'right'});
+
+  // Output base64 (sin prefijo data:)
+  return doc.output('datauristring').split(',')[1];
+}
+
+async function confirmGenerar(){
+  if(!MODAL_PICKING_ID) return;
+  const payload = {
+    dest_nombre: document.getElementById('m-nombre').value,
+    dest_direccion: document.getElementById('m-direccion').value,
+    dest_telefono: (document.getElementById('m-telefono')?.value || '').trim(),
+    dest_zip: document.getElementById('m-cp').value,
+    peso_g: parseInt(document.getElementById('m-peso').value) || 500,
+    observaciones: 'Herramientas',
+  };
+  if(!payload.dest_zip || !payload.dest_direccion){
+    alert('Faltan datos: dirección y código postal son obligatorios');
+    return;
+  }
+  // Sincronizar cambios al partner antes de generar
+  await syncPartnerIfChanged(MODAL_PICKING_ID, {
+    name: payload.dest_nombre,
+    street: payload.dest_direccion,
+    zip: payload.dest_zip,
+    phone: payload.dest_telefono,
+  });
+  try {
+    const r = await api(`/api/picking/${MODAL_PICKING_ID}/generar`, {
+      method:'POST', body: JSON.stringify(payload)
+    });
+    closeModal();
+    showPdfResult(r.tracking, r.pdf_b64, 'pymex');
+    await loadPendientes();
+  } catch(e){
+    alert('Error generando guía: ' + e.message);
+  }
+}
+
+function showPdfResult(tracking, pdf_b64, courier){
+  // Sustituir contenido del modalPdf
+  const lbl = COURIER_LBL[courier] || COURIER_LBL.pymex;
+  const titleWord = courier === 'pymex' ? 'GUÍA' : 'ETIQUETA';
+  document.querySelector('#modalPdf .modal-head h2').textContent = `✓ ${titleWord} ${tracking}`;
+  const subEl = document.querySelector('#modalPdf .modal-head .page-sub');
+  if(subEl) subEl.textContent = `${lbl.nm} · ${fmtDate(new Date())}`;
+  if(pdf_b64){
+    const blob = base64ToBlob(pdf_b64, 'application/pdf');
+    const url = URL.createObjectURL(blob);
+    document.querySelector('#modalPdf .modal-body').innerHTML =
+      `<iframe src="${url}" style="width:100%; height:60vh; border:1px solid var(--border); border-radius:4px"></iframe>`;
+    document.querySelector('#modalPdf .modal-foot .right').innerHTML =
+      `<a class="btn btn-sec" href="${url}" download="${tracking}.pdf">↓ Descargar PDF</a>
+       <button class="btn btn-prim" onclick="window.open('${url}','_blank').print()">🖨 Imprimir</button>`;
+  }
+  document.getElementById('modalPdf').classList.add('show');
+}
+
+async function reimprimirGuia(picking_id, tracking, courier){
+  try{
+    const headers = {};
+    if(TOKEN) headers["X-Panel-Token"] = TOKEN;
+    const r = await fetch(API + `/api/picking/${picking_id}/etiqueta-cualquiera`, {headers});
+    if(r.status === 401){ logout(); return; }
+    if(!r.ok){
+      const t = await r.text();
+      throw new Error(t.substring(0,200) || r.status);
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const lbl = COURIER_LBL[courier] || COURIER_LBL.pymex;
+    document.querySelector("#modalPdf .modal-head h2").textContent = `🔄 ETIQUETA ${tracking} (reimpresión)`;
+    const subEl = document.querySelector("#modalPdf .modal-head .page-sub");
+    if(subEl) subEl.textContent = `${lbl.nm} · Reimpresión ${fmtDate(new Date())}`;
+    document.querySelector("#modalPdf .modal-body").innerHTML =
+      `<iframe src="${url}" style="width:100%; height:60vh; border:1px solid var(--border); border-radius:4px"></iframe>`;
+    document.querySelector("#modalPdf .modal-foot .right").innerHTML =
+      `<a class="btn btn-sec" href="${url}" download="${tracking}.pdf">↓ Descargar PDF</a>
+       <button class="btn btn-prim" onclick="window.open('${url}','_blank').print()">🖨 Imprimir</button>`;
+    document.getElementById("modalPdf").classList.add("show");
+  } catch(e){
+    // Si no hay etiqueta guardada (típico de envíos MANO o sin PDF) y es Tavo/Dual,
+    // ofrecemos regenerar una nueva etiqueta editando los datos.
+    const noLabel = /No hay etiqueta/i.test(e.message);
+    if(noLabel && (courier === 'tavo' || courier === 'dual')){
+      if(confirm('No hay etiqueta guardada para este picking.\n\n¿Generar una nueva etiqueta editando los datos? (no toca Odoo)')){
+        editAndReprintHist(picking_id, courier);
+      }
+      return;
+    }
+    alert("Error al reimprimir: " + e.message);
+  }
+}
+
+function base64ToBlob(b64, mime){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], {type: mime});
+}
+
+function closePdfModal(){ document.getElementById('modalPdf').classList.remove('show'); }
+
+// Re-bind botón "Generar e imprimir" del modal
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(()=>{
+    const btn = document.querySelector('#modalGenerar .modal-foot .btn-prim');
+    if(btn){ btn.onclick = confirmGenerar; btn.textContent = '🖨 Generar e imprimir'; }
+  }, 100);
+});
+
+// ══════ TABS ══════
+function switchTab(view, el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  ['pendientes','manual','agenda','historial','calendario','calc','fe','alibaba','wa'].forEach(v=>{
+    const sec = document.getElementById('view-'+v);
+    if(sec) sec.style.display = (v===view) ? '' : 'none';
+  });
+  const titles = {
+    pendientes:['PEDIDOS PENDIENTES DE GUÍA','Pymex (API) · Tavo y Dual (etiqueta cliente)','PENDIENTES'],
+    manual:['NUEVO ENVÍO MANUAL','Generar guía Pymex sin pedido asociado','MANUAL'],
+    agenda:['AGENDA DEL DÍA','Pickings programados agrupados por courier','AGENDA'],
+    historial:['HISTÓRICO DE ENVÍOS','Todas las guías generadas (Pymex/Tavo/Dual)','HISTÓRICO'],
+    calendario:['CALENDARIO DE ENVÍOS','Vista mensual por courier','CALENDARIO'],
+    calc:['CALCULADORA DE COSTES','Pedidos a proveedores · Landed cost · Catálogo · Lista de espera','CALCULADORA'],
+    fe:['FE CONVERTER','Conversor de facturas electrónicas Hacienda CR (embebido desde www.paracarpinteros.com)','FE CONVERTER'],
+    alibaba:['PEDIDOS ALIBABA','Manel + Gabriela · polling Gmail cada 15 min · uno mata al otro','ALIBABA'],
+    wa:['WHATSAPP BOT','Tablero de conversaciones WhatsApp · auto-respuestas + cotizaciones · estilo WhatsApp Web','WA BOT']
+  };
+  const t = titles[view] || titles.pendientes;
+  document.getElementById('pageTitle').textContent = t[0];
+  document.getElementById('pageSub').textContent = t[1];
+  const mt = document.getElementById('mtTitle');
+  if(mt) mt.textContent = t[2] || t[0];
+  // Sync bottom nav (móvil)
+  document.querySelectorAll('.bn-item[data-view]').forEach(n=>{
+    n.classList.toggle('active', n.dataset.view === view);
+  });
+  closeDrawer();
+  if(view==='pendientes') loadPendientes();
+  if(view==='calendario') loadCalendario();
+  if(view==='historial') loadHistorico();
+  if(view==='calc') {
+    const fr = document.getElementById('calcFrame');
+    if(fr && (fr.src === 'about:blank' || !fr.src.includes('/calculadora/'))){
+      fr.src = '/calculadora/';
+    }
+  }
+  if(view==='fe') {
+    const fr = document.getElementById('feFrame');
+    if(fr && (fr.src === 'about:blank' || !fr.src.includes('fe-converter'))){
+      fr.src = 'https://www.paracarpinteros.com/fe-converter';
+    }
+  }
+  if(view==='agenda') {
+    const f = document.getElementById('agendaFecha');
+    if(!f.value){ f.value = todayLocal(); }
+    loadAgenda();
+  }
+  if(view==='alibaba') abLoad();
+  if(view==='wa') {
+    const fr = document.getElementById('waFrame');
+    if(fr && (fr.src === 'about:blank' || !fr.src.includes('wa.paracarpinteros'))){
+      fr.src = 'https://wa.paracarpinteros.com/';
+    }
+  }
+}
+
+// ══════ MOBILE NAV / DRAWER / SEARCH ══════
+function toggleDrawer(){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('drawerOverlay');
+  if(sb) sb.classList.toggle('open');
+  if(ov) ov.classList.toggle('show');
+}
+function closeDrawer(){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('drawerOverlay');
+  if(sb) sb.classList.remove('open');
+  if(ov) ov.classList.remove('show');
+}
+function toggleMobileSearch(){
+  const s = document.getElementById('mtSearch');
+  const t = document.getElementById('mtTitle');
+  if(!s) return;
+  s.classList.toggle('show');
+  if(t) t.classList.toggle('hide');
+  if(s.classList.contains('show')) s.focus();
+  else { s.value = ''; onMobileSearch(''); }
+}
+function onMobileSearch(q){
+  // Si estamos en histórico, mapear a su input y refiltrar
+  const hist = document.getElementById('histQ');
+  if(hist && document.getElementById('view-historial').style.display !== 'none'){
+    hist.value = q;
+    if(window.__histSearchTimer) clearTimeout(window.__histSearchTimer);
+    window.__histSearchTimer = setTimeout(()=>{ try{ loadHistorico(); }catch(e){} }, 350);
+    return;
+  }
+  // Si estamos en alibaba, mapear al filtro de proveedor
+  const ab = document.getElementById('abFiltProveedor');
+  if(ab && document.getElementById('view-alibaba').style.display !== 'none'){
+    ab.value = q;
+    try{ abApplyFilters(); }catch(e){}
+  }
+}
+function bnSwitch(view, btn){
+  // Encuentra el nav-item del sidebar correspondiente para reusar lógica
+  const sidebarBtn = document.querySelector(`.nav-item[onclick*="switchTab('${view}'"]`);
+  switchTab(view, sidebarBtn);
+}
+
+// ══════ AGENDA ══════
+function agendaQuick(offsetDays){
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  document.getElementById('agendaFecha').value = dateLocal(d);
+  loadAgenda();
+}
+
+async function rescheduleFromAgenda(picking_id, newDate){
+  if(!newDate) return;
+  try{
+    await api(`/api/picking/${picking_id}/schedule`, {
+      method:'POST', body: JSON.stringify({fecha: newDate, hora: '09:00'})
+    });
+    // Si la nueva fecha es distinta del filtro actual, el item desaparece de esta vista al recargar
+    await loadAgenda();
+  } catch(e){
+    alert('Error reprogramando: ' + e.message);
+  }
+}
+
+// Generar guía desde Agenda — carga el picking si no está en PEDIDOS y abre el modal correcto
+async function genGuiaFromAgenda(picking_id, courier){
+  try{
+    // Si ya está en PEDIDOS (vino desde Pendientes recientemente), abrir directo
+    let idx = PEDIDOS.findIndex(p => p.picking_id === picking_id);
+    if(idx < 0){
+      // No está → cargar detalle y agregarlo
+      const d = await api(`/api/picking/${picking_id}`);
+      const partner = d.partner || {};
+      PEDIDOS.push({
+        picking_id,
+        partner_id: partner.id || null,
+        id: d.sale_name || d.picking_name || '#' + picking_id,
+        picking: d.picking_name || ('PK' + picking_id),
+        cliente: partner.name || '—',
+        email: partner.email || '',
+        prov: (partner.state_id && partner.state_id[1]) || '',
+        canton: partner.city || '',
+        cp: partner.zip || '',
+        telefono: partner.phone || '',
+        direccion: [partner.street, partner.street2].filter(Boolean).join(', '),
+        peso: d.peso_total_g ? `${d.peso_total_g}g` : '—',
+        total: '—',
+        lineas: (d.lines || []).map(l => ({
+          move_id: l.move_id, product_id: l.product_id, code: l.product_code,
+          name: l.product_name, desc: l.description, qty: l.qty,
+          precio: (l.unit_price || 0).toLocaleString('es-CR',{maximumFractionDigits:0}),
+          img_url: l.image_url ? `${l.image_url}?t=${encodeURIComponent(TOKEN||'')}` : null,
+          prepared: l.prepared,
+        })),
+        lines_count: (d.lines || []).length,
+        lines_prepared: (d.lines || []).filter(l => l.prepared).length,
+        estado: (!partner.zip || !partner.street) ? 'incompleto' : 'listo',
+        warn: !partner.zip ? 'Falta CP' : (!partner.street ? 'Falta dirección' : ''),
+        courier_slug: courier || 'pymex',
+        carrier_name: '',
+      });
+    }
+    // Ahora abrir el modal generador
+    await openModalGen(picking_id, courier);
+  } catch(e){
+    alert('Error cargando picking: ' + e.message);
+  }
+}
+
+// Ver productos del picking en un modal — sirve para Agenda e Histórico
+// Cada línea tiene checkbox para marcarla como preparada (persiste en Odoo)
+let CURRENT_ITEMS_PICKING = null;
+let CURRENT_ITEMS_LIST = [];
+async function viewAgendaItems(picking_id){
+  const modal = document.getElementById('modalItems');
+  const body  = document.getElementById('modalItemsBody');
+  const title = document.getElementById('modalItemsTitle');
+  const progress = document.getElementById('modalItemsProgress');
+  if(!modal || !body) return;
+  CURRENT_ITEMS_PICKING = picking_id;
+  body.innerHTML = '<div style="text-align:center; color:var(--text3); padding:30px">Cargando productos…</div>';
+  title.textContent = 'PRODUCTOS DEL PICKING';
+  if(progress) progress.innerHTML = '';
+  modal.classList.add('show');
+  try{
+    const data = await api(`/api/picking/${picking_id}`);
+    const partner = data.partner || {};
+    const lines = data.lines || [];
+    CURRENT_ITEMS_LIST = lines.slice();
+    title.textContent = `PRODUCTOS · ${data.picking_name || picking_id}`;
+    if(lines.length === 0){
+      body.innerHTML = '<div style="text-align:center; color:var(--text3); padding:30px">Sin líneas en este picking</div>';
+      return;
+    }
+    const peso = data.peso_total_g ? `<div style="margin-top:8px; font-size:.75rem; color:var(--text2)">Peso total: <b>${data.peso_total_g} g</b></div>` : '';
+    body.innerHTML = `
+      <div style="font-size:.72rem; color:var(--text2); margin-bottom:14px; padding:10px 12px; background:var(--card2); border-radius:var(--rsm); border:1px solid var(--border)">
+        <b style="color:var(--yellow)">${partner.name || '—'}</b>${partner.phone ? ' · ' + partner.phone : ''}<br>
+        ${[partner.street, partner.street2, partner.city].filter(Boolean).join(', ') || '—'}
+        ${peso}
+      </div>
+      <div style="font-size:.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center">
+        <span>Marcá cada producto al prepararlo</span>
+        <span id="itemsProgressTxt" style="color:var(--green); font-weight:700"></span>
+      </div>
+      <div id="itemsList" style="display:flex; flex-direction:column; gap:8px">
+        ${lines.map((l, idx) => renderItemRow(l, idx, picking_id)).join('')}
+      </div>`;
+    updateItemsProgress();
+  } catch(e){
+    body.innerHTML = `<div style="color:var(--red); padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderItemRow(l, idx, picking_id){
+  const prepared = !!l.prepared;
+  const hasImg = !!l.image_url;
+  const imgUrl = hasImg ? `${l.image_url}?t=${encodeURIComponent(TOKEN||'')}` : '';
+  const imgInner = hasImg
+    ? `<img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='📦'">`
+    : '<span style="font-size:1.6rem">📦</span>';
+  return `
+    <div id="item-row-${idx}" class="agenda-item ${prepared?'is-prepared':''}"
+         data-move-id="${l.move_id}" data-prepared="${prepared?1:0}"
+         onclick="toggleAgendaLine(${picking_id}, ${l.move_id}, ${idx})"
+         style="display:flex; gap:12px; align-items:center; padding:12px;
+                background:${prepared?'rgba(76,175,110,.12)':'var(--card2)'};
+                border:1px solid ${prepared?'rgba(76,175,110,.45)':'var(--border)'};
+                border-radius:var(--rsm); cursor:pointer; transition:.15s; user-select:none">
+
+      <div class="item-check" style="width:24px; height:24px; flex-shrink:0; border:2px solid ${prepared?'var(--green)':'var(--border2)'};
+           background:${prepared?'var(--green)':'transparent'}; border-radius:4px; display:flex;
+           align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.9rem">
+        ${prepared?'✓':''}
+      </div>
+
+      <div style="position:relative; flex-shrink:0">
+        <div style="width:56px; height:56px; border-radius:5px; overflow:hidden; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer">
+          ${imgInner}
+        </div>
+        <button class="item-zoom-btn" title="Ver ficha y foto en grande"
+                onclick="event.stopPropagation(); openItemFicha(${idx})"
+                style="position:absolute; right:-6px; bottom:-6px; width:22px; height:22px;
+                       border-radius:50%; border:2px solid var(--surface); background:var(--yellow);
+                       color:#000; font-size:.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1; font-weight:800; box-shadow:var(--shadow-md)">
+          🔍
+        </button>
+      </div>
+
+      <div style="flex:1; min-width:0; ${prepared?'opacity:.55':''}">
+        ${l.product_code ? `<div style="font-size:.58rem; color:var(--yellow); font-weight:700; letter-spacing:.5px; margin-bottom:2px">${l.product_code}</div>` : ''}
+        <div style="font-size:.85rem; line-height:1.3; word-break:break-word; font-weight:500; ${prepared?'text-decoration:line-through':''}">${l.product_name || '—'}</div>
+        ${l.description ? `<div style="font-size:.68rem; color:var(--text3); margin-top:3px">${l.description}</div>` : ''}
+      </div>
+
+      <div style="flex-shrink:0; text-align:center; ${prepared?'opacity:.55':''}
+                  background:rgba(232,168,0,.12); border:2px solid var(--yellow); border-radius:6px;
+                  padding:6px 10px; min-width:64px">
+        <div style="font-family:'Bebas Neue',Impact,sans-serif; font-size:1.7rem; font-weight:800; color:var(--yellow); line-height:1">${l.qty}</div>
+        <div style="font-size:.5rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--yellow); font-weight:700; margin-top:2px">Pedidas</div>
+      </div>
+    </div>`;
+}
+
+// Abrir ficha completa del producto: foto en grande + info detallada
+function openItemFicha(idx){
+  const l = CURRENT_ITEMS_LIST[idx];
+  if(!l) return;
+  const hasImg = !!l.image_url;
+  const imgUrl = hasImg ? `${l.image_url}?t=${encodeURIComponent(TOKEN||'')}` : '';
+  const img = document.getElementById('zoomImg');
+  const cap = document.getElementById('zoomCaption');
+  if(hasImg){
+    img.src = imgUrl;
+    img.style.display = '';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+  }
+  cap.innerHTML = `
+    <div style="text-align:left; max-width:560px; margin:0 auto">
+      ${l.product_code ? `<div style="font-size:.65rem; color:var(--yellow); font-weight:800; letter-spacing:1px; margin-bottom:6px">${l.product_code}</div>` : ''}
+      <div style="font-size:1.05rem; font-weight:600; margin-bottom:8px; line-height:1.3">${l.product_name || '—'}</div>
+      ${l.description ? `<div style="font-size:.78rem; color:#cccccc; margin-bottom:10px; line-height:1.4">${l.description}</div>` : ''}
+      <div style="display:flex; gap:10px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.15)">
+        <div style="background:rgba(232,168,0,.2); border:2px solid var(--yellow); border-radius:6px; padding:8px 14px">
+          <div style="font-family:'Bebas Neue',Impact,sans-serif; font-size:2rem; color:var(--yellow); line-height:1; text-align:center">${l.qty}</div>
+          <div style="font-size:.55rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--yellow); text-align:center; margin-top:2px">UNIDADES PEDIDAS</div>
+        </div>
+        ${l.unit_price ? `<div style="font-size:.85rem; color:#cccccc">Precio: <b style="color:#fff">₡${(l.unit_price||0).toLocaleString('es-CR',{maximumFractionDigits:0})}</b></div>` : ''}
+      </div>
+    </div>`;
+  document.getElementById('modalZoom').classList.add('show');
+}
+
+async function toggleAgendaLine(picking_id, move_id, idx){
+  const row = document.getElementById(`item-row-${idx}`);
+  if(!row) return;
+  const currently = row.dataset.prepared === '1';
+  const newState = !currently;
+  // Optimistic UI
+  applyItemRowState(idx, newState);
+  try{
+    await api(`/api/picking/${picking_id}/preparar`, {
+      method:'POST', body: JSON.stringify({move_id, prepared: newState})
+    });
+    updateItemsProgress();
+  } catch(e){
+    applyItemRowState(idx, currently);  // revertir
+    alert('Error guardando: ' + e.message);
+  }
+}
+
+function applyItemRowState(idx, prepared){
+  const row = document.getElementById(`item-row-${idx}`);
+  if(!row) return;
+  row.dataset.prepared = prepared ? '1' : '0';
+  row.style.background = prepared ? 'rgba(76,175,110,.12)' : 'var(--card2)';
+  row.style.borderColor = prepared ? 'rgba(76,175,110,.45)' : 'var(--border)';
+  const check = row.querySelector('.item-check');
+  if(check){
+    check.style.background = prepared ? 'var(--green)' : 'transparent';
+    check.style.borderColor = prepared ? 'var(--green)' : 'var(--border2)';
+    check.textContent = prepared ? '✓' : '';
+  }
+  // Línea del producto: tachado + opacidad
+  const info = row.children[2];
+  const qty  = row.children[3];
+  if(info){
+    info.style.opacity = prepared ? '.55' : '';
+    // Tachar el nombre del producto cuando está preparado.
+    info.querySelectorAll('div').forEach(d => {
+      if(d.style.fontSize === '.82rem' || d.textContent.length > 8){
+        d.style.textDecoration = prepared ? 'line-through' : 'none';
+      }
+    });
+  }
+  if(qty) qty.style.opacity = prepared ? '.55' : '';
+  updateItemsProgress();
+}
+
+function updateItemsProgress(){
+  const rows = document.querySelectorAll('#itemsList .agenda-item');
+  if(!rows.length) return;
+  const total = rows.length;
+  let done = 0;
+  rows.forEach(r => { if(r.dataset.prepared === '1') done++; });
+  const txt = document.getElementById('itemsProgressTxt');
+  if(txt){
+    if(done === total) txt.textContent = `✓ TODO PREPARADO (${done}/${total})`;
+    else if(done === 0) txt.textContent = `${total} pendientes`;
+    else txt.textContent = `${done}/${total} preparados`;
+  }
+}
+function closeItemsModal(){
+  document.getElementById('modalItems').classList.remove('show');
+  CURRENT_ITEMS_PICKING = null;
+}
+
+// ══════ AGENDAR (date picker desde Pendientes) ══════
+let SCHEDULE_PICKING_ID = null;
+function openSchedulePicker(picking_id, cliente){
+  SCHEDULE_PICKING_ID = picking_id;
+  document.getElementById('schedSub').textContent = cliente ? `Cliente: ${cliente}` : `Picking #${picking_id}`;
+  document.getElementById('schedFecha').value = todayLocal();
+  document.getElementById('schedErr').textContent = '';
+  document.getElementById('modalSchedule').classList.add('show');
+}
+function closeSchedule(){
+  document.getElementById('modalSchedule').classList.remove('show');
+  SCHEDULE_PICKING_ID = null;
+}
+function setScheduleQuick(offsetDays){
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  document.getElementById('schedFecha').value = dateLocal(d);
+}
+async function confirmSchedule(){
+  const id = SCHEDULE_PICKING_ID;
+  const fecha = document.getElementById('schedFecha').value;
+  const err = document.getElementById('schedErr');
+  err.textContent = '';
+  if(!id){ err.textContent = 'No hay picking seleccionado'; return; }
+  if(!fecha){ err.textContent = 'Elegí una fecha'; return; }
+  try{
+    await api(`/api/picking/${id}/schedule`, {
+      method:'POST', body: JSON.stringify({fecha, hora: '09:00'})
+    });
+    closeSchedule();
+    // Mensaje visual breve
+    if(typeof toast === 'function'){ toast(`✓ Agendado para ${fecha}`); }
+    // Recarga pendientes para reflejar (algunos quizás dejen de aparecer si la fecha es futura)
+    await loadPendientes();
+  } catch(e){
+    err.textContent = 'Error: ' + e.message;
+  }
+}
+
+// Compartir guía por WhatsApp / Email — abre el cliente con mensaje pre-armado
+function _shareMsg(tracking, courier){
+  const courierName = (COURIER_LBL[courier]?.nm) || (courier||'').toUpperCase();
+  let txt = `Hola! Tu pedido ya está en camino.\nTracking: ${tracking} (${courierName})`;
+  if(courier === 'pymex' && tracking){
+    txt += `\nRastreo: https://correos.go.cr/rastreo/?guia=${encodeURIComponent(tracking)}`;
+  }
+  txt += `\n\nLa Juguetería · ParaCarpinteros\nwww.paracarpinteros.com`;
+  return txt;
+}
+function shareGuiaWA(tracking, courier, telefono){
+  const msg = _shareMsg(tracking, courier);
+  // Si tenemos teléfono lo prellena, sino abre selector de contacto
+  const tel = (telefono || '').replace(/[^0-9]/g, '');
+  const base = tel ? `https://wa.me/506${tel}` : `https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+function shareGuiaMail(tracking, courier, email){
+  const msg = _shareMsg(tracking, courier);
+  const subject = `Tu pedido va en camino · ${tracking}`;
+  const to = email || '';
+  window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg)}`;
+}
+
+async function loadAgenda(){
+  const fecha = document.getElementById('agendaFecha').value || todayLocal();
+  document.getElementById('agendaBigDate').textContent = fmtDateLong(fecha).toUpperCase();
+  const list = document.getElementById('agendaList');
+  list.innerHTML = '<div class="card" style="padding:30px; text-align:center; color:var(--text3)">Cargando...</div>';
+  try{
+    const data = await api(`/api/agenda?fecha=${fecha}`);
+    document.getElementById('agendaCntPymex').textContent = data.counts.pymex;
+    document.getElementById('agendaCntTavo').textContent  = data.counts.tavo;
+    document.getElementById('agendaCntDual').textContent  = data.counts.dual;
+    document.getElementById('agendaCntUn').textContent    = data.counts.unassigned;
+
+    if(data.total === 0){
+      list.innerHTML = `<div class="card" style="padding:50px; text-align:center; color:var(--text3)">Sin envíos programados para ${fmtDateLong(fecha)}</div>`;
+      return;
+    }
+    // Render por bloques de courier
+    const blocks = ['pymex','tavo','dual','unassigned'];
+    const blockTitle = {pymex:'PYMEXPRESS', tavo:'TAVO', dual:'DUAL GLOBAL', unassigned:'SIN COURIER ASIGNADO'};
+    let html = '';
+    blocks.forEach(b => {
+      const its = data.items[b] || [];
+      if(!its.length) return;
+      html += `<div class="card list-wrap" style="padding:14px; margin-bottom:12px">
+        <h3 style="font-family:Bebas Neue,Impact,sans-serif; letter-spacing:1.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px">
+          <span class="courier-tag ${b}">${COURIER_LBL[b]?.short || '?'}</span>
+          ${blockTitle[b]} <span style="color:var(--text3); font-size:.85rem; margin-left:auto">${its.length}</span>
+        </h3>
+        <table style="width:100%; font-size:.78rem"><thead>
+          <tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Tracking</th><th style="width:170px">Mover a</th><th style="width:80px">Acción</th></tr>
+        </thead><tbody>
+          ${its.map(it => {
+            const editable = (b === 'tavo' || b === 'dual');
+            const tel = (it.telefono||'').replace(/'/g,"\\'");
+            const eml = (it.email||'').replace(/'/g,"\\'");
+            let actBtns = '';
+            // Botón "Ver Productos" visible con texto, siempre disponible
+            actBtns += `<button class="btn btn-sec" onclick="viewAgendaItems(${it.picking_id})" title="Ver productos del picking" style="padding:5px 10px; font-size:.72rem">📦 Ver Productos</button>`;
+            if(it.has_guide){
+              actBtns += `<button class="btn btn-sec" onclick="reimprimirGuia(${it.picking_id}, '${it.tracking||''}', '${b}')" title="Reabrir e imprimir etiqueta guardada" style="padding:5px 8px; font-size:.72rem; margin-left:3px">🖨 Reimprimir</button>`;
+              actBtns += `<button class="btn btn-ghost" onclick="shareGuiaWA('${it.tracking||''}', '${b}', '${tel}')" title="Compartir por WhatsApp" style="padding:5px 8px; font-size:.72rem; margin-left:3px; color:#25D366; border-color:rgba(37,211,102,.3)">📱 WhatsApp</button>`;
+              actBtns += `<button class="btn btn-ghost" onclick="shareGuiaMail('${it.tracking||''}', '${b}', '${eml}')" title="Enviar por email" style="padding:5px 8px; font-size:.72rem; margin-left:3px">✉ Email</button>`;
+              if(editable){
+                actBtns += `<button class="btn btn-ghost" onclick="editAndReprintHist(${it.picking_id}, '${b}')" title="Editar datos y regenerar etiqueta" style="padding:5px 8px; font-size:.72rem; margin-left:3px">✎ Editar</button>`;
+              }
+            } else {
+              // No tiene guía → botón principal de generar
+              const courierGen = (b === 'unassigned') ? 'pymex' : b;
+              actBtns += `<button class="btn btn-prim" onclick="genGuiaFromAgenda(${it.picking_id}, '${courierGen}')" title="Generar guía con ${courierGen.toUpperCase()}" style="padding:5px 10px; font-size:.72rem; margin-left:3px">🖨 Generar guía</button>`;
+            }
+            const rowClass = it.has_guide ? 'row-has-guide' : '';
+            return `<tr class="${rowClass}">
+            <td data-label="Pedido"><b>${it.sale||it.picking}</b><br><small style="color:var(--text3)">${it.picking}</small></td>
+            <td data-label="Cliente">${it.cliente||'—'}</td>
+            <td data-label="Estado"><span class="tag ${it.has_guide?'tag-listo':(it.state==='done'?'tag-listo':'tag-prep')}">${it.has_guide?'✓ guía':it.state}</span></td>
+            <td data-label="Tracking">${it.tracking ? '<b style="color:var(--yellow)">'+it.tracking+'</b>' : '<span style="color:var(--text3)">—</span>'}</td>
+            <td data-label="Mover a">
+              <input type="date" id="sched-${it.picking_id}" value="${(it.scheduled||'').substring(0,10)}"
+                     onchange="rescheduleFromAgenda(${it.picking_id}, this.value)"
+                     style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:4px 6px; border-radius:var(--rsm); font-size:.72rem; width:140px">
+            </td>
+            <td class="row-actions" style="text-align:center; white-space:nowrap">${actBtns}</td>
+          </tr>`;}).join('')}
+        </tbody></table>
+      </div>`;
+    });
+    list.innerHTML = html;
+  } catch(e){
+    list.innerHTML = `<div class="card" style="padding:20px; color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+// ══════ CALENDARIO ══════
+let CAL_MES = monthLocal();
+
+function calNav(delta){
+  let [y,m] = CAL_MES.split('-').map(Number);
+  m += delta;
+  if(m < 1){ m = 12; y--; }
+  if(m > 12){ m = 1; y++; }
+  CAL_MES = `${y}-${String(m).padStart(2,'0')}`;
+  loadCalendario();
+}
+function calToday(){
+  CAL_MES = monthLocal();
+  loadCalendario();
+}
+
+async function loadCalendario(){
+  const courier = document.getElementById('calCourier')?.value || 'all';
+  const monthNames = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const [y,m] = CAL_MES.split('-').map(Number);
+  document.getElementById('calTitle').textContent = `${monthNames[m-1]} ${y}`;
+  try {
+    const data = await api(`/api/calendario?mes=${CAL_MES}&courier=${courier}`);
+    renderCalendar(data.days || {});
+  } catch(e){
+    document.getElementById('calendar').innerHTML = `<div style="grid-column:1/-1; color:var(--red); padding:20px; text-align:center">Error: ${e.message}</div>`;
+  }
+}
+
+function renderCalendar(byDay){
+  const cal = document.getElementById('calendar');
+  const dows = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const [year, month] = CAL_MES.split('-').map(Number);
+  const firstDay = new Date(year, month-1, 1);
+  const startDow = (firstDay.getDay() + 6) % 7;  // lun=0
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const isThisMonth = today.getFullYear()===year && (today.getMonth()+1)===month;
+
+  let html = dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0; i<startDow; i++) html += '<div class="cal-cell empty"></div>';
+  for(let d=1; d<=daysInMonth; d++){
+    const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs = byDay[key] || [];
+    const cnt = evs.length;
+    const todayCls = isThisMonth && d===today.getDate() ? ' today' : '';
+    const evsHtml = evs.slice(0,3).map(e=>{
+      const c = e.courier || 'pymex';
+      const t = `${e.tracking} · ${(e.destinatario||'').substring(0,20)}`;
+      return `<div class="cal-event ${c}" title="${t}">${t}</div>`;
+    }).join('');
+    const more = evs.length>3 ? `<div style="font-size:.6rem;color:var(--text3);padding-left:3px">+${evs.length-3} más</div>` : '';
+    const countBadge = cnt>0 ? `<span class="cal-count">${cnt}</span>` : '';
+    const safeKey = key;
+    html += `<div class="cal-cell${todayCls}" onclick="${cnt>0?`showDayEvents('${safeKey}', ${JSON.stringify(evs).replace(/"/g,'&quot;')})`:''}">
+      <div class="cal-day">${d}</div>${countBadge}${evsHtml}${more}
+    </div>`;
+  }
+  cal.innerHTML = html;
+}
+
+function showDayEvents(day, evs){
+  const lines = evs.map(e => `${COURIER_LBL[e.courier]?.short || '?'} · ${e.tracking} · ${e.destinatario||''}`);
+  alert(`Envíos del ${fmtDateLong(day)}\n\n` + lines.join('\n'));
+}
+
+// ══════ HISTORICO ══════
+function resetHistFilters(){
+  document.getElementById('histQ').value = '';
+  document.getElementById('histCourier').value = 'all';
+  document.getElementById('histDesde').value = '';
+  document.getElementById('histHasta').value = '';
+  loadHistorico();
+}
+
+async function reimprimirEtiqueta(picking_id){
+  const url = `${API}/api/picking/${picking_id}/etiqueta-cualquiera?t=${encodeURIComponent(TOKEN)}`;
+  // Abre en nueva pestaña directo a impresión
+  const w = window.open(url, '_blank');
+  if(!w){ alert('Permite popups para reimprimir'); return; }
+  // Auto-print cuando cargue (algunos navegadores bloquean si no se gatilla por usuario)
+  setTimeout(() => { try{ w.print(); } catch(e){} }, 800);
+}
+
+// Editar datos y regenerar etiqueta Tavo/Dual desde Histórico (cliente-side, no toca Odoo)
+async function editAndReprintHist(picking_id, courier){
+  try {
+    const data = await api(`/api/picking/${picking_id}`);
+    // El endpoint devuelve {cliente, partner, picking, ...} — normalizamos a la estructura de PEDIDOS
+    const partner = data.cliente || data.partner || {};
+    const p = {
+      picking_id: picking_id,
+      partner_id: partner.id || data.partner_id,
+      cliente: partner.name || partner.nombre || data.partner_name || '',
+      direccion: partner.street || partner.calle || data.partner_street || '',
+      canton: partner.city || partner.canton || data.partner_city || '',
+      cp: partner.zip || partner.cp || data.partner_zip || '',
+      telefono: partner.phone || partner.telefono || data.partner_phone || '',
+      picking: data.picking_name || data.name || '',
+      id: data.sale_name || data.picking_name || data.name || `Picking ${picking_id}`,
+      peso: '500g',
+    };
+    MODAL_PICKING_ID = picking_id;
+    MODAL_COURIER = courier;
+    openTavoDualModal(p);
+  } catch(e){
+    alert('Error cargando datos del envío: ' + e.message);
+  }
+}
+
+async function loadHistoricoStats(){
+  // KPIs del mes en curso (rango por defecto del backend)
+  try{
+    const s = await api('/api/stats');
+    document.getElementById('statTotal').textContent = s.counts.total;
+    document.getElementById('statPymex').textContent = s.counts.pymex;
+    document.getElementById('statTavo').textContent  = s.counts.tavo;
+    document.getElementById('statDual').textContent  = s.counts.dual;
+    document.getElementById('statRange').textContent = `${fmtDate(s.desde)} → ${fmtDate(s.hasta)}`;
+  } catch(e){ /* silencioso */ }
+}
+
+async function loadHistorico(){
+  loadHistoricoStats();
+  const card = document.getElementById('histResultsCard');
+  card.innerHTML = '<div class="card" style="padding:30px; text-align:center; color:var(--text3)">Cargando...</div>';
+  const q = document.getElementById('histQ')?.value.trim() || '';
+  const courier = document.getElementById('histCourier')?.value || 'all';
+  const desde = document.getElementById('histDesde')?.value || '';
+  const hasta = document.getElementById('histHasta')?.value || '';
+  const params = new URLSearchParams();
+  if(q) params.set('q', q);
+  if(courier) params.set('courier', courier);
+  if(desde) params.set('desde', desde);
+  if(hasta) params.set('hasta', hasta);
+  params.set('limit', '200');
+  try {
+    const data = await api('/api/historico?' + params.toString());
+    const total = (data.pedidos?.length || 0) + (data.manuales?.length || 0);
+    if(total === 0){
+      card.innerHTML = `<div class="card" style="padding:50px; text-align:center; color:var(--text3)">Sin resultados</div>`;
+      return;
+    }
+    const courierTag = (slug) => {
+      const lbl = COURIER_LBL[slug] || {short:'?'};
+      return `<span class="courier-tag ${slug||'unknown'}">${lbl.short}</span>`;
+    };
+    const html = `
+      <div class="card list-wrap" style="padding:18px">
+        <h3 style="font-family:Bebas Neue,Impact,sans-serif; letter-spacing:1.5px; margin-bottom:14px">${total} resultado${total!==1?'s':''}</h3>
+        <table style="width:100%; font-size:.78rem"><thead>
+          <tr><th>Tracking</th><th>Courier</th><th>Picking</th><th>Cliente</th><th>Origen</th><th>Fecha</th><th style="width:90px">Acción</th></tr>
+        </thead><tbody>
+          ${(data.pedidos||[]).map(p=>{
+            const c = (p.courier||'').toLowerCase();
+            const editable = (c === 'tavo' || c === 'dual') && p.picking_id;
+            const editBtn = editable
+              ? `<button class="btn btn-prim" style="margin-left:4px" onclick="editAndReprintHist(${p.picking_id}, '${c}')" title="Editar datos y regenerar etiqueta (no toca Odoo)">✎ Editar</button>`
+              : '';
+            const itemsBtn = p.picking_id ? `<button class="btn btn-sec" onclick="viewAgendaItems(${p.picking_id})" title="Ver productos" style="padding:5px 10px; font-size:.72rem; margin-right:3px">📦 Ver Productos</button>` : '';
+            const tel = (p.telefono||'').replace(/'/g,"\\'");
+            const eml = (p.email||'').replace(/'/g,"\\'");
+            const shareBtns = p.tracking ? `
+              <button class="btn btn-ghost" onclick="shareGuiaWA('${p.tracking}', '${c}', '${tel}')" title="Compartir por WhatsApp" style="padding:5px 8px; font-size:.72rem; margin-left:3px; color:#25D366; border-color:rgba(37,211,102,.3)">📱 WhatsApp</button>
+              <button class="btn btn-ghost" onclick="shareGuiaMail('${p.tracking}', '${c}', '${eml}')" title="Enviar por email" style="padding:5px 8px; font-size:.72rem; margin-left:3px">✉ Email</button>` : '';
+            return `<tr>
+            <td data-label="Tracking"><b style="color:var(--yellow)">${p.tracking}</b></td>
+            <td data-label="Courier">${courierTag(p.courier)}</td>
+            <td data-label="Picking">${p.picking||'—'}</td>
+            <td data-label="Cliente">${p.destinatario||'—'}</td>
+            <td data-label="Origen"><span class="tag tag-listo">pedido</span></td>
+            <td data-label="Fecha">${fmtDateTime(p.date)}</td>
+            <td class="row-actions">${itemsBtn}${p.picking_id ? `<button class="btn btn-sec" onclick="reimprimirEtiqueta(${p.picking_id})" style="padding:5px 8px; font-size:.72rem">↻ Imprimir</button>${editBtn}` : ''}${shareBtns}</td>
+          </tr>`;}).join('')}
+          ${(data.manuales||[]).map(m=>`<tr>
+            <td data-label="Tracking"><b style="color:var(--yellow)">${m.tracking}</b></td>
+            <td data-label="Courier">${courierTag(m.courier||'pymex')}</td>
+            <td data-label="Picking">—</td>
+            <td data-label="Cliente">${m.destinatario||'—'}</td>
+            <td data-label="Origen"><span class="tag tag-prep">manual · ${m.tipo||''}</span></td>
+            <td data-label="Fecha">${fmtDateTime(m.created_at)}</td>
+            <td class="row-actions"></td>
+          </tr>`).join('')}
+        </tbody></table>
+      </div>`;
+    card.innerHTML = html;
+  } catch(e){
+    card.innerHTML = `<div class="card" style="padding:20px; color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ALIBABA DASHBOARD — backend en panel.paracarpinteros.com/alibaba-rx
+// ══════════════════════════════════════════════════════════════════
+const ALIBABA_API_KEY = '5244633db0219316428f0cfc747a55f863d4f0d319fda5ecab9ba9a625cbc6d4';
+let abAllPedidos = [];
+let abShenzhenGroups = [];
+let abShowOnlyShenzhen = false;
+let abShowTerminal = false;
+
+async function abFetch(path, opts={}){
+  const headers = Object.assign({'X-API-Key': ALIBABA_API_KEY}, opts.headers || {});
+  if(opts.body && typeof opts.body !== 'string'){
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.body);
+  }
+  const r = await fetch('/alibaba-rx' + path, Object.assign({}, opts, {headers}));
+  let data;
+  try { data = await r.json(); }
+  catch(e){ throw new Error('respuesta no-JSON HTTP ' + r.status); }
+  if(!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+  return data;
+}
+
+async function abLoad(){
+  const tbody = document.getElementById('abTablaBody');
+  if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text3); padding:30px">Cargando…</td></tr>`;
+  try {
+    const status = await abFetch('/status');
+    document.getElementById('abConnPanel').style.display = status.connected ? 'none' : '';
+    document.getElementById('abLastSync').textContent =
+      'Última sincronización: ' + (status.last_poll ? new Date(status.last_poll*1000).toLocaleString('es-CR') : 'nunca')
+      + (status.email ? ' · ' + status.email : '');
+
+    const data = await abFetch('/list?limit=2000');
+    abAllPedidos = data.pedidos || [];
+    abShenzhenGroups = data.shenzhen_grupos || [];
+
+    // badge sidebar
+    const activeCount = abAllPedidos.filter(p => !['cancelado','revocado','entregado','envio_completo','resena_pendiente'].includes(p.estado)).length;
+    const badge = document.getElementById('badgeAlibaba');
+    if(activeCount > 0){ badge.style.display=''; badge.textContent = activeCount; }
+    else { badge.style.display = 'none'; }
+
+    abRenderKpis();
+    abRenderShenzhen();
+    abApplyFilters();
+  } catch(e){
+    if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--red); padding:30px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function abRenderKpis(){
+  const active = abAllPedidos.filter(p => !['cancelado','revocado','entregado','envio_completo','resena_pendiente'].includes(p.estado));
+  const enCamino = abAllPedidos.filter(p => ['en_camino','enviado','cerca_entrega'].includes(p.estado));
+  const resena = abAllPedidos.filter(p => p.estado === 'resena_pendiente');
+  const shenzhen = abAllPedidos.filter(p => p.in_shenzhen === 1);
+  document.getElementById('abKpiActivos').textContent = active.length;
+  document.getElementById('abKpiEnCamino').textContent = enCamino.length;
+  document.getElementById('abKpiResena').textContent = resena.length;
+  document.getElementById('abKpiShenzhen').textContent = shenzhen.length;
+}
+
+function abRenderShenzhen(){
+  const cont = document.getElementById('abShenzhenGroups');
+  if(!abShenzhenGroups.length){ cont.innerHTML = ''; return; }
+  cont.innerHTML = '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:stretch">' +
+    abShenzhenGroups.map(g => {
+      const peds = abAllPedidos.filter(p => p.shenzhen_group === g.grupo);
+      return `<div class="card" style="padding:10px 14px; min-width:180px; cursor:pointer" onclick="document.getElementById('abFiltProveedor').value=''; abShowOnlyShenzhen=true; document.getElementById('abBtnShenzhen').classList.add('btn-prim'); abApplyFilters()">
+        <div style="font-weight:700; font-size:.85rem; color:var(--yellow)">✈ ${abEscape(g.grupo)}</div>
+        <div style="font-size:.65rem; color:var(--text3); margin:4px 0">${peds.length} pedido${peds.length===1?'':'s'} · ${abEscape(g.estado||'agrupando')}</div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function abApplyFilters(){
+  const comprador = document.getElementById('abFiltComprador').value;
+  const estadoCsv = document.getElementById('abFiltEstado').value;
+  const proveedor = document.getElementById('abFiltProveedor').value.toLowerCase();
+  const estados = estadoCsv ? estadoCsv.split(',') : null;
+  let rows = abAllPedidos.filter(p => {
+    if(comprador && p.comprador !== comprador) return false;
+    if(estados && !estados.includes(p.estado)) return false;
+    if(proveedor && !(p.proveedor||'').toLowerCase().includes(proveedor)) return false;
+    if(abShowOnlyShenzhen && p.in_shenzhen !== 1) return false;
+    if(!abShowTerminal && ['cancelado','revocado','entregado','envio_completo','resena_pendiente'].includes(p.estado)) return false;
+    return true;
+  });
+  rows.sort((a,b) => (b.fecha_ultimo_evento||0) - (a.fecha_ultimo_evento||0));
+
+  const tbody = document.getElementById('abTablaBody');
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text3); padding:30px">Sin resultados con esos filtros</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(p => abRowHtml(p)).join('');
+}
+
+function abRowHtml(p){
+  const compIcon = p.comprador === 'manel' ? '👨 Manel' : p.comprador === 'gabriela' ? '👩 Gabriela' : '? ' + (p.comprador||'');
+  const fechaHuman = p.fecha_ultimo_evento ? new Date(p.fecha_ultimo_evento*1000).toLocaleDateString('es-CR') : '—';
+  const monto = p.monto ? Number(p.monto).toFixed(2) + (p.moneda?' '+p.moneda:'') : '—';
+  const estClass = abEstadoClass(p.estado);
+  const grupoBadge = p.shenzhen_group ? `<small style="display:block; color:var(--yellow); font-size:.55rem; margin-top:2px">✈ ${abEscape(p.shenzhen_group)}</small>` : '';
+  const items = p.items || [];
+  const arrow = items.length ? `<span class="expand-arrow" id="ab-arr-${p.numero}" onclick="abToggleItems('${p.numero}')" style="cursor:pointer; color:var(--yellow)">▸</span>` : '<span style="color:var(--text3)">·</span>';
+  const itemsBadge = items.length ? `<small style="color:var(--text3); font-size:.6rem; margin-left:4px">${items.length} ítem${items.length===1?'':'s'}</small>` : '';
+
+  const itemsRow = items.length ? `
+    <tr class="ab-items-row" id="ab-items-${p.numero}" style="display:none; background:var(--card2)">
+      <td colspan="8" style="padding:0">
+        <div style="padding:14px 18px">
+          <div style="font-size:.55rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); margin-bottom:10px">Productos del pedido</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px">
+            ${items.map(it => abItemCardHtml(it)).join('')}
+          </div>
+        </div>
+      </td>
+    </tr>` : '';
+
+  return `
+    <tr>
+      <td data-label="Pedido" style="white-space:nowrap">${arrow} <b style="font-family:monospace; font-size:.7rem">${abEscape(p.numero)}</b>${grupoBadge}${itemsBadge}</td>
+      <td data-label="Comprador">${compIcon}</td>
+      <td data-label="Proveedor">${abEscape(p.proveedor || '—')}</td>
+      <td data-label="Estado"><span class="tag ${estClass}">${abEscape(p.estado_etiqueta || p.estado)}</span></td>
+      <td data-label="Última actividad">${fechaHuman}</td>
+      <td data-label="Monto">${monto}</td>
+      <td data-label="✈ Shenzhen" style="text-align:center">
+        <input type="checkbox" ${p.in_shenzhen===1?'checked':''} onchange="abToggleShenzhen('${p.numero}', this.checked)" style="cursor:pointer; width:16px; height:16px; accent-color:var(--yellow)" />
+      </td>
+      <td class="row-actions">
+        <button class="btn btn-ghost" onclick="abEditNote('${p.numero}')" title="Notas">📝</button>
+        <a class="btn btn-ghost" href="https://trade.alibaba.com/order/detail.htm?orderId=${p.numero}" target="_blank" title="Abrir en Alibaba">↗</a>
+      </td>
+    </tr>
+    ${itemsRow}`;
+}
+
+function abItemCardHtml(it){
+  const precio = it.precio_unitario ? `${(it.moneda||'')} ${Number(it.precio_unitario).toFixed(2)}` : '';
+  const cantidad = it.cantidad ? `${it.cantidad} ${abEscape(it.unidad||'')}` : '';
+  const subtotal = (it.cantidad && it.precio_unitario) ? `${(it.cantidad * it.precio_unitario).toFixed(2)} ${abEscape(it.moneda||'')}` : '';
+  const img = it.imagen_url ? `<img src="${abEscape(it.imagen_url)}" alt="" style="width:60px; height:60px; object-fit:cover; border-radius:4px; flex-shrink:0" onerror="this.style.display='none'">` : '';
+  return `
+    <div style="display:flex; gap:10px; background:var(--card); padding:8px; border-radius:6px; border:1px solid var(--border)">
+      ${img}
+      <div style="flex:1; min-width:0">
+        <div style="font-size:.72rem; color:var(--text); font-weight:600; line-height:1.3; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical" title="${abEscape(it.nombre)}">${abEscape(it.nombre)}</div>
+        <div style="font-size:.65rem; color:var(--text2); display:flex; gap:10px; flex-wrap:wrap">
+          ${cantidad?`<span>📦 ${cantidad}</span>`:''}
+          ${precio?`<span>💲 ${abEscape(precio)} c/u</span>`:''}
+          ${subtotal?`<span style="color:var(--yellow); font-weight:600">= ${abEscape(subtotal)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function abToggleItems(numero){
+  const row = document.getElementById('ab-items-' + numero);
+  const arr = document.getElementById('ab-arr-' + numero);
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : '';
+  if (arr) arr.textContent = open ? '▸' : '▾';
+}
+
+function abEstadoClass(estado){
+  if(['entregado','envio_completo'].includes(estado)) return 'tag-listo';
+  if(['cancelado','revocado'].includes(estado)) return 'tag-error';
+  if(['resena_pendiente'].includes(estado)) return 'tag-incompleto';
+  return 'tag-pendiente';
+}
+
+async function abToggleShenzhen(numero, checked){
+  let grupo = null;
+  if(checked){
+    grupo = prompt('Grupo Shenzhen (opcional, ej. SH-01):', '');
+    if(grupo === null){ abLoad(); return; } // cancelado por el usuario
+  }
+  try {
+    await abFetch('/consolidate', {method:'POST', body:{action:'toggle', numero, in_shenzhen:checked?1:0, shenzhen_group:grupo||null}});
+    await abLoad();
+  } catch(e){ alert('Error: ' + e.message); abLoad(); }
+}
+
+async function abEditNote(numero){
+  const ped = abAllPedidos.find(p => p.numero === numero);
+  const nuevo = prompt('Notas para el pedido ' + numero + ':', (ped && ped.notas) || '');
+  if(nuevo === null) return;
+  try {
+    await abFetch('/consolidate', {method:'POST', body:{action:'note', numero, notas:nuevo}});
+    abLoad();
+  } catch(e){ alert('Error: ' + e.message); }
+}
+
+async function abSyncNow(){
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Sincronizando…'; btn.disabled = true;
+  try {
+    const r = await abFetch('/sync', {method:'POST'});
+    if(r.ok){
+      const sr = r.resumen || {};
+      btn.textContent = `↻ ${sr.mensajes||0} mails · +${sr.pedidos_nuevos||0} · ↻${sr.pedidos_actualizados||0}`;
+      setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 3000);
+      abLoad();
+    } else {
+      throw new Error(r.error || 'sync falló');
+    }
+  } catch(e){
+    btn.textContent = '✕ Error';
+    alert('Error sincronizando: ' + e.message);
+    setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 2500);
+  }
+}
+
+function abEscape(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+</script>
+</body>
+</html>

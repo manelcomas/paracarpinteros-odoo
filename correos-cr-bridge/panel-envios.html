@@ -198,12 +198,14 @@ tr.detail-row td{padding:14px 18px}
 .courier-tag.pymex{background:rgba(76,175,110,.15); color:#5cd684}
 .courier-tag.tavo{background:rgba(59,130,246,.15); color:#7eb1ff}
 .courier-tag.dual{background:rgba(168,85,247,.15); color:#c084fc}
+.courier-tag.mano{background:rgba(232,168,0,.18); color:#ffc94a}
 .courier-tag.unknown{background:rgba(168,168,168,.15); color:#a8a8a8}
 
 /* Calendar event coloring por courier */
 .cal-event.pymex{background:rgba(76,175,110,.16); color:#5cd684}
 .cal-event.tavo{background:rgba(59,130,246,.16); color:#7eb1ff}
 .cal-event.dual{background:rgba(168,85,247,.16); color:#c084fc}
+.cal-event.mano{background:rgba(232,168,0,.18); color:#ffc94a}
 
 /* ───────── MOBILE TOPBAR ───────── */
 .mobile-topbar{display:none; position:sticky; top:0; z-index:30; height:var(--topbar);
@@ -1032,6 +1034,62 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
   </div>
 </div>
 
+<!-- ╔═══ MODAL: ENTREGA A MANO ═══╗ -->
+<div class="modal-bg" id="modalMano">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalManoTitle">📍 ENTREGA A MANO · —</h2>
+        <div class="page-sub" id="modalManoSub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeManoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">
+        <h3>Destino</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <label style="flex:1; min-width:200px; display:flex; align-items:center; gap:10px; padding:14px;
+                       background:var(--card2); border:2px solid var(--border2); border-radius:8px; cursor:pointer; font-weight:700"
+                 id="mano-opt-tt" onclick="selectManoDest('Turrialba')">
+            <input type="radio" name="mano-destino" value="Turrialba" id="mano-r-tt" style="margin:0">
+            <span style="font-size:1.4rem">🚚</span>
+            <span>Entregar a Turrialba<br><small style="color:var(--text3); font-weight:normal">Lleva en ruta a Turrialba</small></span>
+          </label>
+          <label style="flex:1; min-width:200px; display:flex; align-items:center; gap:10px; padding:14px;
+                       background:var(--card2); border:2px solid var(--border2); border-radius:8px; cursor:pointer; font-weight:700"
+                 id="mano-opt-al" onclick="selectManoDest('Almacén')">
+            <input type="radio" name="mano-destino" value="Almacén" id="mano-r-al" style="margin:0">
+            <span style="font-size:1.4rem">🏪</span>
+            <span>Retira en Almacén<br><small style="color:var(--text3); font-weight:normal">Cliente pasa a recoger</small></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <h3>Destinatario</h3>
+        <div class="summary-box" id="mano-dest-box">—</div>
+      </div>
+
+      <div class="field-section">
+        <h3>Notas <small style="font-size:.65rem; color:var(--text3); font-weight:normal">(opcional — sale en la etiqueta)</small></h3>
+        <div class="field full">
+          <input id="mano-notas" placeholder="Ej: avisar al llegar, dejar con vecino, etc.">
+        </div>
+      </div>
+
+      <div id="mano-error" style="color:var(--red); font-size:.78rem; margin-top:10px"></div>
+    </div>
+    <div class="modal-foot">
+      <div class="left">
+        <button class="btn btn-ghost" onclick="closeManoModal()">Cancelar</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-prim" onclick="generarEntregaMano()">🖨 Generar e imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ╔═══ MODAL: PDF GENERADO ═══╗ -->
 <div class="modal-bg" id="modalPdf">
   <div class="modal" style="max-width:520px">
@@ -1271,6 +1329,7 @@ function fmtDateTime(s){
 // ══════ ESTADO ══════
 let PEDIDOS = [];
 let CURRENT_COURIER = 'pymex';     // pymex | tavo | dual | all
+let AGENDA_CACHE = {};             // picking_id → item de la agenda actual (incluye mano_dest/mano_notas)
 let CURRENT_FILTER = 'todos';      // todos | listos | incompletos | preparando
 const PREPARADO = {};
 
@@ -1279,6 +1338,7 @@ const COURIER_LBL = {
   pymex: {nm:'Pymexpress', short:'Pymex', color:'green'},
   tavo:  {nm:'Encomiendas Tavo', short:'Tavo', color:'blue'},
   dual:  {nm:'Dual Global', short:'Dual', color:'purple'},
+  mano:  {nm:'Entrega a Mano', short:'Mano', color:'orange'},
   all:   {nm:'Todos', short:'Todos', color:''},
 };
 
@@ -1623,6 +1683,10 @@ async function openModalGen(picking_id, courierOverride){
   if(MODAL_COURIER === 'tavo' || MODAL_COURIER === 'dual'){
     return openTavoDualModal(p);
   }
+  // Entrega a mano: modal cliente-side, sin guía courier
+  if(MODAL_COURIER === 'mano'){
+    return openEntregaManoModal(p);
+  }
 
   // Pymex (y unknown) → modal API real
   document.getElementById('modalTitle').textContent = `GENERAR GUÍA PYMEX · ${p.id}`;
@@ -1943,6 +2007,175 @@ function buildLabelPDF(d){
   return doc.output('datauristring').split(',')[1];
 }
 
+// ══════ MODAL ENTREGA A MANO (Turrialba / Almacén) ══════
+let MANO_DEST = null;   // 'Turrialba' | 'Almacén'
+
+function openEntregaManoModal(p){
+  MODAL_PICKING_ID = p.picking_id;
+  MODAL_COURIER = 'mano';
+  MANO_DEST = null;
+  document.getElementById('modalManoTitle').textContent = `📍 ENTREGA A MANO · ${p.id || p.picking}`;
+  document.getElementById('modalManoSub').textContent = `${p.cliente || '—'} · Picking ${p.picking || ''}`;
+  document.getElementById('mano-r-tt').checked = false;
+  document.getElementById('mano-r-al').checked = false;
+  document.getElementById('mano-notas').value = '';
+  document.getElementById('mano-error').textContent = '';
+  // Pintar las cajas como no seleccionadas
+  document.getElementById('mano-opt-tt').style.borderColor = 'var(--border2)';
+  document.getElementById('mano-opt-tt').style.background = 'var(--card2)';
+  document.getElementById('mano-opt-al').style.borderColor = 'var(--border2)';
+  document.getElementById('mano-opt-al').style.background = 'var(--card2)';
+  // Resumen destinatario
+  const box = document.getElementById('mano-dest-box');
+  const partes = [];
+  if(p.cliente) partes.push(`<b>${escapeHtml(p.cliente)}</b>`);
+  if(p.telefono) partes.push(`Tel: ${escapeHtml(p.telefono)}`);
+  if(p.direccion) partes.push(escapeHtml(p.direccion));
+  if(p.cp && p.cp !== '(falta)') partes.push(`CP ${escapeHtml(p.cp)}`);
+  box.innerHTML = partes.join('<br>') || '<span style="color:var(--text3)">(sin datos del cliente)</span>';
+  document.getElementById('modalMano').classList.add('show');
+}
+
+function closeManoModal(){ document.getElementById('modalMano').classList.remove('show'); }
+
+function selectManoDest(dest){
+  MANO_DEST = dest;
+  const isTt = dest === 'Turrialba';
+  const tt = document.getElementById('mano-opt-tt');
+  const al = document.getElementById('mano-opt-al');
+  document.getElementById('mano-r-tt').checked = isTt;
+  document.getElementById('mano-r-al').checked = !isTt;
+  tt.style.borderColor = isTt ? 'var(--yellow)' : 'var(--border2)';
+  tt.style.background = isTt ? 'rgba(232,168,0,.10)' : 'var(--card2)';
+  al.style.borderColor = !isTt ? 'var(--yellow)' : 'var(--border2)';
+  al.style.background = !isTt ? 'rgba(232,168,0,.10)' : 'var(--card2)';
+}
+
+// Construye PDF de etiqueta de entrega a mano. Térmica 100x150mm, monocromo.
+function buildManoLabelPDF(d){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'p', unit:'mm', format:[100,150]});
+
+  // HEADER negro sólido
+  doc.setFillColor(0,0,0);
+  doc.rect(0,0,100,18,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text('ENTREGA A MANO', 50, 12, {align:'center'});
+
+  // Destino — bloque grande
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text('DESTINO', 50, 26, {align:'center'});
+  doc.setFontSize(28); doc.setFont('helvetica','bold');
+  const destLine = (d.destino === 'Turrialba') ? 'TURRIALBA' : 'ALMACÉN';
+  doc.text(destLine, 50, 40, {align:'center'});
+
+  // Subtitle
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+  const sub = (d.destino === 'Turrialba')
+    ? 'Llevar en próxima ruta a Turrialba'
+    : 'Cliente pasa a recoger al almacén';
+  doc.text(sub, 50, 47, {align:'center'});
+
+  // Pedido + fecha
+  doc.setDrawColor(0,0,0);
+  doc.line(5, 53, 95, 53);
+  doc.setTextColor(0,0,0); doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.text('PEDIDO', 5, 58); doc.text('FECHA', 95, 58, {align:'right'});
+  doc.setFontSize(11); doc.setFont('helvetica','bold');
+  doc.text(d.sale || d.picking || '—', 5, 64);
+  doc.text(d.fecha, 95, 64, {align:'right'});
+
+  // Destinatario
+  let y = 74;
+  doc.setDrawColor(0,0,0); doc.line(5, y-3, 95, y-3);
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+  doc.text('DESTINATARIO', 5, y); y += 5;
+  doc.setTextColor(0,0,0); doc.setFontSize(11); doc.setFont('helvetica','bold');
+  // Wrap nombre si es largo
+  const nombre = doc.splitTextToSize(d.cliente || '—', 90);
+  doc.text(nombre, 5, y); y += 5 * nombre.length;
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  if(d.telefono){ doc.text(`Tel: ${d.telefono}`, 5, y); y += 4; }
+  if(d.direccion){
+    const dirL = doc.splitTextToSize(d.direccion, 90);
+    doc.text(dirL, 5, y); y += 4 * dirL.length;
+  }
+
+  // Notas (opcional, en caja)
+  if(d.notas){
+    y = Math.max(y + 2, 110);
+    doc.setDrawColor(120,120,120); doc.setFillColor(245,245,245);
+    doc.roundedRect(5, y, 90, 22, 2, 2, 'FD');
+    doc.setTextColor(80,80,80); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.text('NOTAS', 8, y + 4);
+    doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont('helvetica','normal');
+    const noteL = doc.splitTextToSize(d.notas, 84);
+    doc.text(noteL.slice(0, 3), 8, y + 9);
+  }
+
+  // Footer: tracking interno
+  doc.setDrawColor(0,0,0); doc.line(5, 140, 95, 140);
+  doc.setFontSize(7); doc.setTextColor(120,120,120); doc.setFont('helvetica','normal');
+  doc.text('Ref interna:', 5, 145);
+  doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0); doc.setFontSize(9);
+  doc.text(d.tracking || '—', 25, 145);
+
+  return doc.output('datauristring').split(',')[1];
+}
+
+async function generarEntregaMano(){
+  if(!MODAL_PICKING_ID) return;
+  const errEl = document.getElementById('mano-error');
+  errEl.textContent = '';
+  if(!MANO_DEST){
+    errEl.textContent = 'Elegí dónde se entrega: Turrialba o Almacén.';
+    return;
+  }
+  const notas = document.getElementById('mano-notas').value.trim();
+
+  // Buscar datos del picking en cache
+  const idx = PEDIDOS.findIndex(p => p.picking_id === MODAL_PICKING_ID);
+  const p = idx >= 0 ? PEDIDOS[idx] : {};
+
+  // 1) Marcar en backend (escribe MANO-{id} en Odoo + registra SQLite)
+  let tracking = 'MANO-' + MODAL_PICKING_ID;
+  try {
+    const r = await api(`/api/picking/${MODAL_PICKING_ID}/entrega-mano`, {
+      method:'POST',
+      body: JSON.stringify({entregado_a: MANO_DEST, notas: notas}),
+    });
+    tracking = r.tracking || tracking;
+  } catch(e){
+    errEl.textContent = 'Error registrando entrega: ' + e.message;
+    return;
+  }
+
+  // 2) Construir PDF client-side
+  const pdfB64 = buildManoLabelPDF({
+    destino: MANO_DEST,
+    sale: p.id || ('PK' + MODAL_PICKING_ID),
+    picking: p.picking || '',
+    cliente: p.cliente || '',
+    telefono: p.telefono || '',
+    direccion: p.direccion || '',
+    notas: notas,
+    tracking: tracking,
+    fecha: fmtDate(new Date()),
+  });
+
+  closeManoModal();
+  showPdfResult(tracking, pdfB64, 'mano');
+  if(typeof loadAgenda === 'function') await loadAgenda();
+  if(typeof loadPendientes === 'function') await loadPendientes();
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 async function confirmGenerar(){
   if(!MODAL_PICKING_ID) return;
   const payload = {
@@ -1996,6 +2229,45 @@ function showPdfResult(tracking, pdf_b64, courier){
 }
 
 async function reimprimirGuia(picking_id, tracking, courier){
+  // Entregas a mano no guardan PDF en el servidor: regenerar client-side
+  // pidiendo los datos completos del picking (cliente, dirección, teléfono).
+  if((tracking || '').toUpperCase().startsWith('MANO-')){
+    const it = AGENDA_CACHE[picking_id] || {};
+    let detalle = {};
+    try {
+      const d = await api(`/api/picking/${picking_id}`);
+      const partner = d.partner || {};
+      detalle = {
+        sale: d.picking?.name || it.sale || it.picking,
+        picking: d.picking?.name || it.picking,
+        cliente: partner.name || it.cliente || '',
+        telefono: partner.phone || '',
+        direccion: [partner.street, partner.street2].filter(Boolean).join(', '),
+      };
+    } catch(e){
+      // Si falla el fetch usamos lo que haya en caché
+      detalle = {
+        sale: it.sale || ('PK' + picking_id),
+        picking: it.picking || '',
+        cliente: it.cliente || '',
+        telefono: it.telefono || '',
+        direccion: it.direccion || '',
+      };
+    }
+    const pdfB64 = buildManoLabelPDF({
+      destino: it.mano_dest || 'Turrialba',
+      sale: detalle.sale,
+      picking: detalle.picking,
+      cliente: detalle.cliente,
+      telefono: detalle.telefono,
+      direccion: detalle.direccion,
+      notas: it.mano_notas || '',
+      tracking: tracking,
+      fecha: fmtDate(new Date()),
+    });
+    showPdfResult(tracking, pdfB64, 'mano');
+    return;
+  }
   try{
     const headers = {};
     if(TOKEN) headers["X-Panel-Token"] = TOKEN;
@@ -2483,7 +2755,16 @@ async function loadAgenda(){
 
     if(data.total === 0){
       list.innerHTML = `<div class="card" style="padding:50px; text-align:center; color:var(--text3)">Sin envíos programados para ${fmtDateLong(fecha)}</div>`;
+      AGENDA_CACHE = {};
       return;
+    }
+    // Caché por picking_id para que reimprimir pueda leer mano_dest / mano_notas
+    // sin volver a llamar al backend.
+    AGENDA_CACHE = {};
+    for(const b of Object.keys(data.items || {})){
+      for(const it of (data.items[b] || [])){
+        AGENDA_CACHE[it.picking_id] = it;
+      }
     }
     // Render por bloques de courier
     const blocks = ['pymex','tavo','dual','unassigned'];
@@ -2515,16 +2796,17 @@ async function loadAgenda(){
                 actBtns += `<button class="btn btn-ghost" onclick="editAndReprintHist(${it.picking_id}, '${b}')" title="Editar datos y regenerar etiqueta" style="padding:5px 8px; font-size:.72rem; margin-left:3px">✎ Editar</button>`;
               }
             } else {
-              // No tiene guía → botón principal de generar
+              // No tiene guía → botón principal de generar + opción de entrega a mano
               const courierGen = (b === 'unassigned') ? 'pymex' : b;
               actBtns += `<button class="btn btn-prim" onclick="genGuiaFromAgenda(${it.picking_id}, '${courierGen}')" title="Generar guía con ${courierGen.toUpperCase()}" style="padding:5px 10px; font-size:.72rem; margin-left:3px">🖨 Generar guía</button>`;
+              actBtns += `<button class="btn btn-sec" onclick="genGuiaFromAgenda(${it.picking_id}, 'mano')" title="Entrega a mano (Turrialba o Almacén) — no genera guía courier" style="padding:5px 8px; font-size:.72rem; margin-left:3px; background:rgba(232,168,0,.10); border-color:rgba(232,168,0,.4); color:#ffc94a">📍 Mano</button>`;
             }
             const rowClass = it.has_guide ? 'row-has-guide' : '';
             return `<tr class="${rowClass}">
             <td data-label="Pedido"><b>${it.sale||it.picking}</b><br><small style="color:var(--text3)">${it.picking}</small></td>
             <td data-label="Cliente">${it.cliente||'—'}</td>
-            <td data-label="Estado"><span class="tag ${it.has_guide?'tag-listo':(it.state==='done'?'tag-listo':'tag-prep')}">${it.has_guide?'✓ guía':it.state}</span></td>
-            <td data-label="Tracking">${it.tracking ? '<b style="color:var(--yellow)">'+it.tracking+'</b>' : '<span style="color:var(--text3)">—</span>'}</td>
+            <td data-label="Estado"><span class="tag ${it.has_guide?'tag-listo':(it.state==='done'?'tag-listo':'tag-prep')}">${it.has_guide?(((it.tracking||'').toUpperCase().startsWith('MANO-'))?'📍 mano':'✓ guía'):it.state}</span></td>
+            <td data-label="Tracking">${it.tracking ? (((it.tracking||'').toUpperCase().startsWith('MANO-')) ? '<span class="courier-tag mano">📍 '+(it.mano_dest||'MANO')+'</span><br><small style="color:var(--text3)">'+it.tracking+'</small>' : '<b style="color:var(--yellow)">'+it.tracking+'</b>') : '<span style="color:var(--text3)">—</span>'}</td>
             <td data-label="Mover a">
               <input type="date" id="sched-${it.picking_id}" value="${(it.scheduled||'').substring(0,10)}"
                      onchange="rescheduleFromAgenda(${it.picking_id}, this.value)"

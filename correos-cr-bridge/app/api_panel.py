@@ -1175,6 +1175,21 @@ def agenda(fecha: str):
         except Exception as e:
             _logger.warning(f'agenda: no inferred courier: {e}')
 
+    # Lookup local de entregas-mano para los picks de hoy (destino + notas).
+    # Permite regenerar la etiqueta MANO en reimpresión sin perder esos campos.
+    mano_by_pid = {}
+    if pks:
+        conn = db()
+        try:
+            rows = conn.execute(
+                f"SELECT picking_id, entregado_a, notas FROM entrega_mano "
+                f"WHERE picking_id IN ({','.join('?' * len(pks))})",
+                [pk['id'] for pk in pks]
+            ).fetchall()
+            mano_by_pid = {r['picking_id']: dict(r) for r in rows}
+        finally:
+            conn.close()
+
     # Construir items y conteo por courier
     items = {'pymex': [], 'tavo': [], 'dual': [], 'unassigned': []}
     counts = {'pymex': 0, 'tavo': 0, 'dual': 0, 'unassigned': 0}
@@ -1184,6 +1199,7 @@ def agenda(fecha: str):
         if not slug and pk.get('sale_id'):
             slug = sale_courier.get(pk['sale_id'][0])
         bucket = slug if slug in ('pymex', 'tavo', 'dual') else 'unassigned'
+        mano_row = mano_by_pid.get(pk['id']) or {}
         items[bucket].append({
             'picking_id': pk['id'],
             'picking': pk['name'],
@@ -1194,6 +1210,9 @@ def agenda(fecha: str):
             'tracking': pk.get('carrier_tracking_ref') or '',
             'scheduled': pk.get('scheduled_date'),
             'has_guide': bool(pk.get('carrier_tracking_ref')),
+            # Solo presente para pickings entregados a mano:
+            'mano_dest': mano_row.get('entregado_a') or '',
+            'mano_notas': mano_row.get('notas') or '',
         })
         counts[bucket] += 1
     return {'fecha': fecha, 'counts': counts, 'items': items, 'total': len(pks)}

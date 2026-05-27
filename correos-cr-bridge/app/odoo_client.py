@@ -24,6 +24,10 @@ class OdooClient:
         self._uid: Optional[int] = None
         self._common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common", allow_none=True)
         self._models = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/object", allow_none=True)
+        # Mapa ZIP CR → (distrito_id, distrito_name, canton_id, canton_name).
+        # Se carga perezosamente en read_partner cuando un partner no tiene
+        # los Studio fields rellenos pero sí ZIP, para sintetizar la geografía.
+        self._zip_map: Optional[dict] = None
 
     def authenticate(self) -> int:
         if self._uid is not None:
@@ -101,6 +105,31 @@ class OdooClient:
             ]}
         )
 
+    def _load_zip_map(self) -> dict:
+        """Construye {zip: (dist_id, dist_name, cant_id, cant_name)} desde la
+        tabla maestra x_distrito_cr. Se llama una vez por proceso."""
+        if self._zip_map is not None:
+            return self._zip_map
+        try:
+            rows = self.execute_kw(
+                'x_distrito_cr', 'search_read',
+                [[('x_studio_zip', '!=', False)]],
+                {'fields': ['id', 'x_name', 'x_studio_zip', 'x_studio_canton_cr']}
+            )
+        except OdooError as e:
+            _logger.warning("No se pudo cargar x_distrito_cr (zip fallback deshabilitado): %s", e)
+            self._zip_map = {}
+            return self._zip_map
+        m = {}
+        for d in rows:
+            z = (d.get('x_studio_zip') or '').strip()
+            cant = d.get('x_studio_canton_cr')
+            if z and len(z) == 5 and cant:
+                m[z] = (d['id'], d.get('x_name') or '', cant[0], cant[1])
+        self._zip_map = m
+        _logger.info("Cargado mapa ZIP→distrito (%d entradas)", len(m))
+        return m
+
     def read_partner(self, partner_id: int) -> dict:
         r = self.execute_kw(
             'res.partner', 'read', [[partner_id]],
@@ -114,7 +143,23 @@ class OdooClient:
                 'x_studio_canton_cr', 'x_studio_distrito_cr', 'x_studio_senas',
             ]}
         )
-        return r[0] if r else {}
+        if not r:
+            return {}
+        partner = r[0]
+        # Fallback: si el partner no tiene cantón/distrito pero sí ZIP CR válido,
+        # sintetizamos los valores desde el master x_distrito_cr. Así la etiqueta
+        # de Correos imprime distrito+cantón+provincia incluso para partners
+        # nuevos que aún no se hayan rellenado.
+        z = (partner.get('zip') or '').strip().replace(' ', '').replace('-', '')
+        if (z.isdigit() and len(z) == 5
+            and not partner.get('x_studio_canton_cr')
+            and not partner.get('x_studio_distrito_cr')):
+            entry = self._load_zip_map().get(z)
+            if entry:
+                dist_id, dist_name, cant_id, cant_name = entry
+                partner['x_studio_distrito_cr'] = [dist_id, dist_name]
+                partner['x_studio_canton_cr'] = [cant_id, cant_name]
+        return partner
 
     def read_picking_moves(self, picking_id: int) -> list:
         """Lee las líneas del picking con producto + cantidad + peso."""

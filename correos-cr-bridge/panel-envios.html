@@ -1368,12 +1368,19 @@ async function loadPickingDetail(picking_id){
 
   const data = await api(`/api/picking/${picking_id}`);
   const partner = data.partner || {};
+  const cr = partner.cr_address || {};
   PEDIDOS[idx] = {
     ...PEDIDOS[idx],
     cliente: partner.name || PEDIDOS[idx].cliente,
     email: partner.email || '',
     prov: (partner.state_id && partner.state_id[1]) || '',
     canton: partner.city || '',
+    // Nombres reales de los Studio fields CR (x_studio_canton_cr / distrito_cr).
+    // El modal los muestra como cantón/distrito reales en lugar del placeholder
+    // "Cantón {código ZIP}" que ponía antes el JS de updateGeoFromZip.
+    cr_canton_name: cr.canton_name || '',
+    cr_distrito_name: cr.distrito_name || '',
+    cr_provincia_name: cr.provincia_name || '',
     cp: partner.zip || '(falta)',
     telefono: partner.phone || '',
     direccion: [partner.street, partner.street2].filter(Boolean).join(', '),
@@ -1624,10 +1631,11 @@ async function openModalGen(picking_id, courierOverride){
   document.getElementById('m-direccion').value = p.direccion || '';
   document.getElementById('m-cp').value = p.cp === '(falta)' ? '' : (p.cp || '');
   document.getElementById('m-peso').value = (p.peso || '500g').replace(/\D/g,'') || 500;
-  // Resetear y derivar provincia/cantón/distrito desde el ZIP del partner.
-  // Cantón usa partner.city de Odoo como referencia visual (la API real sólo usa dest_zip).
-  document.getElementById('m-canton').value = (p.canton && p.canton !== '—') ? p.canton : '';
-  document.getElementById('m-distrito').value = '';
+  // Mostrar cantón/distrito REALES desde los Studio fields del partner
+  // (cr_canton_name / cr_distrito_name). Si están vacíos, updateGeoFromZip()
+  // rellena con placeholders derivados del ZIP como pista para el operador.
+  document.getElementById('m-canton').value = p.cr_canton_name || '';
+  document.getElementById('m-distrito').value = p.cr_distrito_name || '';
   updateGeoFromZip();
   document.getElementById('modalGenerar').classList.add('show');
 }

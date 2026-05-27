@@ -1396,6 +1396,57 @@ def calendario(mes: str, courier: str = 'all'):
     return {'mes': mes, 'courier': courier, 'days': days}
 
 
+# ─── Limpiar guía: borrar tracking + caches locales para cambiar courier ───
+@router.post('/picking/{picking_id}/limpiar-guia', dependencies=[Depends(verify_session)])
+def limpiar_guia(picking_id: int):
+    """Permite re-asignar un picking a otro courier: limpia carrier_tracking_ref
+    en Odoo y borra las filas de SQLite (entrega_mano, envio_manual).
+    No llama a Correos para anular la guía PY remota — esa decisión es manual:
+    si la guía PY no se entrega físicamente, no genera costo."""
+    p = get_processor()
+    p.odoo.authenticate()
+
+    # 1) Leer tracking actual para el chatter
+    prev_ref = ''
+    try:
+        pks = p.odoo.execute_kw('stock.picking', 'read', [[picking_id]],
+            {'fields': ['carrier_tracking_ref']})
+        if pks:
+            prev_ref = pks[0].get('carrier_tracking_ref') or ''
+    except Exception as e:
+        _logger.warning("limpiar-guia: no pude leer tracking previo %s: %s", picking_id, e)
+
+    # 2) Limpiar tracking en Odoo
+    try:
+        p.odoo.execute_kw('stock.picking', 'write',
+            [[picking_id], {'carrier_tracking_ref': False}])
+    except Exception as e:
+        raise HTTPException(500, f'No se pudo limpiar tracking en Odoo: {e}')
+
+    # 3) Borrar filas en SQLite (entrega_mano + envio_manual)
+    conn = db()
+    try:
+        conn.execute("DELETE FROM entrega_mano WHERE picking_id=?", (picking_id,))
+        conn.execute("DELETE FROM envio_manual WHERE picking_id=?", (picking_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    # 4) Nota en chatter de Odoo
+    try:
+        prev_disp = prev_ref or '(vacío)'
+        p.odoo.post_message(
+            picking_id,
+            f'🔄 <b>Guía anterior limpiada desde panel</b> · ref previa: <code>{prev_disp}</code>. '
+            f'El picking queda disponible para asignar a otro courier. '
+            f'<i>Si la guía PY anterior no se entrega físicamente, no genera costo en Correos.</i>'
+        )
+    except Exception as e:
+        _logger.warning("limpiar-guia: no pude postear chatter %s: %s", picking_id, e)
+
+    return {'ok': True, 'prev_tracking': prev_ref}
+
+
 # ─── Entrega a mano: marcar picking como entregado presencialmente ───
 class EntregaManoPayload(BaseModel):
     entregado_a: Optional[str] = ''

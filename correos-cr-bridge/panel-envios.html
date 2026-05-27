@@ -802,11 +802,11 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
         <div class="field-grid">
           <div class="field full">
             <label>Nombre completo</label>
-            <input id="m-nombre" value="Rodolfo Ortíz">
+            <input id="m-nombre" value="">
           </div>
           <div class="field full">
             <label>Dirección física</label>
-            <input id="m-direccion" value="Turrialba centro, 200 m oeste de la municipalidad">
+            <input id="m-direccion" value="">
             <div class="hint">Si la dirección no es clara, añade señas concretas. Esto sale en la etiqueta.</div>
           </div>
           <div class="field">
@@ -836,7 +836,7 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
           </div>
           <div class="field full">
             <label>Teléfono</label>
-            <input id="m-telefono" value="83777894">
+            <input id="m-telefono" value="">
           </div>
         </div>
       </div>
@@ -1695,6 +1695,11 @@ async function openModalGen(picking_id, courierOverride){
   document.getElementById('m-direccion').value = p.direccion || '';
   document.getElementById('m-cp').value = p.cp === '(falta)' ? '' : (p.cp || '');
   document.getElementById('m-peso').value = (p.peso || '500g').replace(/\D/g,'') || 500;
+  // BUG histórico: este campo NO se reseteaba al abrir el modal y heredaba el
+  // value="83777894" del HTML estático (o el último teléfono tipeado). Cuando el
+  // operador no lo cambiaba manualmente, ese valor se enviaba a Correos Y se
+  // escribía sobre el phone del partner en Odoo vía syncPartnerIfChanged.
+  document.getElementById('m-telefono').value = p.telefono || '';
   // Mostrar cantón/distrito REALES desde los Studio fields del partner
   // (cr_canton_name / cr_distrito_name). Si están vacíos, updateGeoFromZip()
   // rellena con placeholders derivados del ZIP como pista para el operador.

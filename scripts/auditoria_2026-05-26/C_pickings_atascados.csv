@@ -1,0 +1,41 @@
+picking,tipo,state,scheduled_date,dias_atraso,partner,origen_so,so_state,so_invoice_status,so_amount
+WH/OUT/03928,Paracarpinteros: Delivery Orders,waiting,2026-02-09 13:16:26,105,Carpintería Circular Zamora,S06287,sale,invoiced,945000.0
+WH/PICK/02797,Paracarpinteros: Pick,assigned,2026-02-09 13:16:26,105,Carpintería Circular Zamora,S06287,sale,invoiced,945000.0
+WH/PICK/02815,Paracarpinteros: Pick,assigned,2026-02-11 16:54:22,103,Olivier Guillen Montenegro,S06464,sale,invoiced,98000.0
+WH/OUT/03946,Paracarpinteros: Delivery Orders,waiting,2026-02-11 16:54:22,103,Olivier Guillen Montenegro,S06464,sale,invoiced,98000.0
+WH/PICK/02937,Paracarpinteros: Pick,assigned,2026-03-12 17:55:21,74,Cristian Abraham Ugalde Loría Ced. 2-0616-0889,S05723,sale,invoiced,618000.0
+WH/OUT/04068,Paracarpinteros: Delivery Orders,waiting,2026-03-12 17:55:21,74,Cristian Abraham Ugalde Loría Ced. 2-0616-0889,S05723,sale,invoiced,618000.0
+WH/PICK/02940,Paracarpinteros: Pick,assigned,2026-03-13 16:36:44,73,Mie Graciela Madrigal Mishino,S06712,sale,invoiced,96000.0
+WH/OUT/04071,Paracarpinteros: Delivery Orders,waiting,2026-03-13 16:36:44,73,Mie Graciela Madrigal Mishino,S06712,sale,invoiced,96000.0
+WH/PICK/02956,Paracarpinteros: Pick,assigned,2026-03-17 15:38:02,69,Jessica Artola Lobo,S06735,sale,invoiced,15500.0
+WH/OUT/04087,Paracarpinteros: Delivery Orders,waiting,2026-03-17 15:38:02,69,Jessica Artola Lobo,S06735,sale,invoiced,15500.0
+WH/OUT/04120,Paracarpinteros: Delivery Orders,waiting,2026-03-30 15:42:40,56,Edward Carranza Castro,S06823,sale,invoiced,5500.0
+WH/PICK/02989,Paracarpinteros: Pick,assigned,2026-03-30 15:42:40,56,Edward Carranza Castro,S06823,sale,invoiced,5500.0
+WH/PICK/03021,Paracarpinteros: Pick,confirmed,2026-04-09 22:07:31,46,Fundación de la Universidad de Costa Rica para la Investigación,S06631,sale,invoiced,436000.0
+WH/OUT/04152,Paracarpinteros: Delivery Orders,waiting,2026-04-09 22:07:31,46,Fundación de la Universidad de Costa Rica para la Investigación,S06631,sale,invoiced,436000.0
+WH/OUT/04183,Paracarpinteros: Delivery Orders,waiting,2026-04-22 18:16:22,33,David Umaña Monge,S06959,sale,invoiced,70000.0
+WH/PICK/03052,Paracarpinteros: Pick,assigned,2026-04-22 18:16:22,33,David Umaña Monge,S06959,sale,invoiced,70000.0
+WH/OUT/04210,Paracarpinteros: Delivery Orders,waiting,2026-04-29 19:27:04,26,Nelson Méndez Montero,S06998,sale,invoiced,9000.0
+WH/PICK/03079,Paracarpinteros: Pick,assigned,2026-04-29 19:27:04,26,Nelson Méndez Montero,S06998,sale,invoiced,9000.0
+WH/OUT/04212,Paracarpinteros: Delivery Orders,waiting,2026-05-02 02:26:30,24,Manuel Comas,S07005,sale,to invoice,8500.0
+WH/PICK/03081,Paracarpinteros: Pick,assigned,2026-05-02 02:26:30,24,Manuel Comas,S07005,sale,to invoice,8500.0
+WH/PICK/03084,Paracarpinteros: Pick,assigned,2026-05-04 16:26:56,21,Ingeniería en Proyecto PROIN S.A.,S06948,sale,invoiced,550200.0
+WH/OUT/04225,Paracarpinteros: Delivery Orders,assigned,2026-05-04 19:12:34,21,Muebles Eluney SRL,S07017,sale,invoiced,12000.0
+WH/OUT/04230,Paracarpinteros: Delivery Orders,waiting,2026-05-04 20:31:34,21,SCH Consultoría y Construcción Tica S.A.,S07023,sale,invoiced,17500.0
+WH/PICK/03099,Paracarpinteros: Pick,assigned,2026-05-04 20:31:34,21,SCH Consultoría y Construcción Tica S.A.,S07023,sale,invoiced,17500.0
+WH/PICK/03109,Paracarpinteros: Pick,confirmed,2026-05-06 17:07:36,19,Kenneth Cordoba Madrigal,S07028,sale,invoiced,64500.0
+WH/OUT/04240,Paracarpinteros: Delivery Orders,waiting,2026-05-06 17:07:36,19,Kenneth Cordoba Madrigal,S07028,sale,invoiced,64500.0
+WH/OUT/04241,Paracarpinteros: Delivery Orders,waiting,2026-05-06 17:12:32,19,"Gbmobiliario, Luis Diego Baldi Jiménez",S07011,sale,invoiced,34600.0
+WH/PICK/03110,Paracarpinteros: Pick,assigned,2026-05-06 17:12:32,19,"Gbmobiliario, Luis Diego Baldi Jiménez",S07011,sale,invoiced,34600.0
+WH/OUT/04250,Paracarpinteros: Delivery Orders,assigned,2026-05-08 18:37:08,17,Laura Liseth Picado Torres,S07010,sale,invoiced,176480.0
+WH/OUT/04269,Paracarpinteros: Delivery Orders,waiting,2026-05-11 09:00:00,15,Luis Richmond Portuguez,S07081,sale,invoiced,12400.0
+WH/OUT/04215,Paracarpinteros: Delivery Orders,waiting,2026-05-11 09:00:00,15,Ingeniería en Proyecto PROIN S.A.,S06948,sale,invoiced,550200.0
+WH/PICK/03139,Paracarpinteros: Pick,assigned,2026-05-11 21:33:41,14,Luis Richmond Portuguez,S07081,sale,invoiced,12400.0
+WH/PICK/03145,Paracarpinteros: Pick,confirmed,2026-05-14 17:03:01,11,Olman Barboza Prado,S07099,sale,invoiced,39900.0
+WH/OUT/04275,Paracarpinteros: Delivery Orders,waiting,2026-05-15 09:00:00,11,Olman Barboza Prado,S07099,sale,invoiced,39900.0
+WH/OUT/04278,Paracarpinteros: Delivery Orders,waiting,2026-05-15 17:09:53,10,Sharon Natalia Marín Salazar,S07109,sale,invoiced,270000.0
+WH/PICK/03148,Paracarpinteros: Pick,assigned,2026-05-15 17:09:53,10,Sharon Natalia Marín Salazar,S07109,sale,invoiced,270000.0
+WH/PICK/03150,Paracarpinteros: Pick,assigned,2026-05-18 17:27:26,7,ALPESA,S07120,sale,invoiced,95340.0
+WH/OUT/04280,Paracarpinteros: Delivery Orders,waiting,2026-05-18 17:27:26,7,ALPESA,S07120,sale,invoiced,95340.0
+WH/OUT/04283,Paracarpinteros: Delivery Orders,waiting,2026-05-18 20:46:57,7,Armando Antonio Fajardo Calderón,S07121,sale,invoiced,1500000.0
+WH/PICK/03153,Paracarpinteros: Pick,assigned,2026-05-18 20:46:57,7,Armando Antonio Fajardo Calderón,S07121,sale,invoiced,1500000.0

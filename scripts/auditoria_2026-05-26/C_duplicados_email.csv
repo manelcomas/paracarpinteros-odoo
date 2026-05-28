@@ -1,0 +1,65 @@
+email,n_duplicados,partner_id,name,phone,n_sales,has_user,create_date,sugerido_mantener
+1@1.com,2,32316,Erick Lisandro Soto Méndez,+506 8834 5018,7,False,2023-03-13 17:24:29,KEEP
+1@1.com,2,32299,Juan Montano,,1,False,2023-03-09 04:07:19,merge_into
+arieneeltje@gmail.com,2,31718,Arne Van Dorssen,83544581,0,False,2023-01-26 22:29:13,merge_into
+arieneeltje@gmail.com,2,32269,Arne van Dorssen,83544581,2,True,2023-02-25 07:45:41,KEEP
+bralfaro94@gmail.com,2,32937,Braulio Alberto Solano Alfaro,71554410,3,True,2024-02-20 20:58:43,KEEP
+bralfaro94@gmail.com,2,32825,Braulio Solano Alfaro,71554410,2,True,2024-01-06 07:01:32,merge_into
+bramo120@gmail.com,2,31728,Brayan  Vargas Jimenez,85686402,0,False,2023-01-26 22:29:13,merge_into
+bramo120@gmail.com,2,34317,Brayan Vargas Jiménez,85686402,1,True,2025-07-23 00:31:05,KEEP
+camisasrojas@hotmail.com,3,32350,Oscar Alberto Rojas Ureña.,87118891,9,True,2023-03-24 21:33:32,KEEP
+camisasrojas@hotmail.com,3,32362,Oscar Alberto Rojas Ureña,87118891,1,False,2023-03-29 22:06:03,merge_into
+camisasrojas@hotmail.com,3,32383,Oscar Alberto Rojas Ureña,87118891,4,False,2023-04-11 22:56:58,merge_into
+carlos8057@me.com,2,32255,Carlos Andres Osorno Martínez,+506 6011 3937,2,True,2023-02-19 05:36:10,KEEP
+carlos8057@me.com,2,31732,Carlos Andrés Osorno Martínez,60113937,0,False,2023-01-26 22:29:13,merge_into
+ced. 109840129,2,33021,Ana Catalina Musmanni Lizano,1234567891234567,0,False,2024-03-18 20:06:52,merge_into
+ced. 109840129,2,33019,False,,0,False,2024-03-18 20:06:51,KEEP
+ced. 114130714,2,33104,MARIA FERNANDA CASCANTE ESPINOZA,+506 8549 8178,3,False,2024-04-24 13:58:38,KEEP
+ced. 114130714,2,33105,María Fernanda Cascante Espinoza,+506 8549 8178,0,False,2024-04-24 14:19:09,merge_into
+cldanielpato@gmail.com,2,33357,Carlos Luis Daniel Pato,83779582,2,True,2024-08-22 13:50:15,KEEP
+cldanielpato@gmail.com,2,32628,Carlos Luis Daniel Pato,+506 8377 9582,1,False,2023-09-10 19:50:55,merge_into
+diegoromesen@hotmail.es,3,33013,Diego Alonso Rodríguez Mesén,84838881,2,True,2024-03-17 16:37:57,KEEP
+diegoromesen@hotmail.es,3,33569,Diego Rodríguez Mesén,84838881,1,True,2024-11-01 19:56:19,merge_into
+diegoromesen@hotmail.es,3,32248,Diego Rodríguez Mesén ,84838881,1,False,2023-02-11 22:22:45,merge_into
+educha@educhacr.com,2,34879,Evelio Durán Chacón,,2,False,2026-01-19 20:36:35,KEEP
+educha@educhacr.com,2,34432,Evelio Durán Chacón,+506 8318 3848,1,False,2025-08-27 17:33:44,merge_into
+ernesto.fernandez.f@gmail.com,2,32234,Ernesto Fernández Flores,,1,True,2023-02-01 23:35:36,KEEP
+ernesto.fernandez.f@gmail.com,2,32242,Ernesto Fernández Flores,+50689220115,1,False,2023-02-06 01:32:15,merge_into
+factura@alfa.cr,2,20743,Bodega General de Desarrollos y Construcción Alfaco LTDA,25720039,33,False,2023-01-21 01:19:20,KEEP
+factura@alfa.cr,2,32547,Roger Salas Solís,+506 8313 8340,2,False,2023-07-14 00:10:48,merge_into
+facturascosemsa@gmail.com,2,32942,Construcciones y Servicios Melendez Cosemsa S.A.,+506 8879 7004,0,False,2024-02-21 17:16:45,merge_into
+facturascosemsa@gmail.com,2,32941,Gilberth Melendez Cruz,+506 8879 7004,1,False,2024-02-21 01:56:43,KEEP
+facturasosguevara@gmail.com,2,34883,Osman Dayan Guevara Zuñiga,+506 8428 6492,1,False,2026-01-20 16:29:11,merge_into
+facturasosguevara@gmail.com,2,33666,Osman Dayan Guevara Zuñiga,+506 8428 6492,1,False,2024-12-03 20:33:12,KEEP
+fbarquero86@gmail.com,2,32558,Francisco Barquero Paniagua,+506 8730 7567,6,True,2023-07-25 01:56:07,KEEP
+fbarquero86@gmail.com,2,31838,Francisco Barquero Paniagua,87307567,0,False,2023-01-26 22:29:13,merge_into
+gabrielgomez1213@gmail.com,2,32566,Gabriel Gómez Murillo,86947290,2,False,2023-08-03 15:38:31,merge_into
+gabrielgomez1213@gmail.com,2,33036,Gabriel de Jesús Gómez Murillo,86947290,9,True,2024-03-22 23:00:05,KEEP
+gerrit.vanb@gmail.com,2,34423,Gerrit van Bruggen,+506 6369 4796,1,True,2025-08-26 21:55:20,KEEP
+gerrit.vanb@gmail.com,2,34424,Gerrit van Bruggen,+1 858-260-8912  63694796,0,False,2025-08-26 21:56:51,merge_into
+jbs@protonmail.ch,2,32803,Jame Brian Schultz,86785258,4,True,2023-12-12 04:51:52,merge_into
+jbs@protonmail.ch,2,33283,Jamé Schultz,86785258,9,True,2024-07-05 22:40:50,KEEP
+jgmena19@hotmail.com,2,32331,Gabriel Mena Jiménez,83149896,2,True,2023-03-18 14:12:29,KEEP
+jgmena19@hotmail.com,2,33068,Gabriel Mena.,83149896,1,True,2024-04-06 23:22:45,merge_into
+juniorchup@gmail.com,2,34961,Rafael Guzman Martinez,+506 8835 0924,1,True,2026-02-11 09:29:22,KEEP
+juniorchup@gmail.com,2,34962,Rafael Guzman Martinez,+506 8835 0924,0,False,2026-02-11 09:34:10,merge_into
+manelcomasbre@gmail.com,2,34710,Jafeth Calderón Mora,,7,False,2025-11-19 19:15:45,KEEP
+manelcomasbre@gmail.com,2,32890,Manuel Comas,+506 8606 9717,4,False,2024-02-02 18:03:07,merge_into
+marcialarcequesada@gmail.com,2,32999,Marcial Arce Quesada,85418890,1,True,2024-03-13 03:47:36,merge_into
+marcialarcequesada@gmail.com,2,32840,Marcial Arce Quesada,85418890,5,True,2024-01-15 23:26:06,KEEP
+marco.quiros.piedra@gmail.com,2,32282,Marco Quirós Piedra,88405506,2,False,2023-03-07 16:14:08,KEEP
+marco.quiros.piedra@gmail.com,2,32042,Marco Quirós Piedra,88405506,0,False,2023-01-26 22:29:13,merge_into
+melendezymorales@gmail.com,2,33122,Melendez y Morales S.A.,+506 8837 8896,4,False,2024-04-29 18:30:54,KEEP
+melendezymorales@gmail.com,2,32252,Meléndez y Morales S.A.,+506 8837 8896,1,False,2023-02-15 16:36:44,merge_into
+natyelisalazar@gmail.com,2,34886,Natyeli Salazar ,+506 6237 6586,1,True,2026-01-21 13:23:44,KEEP
+natyelisalazar@gmail.com,2,34887,Natyeli Salazar Arroyo,+506 6237 6586,0,False,2026-01-21 13:25:18,merge_into
+nomadicfe@gmail.com,2,32891,Grey Rock Management LTDA,+506 2201 7342,1,False,2024-02-02 18:05:32,KEEP
+nomadicfe@gmail.com,2,32892,José Eliasar Rodríguez Correa,+506 6049 2513,1,False,2024-02-02 19:57:08,merge_into
+r.aguero67@gmail.com,2,32966,Rafael Alberto Agüero Sánchez,88490521,6,True,2024-02-29 23:49:09,KEEP
+r.aguero67@gmail.com,2,32914,Rafael Alberto Agüero Sánchez,88490521,1,False,2024-02-11 22:27:59,merge_into
+ray@raygraph.com,2,34663,Ray Moss,+506 8869 1319,2,True,2025-11-04 10:12:24,KEEP
+ray@raygraph.com,2,34664,Raymond Moss,+506 8869 1319,0,False,2025-11-04 10:13:55,merge_into
+salvadordiazvilla015@gmail.com,2,34817,Salvador Díaz ,+506 7036 1911,1,True,2026-01-06 16:14:04,KEEP
+salvadordiazvilla015@gmail.com,2,34818,Salvador Díaz Villanueva,+506 7036 1911,0,False,2026-01-06 16:26:54,merge_into
+vargasjor@gmail.com,2,32420,Jorge Muñoz Vargas,83165165,2,True,2023-05-09 02:02:05,KEEP
+vargasjor@gmail.com,2,31935,Jorge Muñoz Vargas,83165165,0,False,2023-01-26 22:29:13,merge_into

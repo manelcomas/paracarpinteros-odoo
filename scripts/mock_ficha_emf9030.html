@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock ficha · EMF9030 · Paracarpinteros</title>
+<style>
+/* ─── Sistema visual editorial — autocontenido para que funcione
+       dentro del website_description de Odoo sin depender del theme ─── */
+:root{
+  --bg:#FBFBFA; --surface:#FFFFFF; --surface-2:#F7F6F3;
+  --text:#111111; --text-2:#6F6F6E; --text-3:#9B9A97;
+  --border:#EAEAEA; --border-2:#D1D1CF;
+  --green-bg:#EDF3EC; --green-fg:#346538;
+  --blue-bg:#E1F3FE;  --blue-fg:#1F6C9F;
+  --yellow-bg:#FBF3DB; --yellow-fg:#956400;
+  --red-bg:#FDEBEC;  --red-fg:#9F2F2D;
+  --purple-bg:#F4ECFF; --purple-fg:#5B2A86;
+  --r-sm:4px; --r-md:6px; --r-lg:10px; --r-xl:14px;
+  --font-sans:'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-serif:'Newsreader', 'Lyon Text', Georgia, serif;
+  --font-mono:'Geist Mono', 'SF Mono', ui-monospace, monospace;
+}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+
+/* Contenedor de la ficha (esto es lo que iría dentro del website_description) */
+.ficha{max-width:1080px;margin:0 auto;padding:48px 24px}
+
+/* ───── Hero ───── */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;margin-bottom:64px;align-items:start}
+@media(max-width:820px){.hero{grid-template-columns:1fr;gap:28px}}
+
+.hero-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tag{display:inline-block;padding:4px 11px;border-radius:9999px;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;font-family:var(--font-sans)}
+.tag-industrial{background:var(--blue-bg);color:var(--blue-fg)}
+.tag-stock{background:var(--green-bg);color:var(--green-fg)}
+.tag-power{background:var(--yellow-bg);color:var(--yellow-fg)}
+
+.hero h1{font-family:var(--font-serif);font-size:2.6rem;font-weight:500;letter-spacing:-0.025em;line-height:1.05;margin:0 0 12px;color:var(--text)}
+.hero h1 .ref{display:block;font-family:var(--font-mono);font-size:.85rem;color:var(--text-3);font-weight:400;letter-spacing:0.05em;text-transform:uppercase;margin-top:8px}
+.hero .lead{font-size:1.05rem;color:var(--text-2);line-height:1.6;margin-bottom:24px;max-width:48ch}
+
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:24px 0 28px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 14px;text-align:center}
+.kpi-val{font-family:var(--font-serif);font-size:1.6rem;font-weight:500;letter-spacing:-0.02em;line-height:1;color:var(--text);margin-bottom:5px}
+.kpi-lbl{font-size:.66rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-weight:500}
+
+.cta-stack{display:flex;flex-direction:column;gap:12px;margin-top:28px}
+.cta-stack .price{font-family:var(--font-serif);font-size:2.1rem;font-weight:500;letter-spacing:-0.025em;color:var(--text);line-height:1}
+.cta-stack .price small{font-family:var(--font-mono);font-size:.7rem;color:var(--text-3);font-weight:400;display:block;margin-top:5px;letter-spacing:0.05em;text-transform:uppercase}
+.cta-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:var(--r-md);font-size:.92rem;font-weight:500;cursor:pointer;border:1px solid transparent;font-family:var(--font-sans);text-decoration:none;transition:.15s;line-height:1}
+.btn-prim{background:var(--text);color:#fff}
+.btn-prim:hover{background:#333}
+.btn-secd{background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-secd:hover{background:var(--surface-2);border-color:var(--border-2)}
+.btn-wa{background:#25D366;color:#fff}
+.btn-wa:hover{background:#1ebe5b}
+.btn svg{width:16px;height:16px}
+
+/* Galería */
+.gallery{display:grid;grid-template-columns:1fr;gap:10px}
+.gal-main{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-family:var(--font-mono);font-size:.78rem;text-align:center;padding:24px}
+.gal-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.gal-thumb{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);aspect-ratio:1;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-family:var(--font-mono);font-size:.62rem;cursor:pointer;transition:.15s}
+.gal-thumb:hover{border-color:var(--text-2)}
+.gal-thumb.active{border-color:var(--text);border-width:2px}
+
+/* ───── Secciones ───── */
+.sec{margin:64px 0;scroll-margin-top:24px}
+.sec h2{font-family:var(--font-serif);font-size:1.9rem;font-weight:500;letter-spacing:-0.025em;line-height:1.1;margin:0 0 6px;color:var(--text)}
+.sec .sec-sub{font-size:.95rem;color:var(--text-2);margin-bottom:28px;max-width:60ch;line-height:1.55}
+
+/* ───── Tabla de especificaciones ───── */
+.spec-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.spec-table tr{border-bottom:1px solid var(--border)}
+.spec-table tr:last-child{border-bottom:none}
+.spec-table th, .spec-table td{padding:13px 18px;text-align:left;font-size:.9rem;vertical-align:top}
+.spec-table th{
+  width:34%;color:var(--text-2);font-weight:500;
+  text-transform:uppercase;letter-spacing:0.05em;font-size:.7rem;
+  background:var(--surface-2);
+}
+.spec-table td{color:var(--text);font-family:var(--font-mono);font-size:.86rem;letter-spacing:0.01em}
+.spec-table td.note{font-family:var(--font-sans);color:var(--text-2);font-size:.82rem}
+
+/* ───── Aplicaciones (grid de cards) ───── */
+.apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.app{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:18px 16px;text-align:center;transition:.18s}
+.app:hover{box-shadow:0 2px 10px rgba(0,0,0,.04);border-color:var(--border-2)}
+.app .app-ico{width:36px;height:36px;margin:0 auto 12px;color:var(--text-2);display:flex;align-items:center;justify-content:center}
+.app .app-ico svg{width:30px;height:30px}
+.app .app-name{font-size:.84rem;font-weight:500;color:var(--text);line-height:1.3}
+.app .app-cap{font-size:.7rem;color:var(--text-3);margin-top:5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.04em}
+
+/* ───── Qué incluye ───── */
+.includes{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 24px}
+@media(max-width:600px){.includes{grid-template-columns:1fr}}
+.inc-item{display:flex;align-items:flex-start;gap:11px;padding:9px 0;font-size:.9rem;color:var(--text);border-bottom:1px solid var(--border)}
+.inc-item:last-child, .inc-item:nth-last-child(2){border-bottom:none}
+.inc-check{width:18px;height:18px;border-radius:50%;background:var(--green-bg);color:var(--green-fg);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.inc-check svg{width:11px;height:11px}
+
+/* ───── Video ───── */
+.video-wrap{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-2);gap:14px;padding:32px}
+.video-wrap .play{width:64px;height:64px;border-radius:50%;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.video-wrap .play:hover{background:#333}
+.video-wrap .play svg{width:24px;height:24px;margin-left:3px}
+.video-wrap .video-hint{font-family:var(--font-mono);font-size:.74rem;color:var(--text-3);text-align:center;text-transform:uppercase;letter-spacing:0.05em}
+
+/* ───── Comparativa (modelos hermanos) ───── */
+.compare{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.compare th, .compare td{padding:14px 16px;text-align:left;font-size:.85rem;border-bottom:1px solid var(--border)}
+.compare th{background:var(--surface-2);color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;font-size:.7rem}
+.compare td{color:var(--text);font-family:var(--font-mono);font-size:.83rem}
+.compare td:first-child{font-family:var(--font-sans);font-weight:500;color:var(--text)}
+.compare tr.current{background:var(--green-bg)}
+.compare tr.current td{color:var(--green-fg)}
+.compare tr.current td:first-child{font-weight:600}
+
+/* ───── FAQ acordeón ───── */
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item summary{padding:18px 0;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;font-size:.95rem;font-weight:500;color:var(--text);user-select:none}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:'+';font-size:1.3rem;color:var(--text-2);font-weight:300;transition:transform .18s}
+.faq-item[open] summary::after{transform:rotate(45deg)}
+.faq-item .faq-body{padding:0 0 18px;font-size:.88rem;color:var(--text-2);line-height:1.6;max-width:68ch}
+.faq-item .faq-body code{font-family:var(--font-mono);background:var(--surface-2);padding:1px 6px;border-radius:var(--r-sm);font-size:.82rem;color:var(--text)}
+
+/* ───── CTA final ───── */
+.cta-final{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:40px 36px;text-align:center;margin:48px 0 0}
+.cta-final h3{font-family:var(--font-serif);font-size:1.7rem;font-weight:500;letter-spacing:-0.02em;margin:0 0 8px;color:var(--text)}
+.cta-final p{color:var(--text-2);font-size:.95rem;margin:0 0 22px;line-height:1.55}
+.cta-final .cta-row{justify-content:center}
+
+/* ───── Aviso del mock (no va a producción) ───── */
+.mock-banner{background:var(--yellow-bg);color:var(--yellow-fg);padding:10px 18px;text-align:center;font-size:.78rem;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+
+<div class="mock-banner">Mock standalone · no es la página real · sirve solo para validar dirección visual</div>
+
+<article class="ficha">
+
+  <!-- ───── HERO ───── -->
+  <section class="hero">
+    <div>
+      <div class="hero-tags">
+        <span class="tag tag-industrial">Industrial</span>
+        <span class="tag tag-power">3 kW · 4 HP</span>
+        <span class="tag tag-stock">En stock</span>
+      </div>
+
+      <h1>
+        Extractor de polvo industrial EMF9030
+        <span class="ref">REF · EXT-EMF9030</span>
+      </h1>
+
+      <p class="lead">
+        Colector de polvo y aserrín de doble bolsa para taller de carpintería profesional.
+        3 bocas de succión de Ø 4″ permiten conectar simultáneamente sierra, cepilladora
+        y lijadora sin perder potencia. Ventilador centrífugo de 2.840 RPM, filtración
+        sostenida y rodajes para reubicarlo en el taller.
+      </p>
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-val">3.150</div>
+          <div class="kpi-lbl">m³/h caudal</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val">35–40</div>
+          <div class="kpi-lbl">m/s velocidad</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val">3 × 4″</div>
+          <div class="kpi-lbl">bocas Ø</div>
+        </div>
+      </div>
+
+      <div class="cta-stack">
+        <div class="price">
+          ₡ 525.000 <small>IVA incluido · envío Costa Rica</small>
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-prim" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Añadir al carrito
+          </a>
+          <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20el%20EMF9030">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg>
+            Consultar por WhatsApp
+          </a>
+          <a class="btn btn-secd" href="#specs">Ver ficha técnica</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Galería (placeholder) -->
+    <div class="gallery">
+      <div class="gal-main">[ FOTO PRINCIPAL · vista frontal completa del equipo ]</div>
+      <div class="gal-thumbs">
+        <div class="gal-thumb active">vista frontal</div>
+        <div class="gal-thumb">motor + manguera</div>
+        <div class="gal-thumb">bolsas colectoras</div>
+        <div class="gal-thumb">rodajes + plano</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── FICHA TÉCNICA ───── -->
+  <section class="sec" id="specs">
+    <h2>Especificaciones técnicas</h2>
+    <p class="sec-sub">Datos del fabricante. Las medidas y pesos pueden tener tolerancia de ±5%.</p>
+
+    <table class="spec-table">
+      <tr><th>Motor</th><td>3 kW (≈ 4 HP)</td></tr>
+      <tr><th>Velocidad del impulsor</th><td>2.840 RPM</td></tr>
+      <tr><th>Caudal de aire</th><td>3.150 m³/h</td></tr>
+      <tr><th>Velocidad del flujo</th><td>35 – 40 m/s</td></tr>
+      <tr><th>Presión estática</th><td>112 mmH₂O</td></tr>
+      <tr><th>Alimentación eléctrica</th><td>220 V monofásico, 60 Hz</td></tr>
+      <tr><th>Bocas de succión</th><td>Ø 4″ (102 mm) × 3 unidades, con compuertas independientes</td></tr>
+      <tr><th>Bolsas colectoras</th><td>Ø 470 mm × 4 unidades, poliéster industrial (~5 μm)</td></tr>
+      <tr><th>Capacidad acumulación</th><td>≈ 200 L total (4 bolsas)</td></tr>
+      <tr><th>Dimensiones (L × A × H)</th><td>1.380 × 550 × 2.000 mm</td></tr>
+      <tr><th>Peso neto / bruto</th><td>67 kg / 70 kg</td></tr>
+      <tr><th>Movilidad</th><td class="note">4 ruedas industriales, 2 con freno</td></tr>
+      <tr><th>Garantía</th><td class="note">12 meses contra defectos de fábrica</td></tr>
+    </table>
+  </section>
+
+  <!-- ───── APLICACIONES ───── -->
+  <section class="sec">
+    <h2>Recomendado para</h2>
+    <p class="sec-sub">Diseñado para extraer aserrín y polvo grueso de máquinas de carpintería estacionarias. Cada boca acepta una manguera de 4″ — podés operar tres máquinas a la vez con buen tiraje.</p>
+
+    <div class="apps">
+      <div class="app">
+        <div class="app-ico"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="3"/><path d="M32 10v6M32 48v6M10 32h6M48 32h6M16.4 16.4l4.2 4.2M43.4 43.4l4.2 4.2M16.4 47.6l4.2-4.2M43.4 20.6l4.2-4.2"/></svg></div>
+        <div class="app-name">Sierra de mesa</div>
+        <div class="app-cap">Boca 1 · Ø 4″</div>
+      </div>
+      <div class="app">
+        <div class="app-ico"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="22" width="52" height="20" rx="2"/><line x1="14" y1="22" x2="14" y2="42"/><line x1="22" y1="22" x2="22" y2="42"/><line x1="30" y1="22" x2="30" y2="42"/><line x1="38" y1="22" x2="38" y2="42"/><line x1="46" y1="22" x2="46" y2="42"/></svg></div>
+        <div class="app-name">Cepilladora</div>
+        <div class="app-cap">Boca 2 · Ø 4″</div>
+      </div>
+      <div class="app">
+        <div class="app-ico"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="20" width="44" height="14" rx="2"/><path d="M14 34v8h36v-8"/><line x1="20" y1="42" x2="20" y2="50"/><line x1="44" y1="42" x2="44" y2="50"/></svg></div>
+        <div class="app-name">Lijadora de banda</div>
+        <div class="app-cap">Boca 3 · Ø 4″</div>
+      </div>
+      <div class="app">
+        <div class="app-ico"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14v36M44 14v36"/><path d="M14 22h36M14 42h36"/><circle cx="32" cy="32" r="6"/></svg></div>
+        <div class="app-name">Ruteadora estacionaria</div>
+        <div class="app-cap">requiere reductor</div>
+      </div>
+      <div class="app">
+        <div class="app-ico"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="48" height="36" rx="3"/><line x1="8" y1="24" x2="56" y2="24"/><circle cx="16" cy="38" r="3"/><circle cx="32" cy="38" r="3"/><circle cx="48" cy="38" r="3"/></svg></div>
+        <div class="app-name">CNC pequeña</div>
+        <div class="app-cap">hasta 1300×800 mm</div>
+      </div>
+      <div class="app">
+        <div class="app-ico"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 50h36v-6H14zM18 44V20h28v24"/><line x1="22" y1="26" x2="42" y2="26"/><line x1="22" y1="32" x2="42" y2="32"/><line x1="22" y1="38" x2="42" y2="38"/></svg></div>
+        <div class="app-name">Escopleadora</div>
+        <div class="app-cap">conexión opcional</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── VIDEO ───── -->
+  <section class="sec">
+    <h2>Verlo funcionar</h2>
+    <p class="sec-sub">Demo del aparato en taller — encendido, prueba de aspiración y desmontaje de bolsas.</p>
+
+    <div class="video-wrap">
+      <button class="play" aria-label="Reproducir video">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 22 12 6 20 6 4"/></svg>
+      </button>
+      <div class="video-hint">[ embed YouTube · pendiente de subir ]</div>
+    </div>
+  </section>
+
+  <!-- ───── QUÉ INCLUYE ───── -->
+  <section class="sec">
+    <h2>Qué incluye en la entrega</h2>
+    <p class="sec-sub">Todo lo necesario para conectar y operar. Las mangueras de los equipos no vienen incluidas.</p>
+
+    <div class="includes">
+      <div class="inc-item"><span class="inc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Cuerpo del extractor EMF9030 ensamblado</div>
+      <div class="inc-item"><span class="inc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> 4 bolsas colectoras de poliéster (2 arriba + 2 abajo)</div>
+      <div class="inc-item"><span class="inc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> 3 compuertas de cierre Ø 4″ con abrazaderas</div>
+      <div class="inc-item"><span class="inc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Interruptor magnético on/off con freno</div>
+      <div class="inc-item"><span class="inc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Manual de operación en español</div>
+      <div class="inc-item"><span class="inc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Garantía escrita 12 meses</div>
+    </div>
+  </section>
+
+  <!-- ───── COMPARATIVA ───── -->
+  <section class="sec">
+    <h2>Comparativa de la línea EMF</h2>
+    <p class="sec-sub">Si tu taller es de 1 sola máquina o tenés 4 máquinas operando en paralelo, hay modelos hermanos. El EMF9030 es el equilibrio para un taller mediano.</p>
+
+    <table class="compare">
+      <thead>
+        <tr><th>Modelo</th><th>Motor</th><th>Caudal</th><th>Bocas</th><th>Bolsas</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>EMF9020</td><td>2,2 kW (3 HP)</td><td>2.300 m³/h</td><td>1 × Ø 4″</td><td>2</td></tr>
+        <tr class="current"><td>EMF9030 ←</td><td>3 kW (4 HP)</td><td>3.150 m³/h</td><td>3 × Ø 4″</td><td>4</td></tr>
+        <tr><td>EMF9075</td><td>5,5 kW (7,5 HP)</td><td>5.400 m³/h</td><td>4 × Ø 5″</td><td>6</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ───── FAQ ───── -->
+  <section class="sec">
+    <h2>Preguntas frecuentes</h2>
+
+    <details class="faq-item">
+      <summary>¿Necesito instalación eléctrica trifásica?</summary>
+      <div class="faq-body">
+        No. El EMF9030 funciona con <code>220 V monofásico</code> a 60 Hz, el estándar
+        residencial e industrial de Costa Rica. Conectalo a un tomacorriente dedicado
+        con breaker de al menos 20 A para evitar caídas de tensión cuando arranca el motor.
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>¿Cuántas máquinas puedo conectar a la vez?</summary>
+      <div class="faq-body">
+        Tres como diseño, una por boca de 4″. Si todas son de alto consumo de aire
+        (cepilladora industrial + tupí + lijadora de banda) recomendamos operar dos
+        a la vez para mantener el caudal nominal de 3.150 m³/h por boca activa.
+        Las compuertas independientes te permiten cerrar las bocas inactivas y concentrar
+        succión.
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>¿En cuánto tiempo entregan en San José / GAM?</summary>
+      <div class="faq-body">
+        Si está en stock (badge verde arriba), 2–4 días hábiles. Por el peso (70 kg bruto)
+        y dimensiones (2 m de alto) usamos transporte propio o agencia con plataforma —
+        no encaja en mensajería estándar. Confirmamos día y franja horaria por WhatsApp.
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>¿Cómo se vacían las bolsas y cada cuánto?</summary>
+      <div class="faq-body">
+        Las dos bolsas inferiores se desabrochan, se vacían en un saco y se vuelven a colocar
+        (10 minutos). Frecuencia típica en taller activo: cada 1–2 semanas. Las dos superiores
+        son de filtración y se sacuden por fuera mensualmente; reemplazo recomendado cada
+        2 años o cuando notes pérdida de aspiración.
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>¿Repuestos y servicio técnico?</summary>
+      <div class="faq-body">
+        Tenemos en stock bolsas, compuertas, abrazaderas y mangueras de 4″. El motor lleva
+        garantía de 12 meses y servicio en taller propio en San José. Cualquier consulta,
+        escribinos por WhatsApp con la referencia <code>EXT-EMF9030</code>.
+      </div>
+    </details>
+  </section>
+
+  <!-- ───── CTA final ───── -->
+  <section class="cta-final">
+    <h3>¿Dudas antes de comprar?</h3>
+    <p>Te ayudamos a verificar si el EMF9030 es la potencia justa para tu taller. Respuesta el mismo día por WhatsApp.</p>
+    <div class="cta-row">
+      <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20tengo%20una%20duda%20sobre%20el%20EMF9030">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg>
+        Escribir por WhatsApp
+      </a>
+      <a class="btn btn-secd" href="#">Pedir cotización por email</a>
+    </div>
+  </section>
+
+</article>
+</body></html>

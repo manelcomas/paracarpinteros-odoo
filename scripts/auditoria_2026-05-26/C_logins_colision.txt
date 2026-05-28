@@ -1,0 +1,11 @@
+Users con login que tiene espacio Y otro user existe sin espacio (colisión)
+Acción manual recomendada: revisar caso por caso, posiblemente desactivar el duplicado más reciente.
+
+CASO: login con espacio=49, sin espacio=129
+  user 49: login='egrandau@gmail.com ' name='Esteban Granda ' created=2023-05-20 15:10:24 last_login=2023-12-20 19:29:08 active=True
+  user 129: login='egrandau@gmail.com' name='Esteban Granda Urbina' created=2023-12-22 17:01:58 last_login=2024-01-19 00:05:08 active=True
+
+CASO: login con espacio=688, sin espacio=716
+  user 688: login='Jaredryerson1@gmail.com ' name='Jared' created=2026-01-31 20:33:49 last_login=2026-01-31 20:33:50 active=True
+  user 716: login='jaredryerson1@gmail.com' name='Jared Ryerson ' created=2026-02-28 03:33:33 last_login=2026-02-28 03:33:34 active=True
+

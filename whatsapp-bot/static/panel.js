@@ -1009,7 +1009,17 @@ async function calcShipping(){
       body: JSON.stringify({weight_g: weight, partner_id: CURRENT_INFO?.odoo_partner_id})
     });
     if(r?.ok){
-      res.innerHTML = `<div style="padding:8px 10px;background:#e8f7ee;border:1px solid #80d4ad;border-radius:6px"><b>${escapeHtml(r.carrier_name)}</b>: ₡${Number(r.price).toLocaleString('es-CR')}${r.delivery_type==='base_on_rule' ? ' (estimado · varía por zona/peso real)' : ''}</div>`;
+      let extra = '';
+      if(r.delivery_type === 'zone_based'){
+        // Dual: mostrar zona derivada + carrier recomendado
+        extra = `<div style="font-size:.78rem; color:var(--text2); margin-top:4px">
+          Zona: <b>${escapeHtml(r.zone_name||'?')}</b> · ${escapeHtml(r.rango_peso||'')}
+          ${r.home_extra ? '+ ₡'+Number(r.home_extra).toLocaleString('es-CR')+' domicilio' : (r.home_delivery ? '· domicilio GRATIS' : '· retiro sucursal')}
+        </div>`;
+      } else if(r.delivery_type === 'base_on_rule'){
+        extra = ' (estimado · varía por zona/peso real)';
+      }
+      res.innerHTML = `<div style="padding:8px 10px;background:#e8f7ee;border:1px solid #80d4ad;border-radius:6px"><b>${escapeHtml(r.carrier_name)}</b>: ₡${Number(r.price).toLocaleString('es-CR')}${typeof extra === 'string' ? extra : ''}${typeof extra !== 'string' ? extra : ''}</div>`;
     } else {
       res.innerHTML = `<span style="color:var(--red)">Error: ${r?.error||''}</span>`;
     }

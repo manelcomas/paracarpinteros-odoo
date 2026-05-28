@@ -2427,9 +2427,11 @@ async def carrier_quote(carrier_id: int, request: Request, _: str = Depends(requ
                 "home_delivery": q["home_delivery"],
                 "home_extra": q["home_extra"],
                 "canton_id": canton_id,
+                "recommended_carrier_id": q["recommended_carrier_id"],
                 "note": (
                     f'Tarifa Dual Global {q["zone_name"]} — rango {q["rango"]}. '
-                    f'Entrega a domicilio: {"INCLUIDA" if not q["home_extra"] and q["home_delivery"] else ("+₡" + str(q["home_extra"]) if q["home_delivery"] else "no incluida (retiro en sucursal)")}.'
+                    f'Entrega a domicilio: {"INCLUIDA" if not q["home_extra"] and q["home_delivery"] else ("+₡" + str(q["home_extra"]) if q["home_delivery"] else "no incluida (retiro en sucursal)")}. '
+                    f'Carrier sugerido en Odoo: #{q["recommended_carrier_id"]}.'
                 ),
             }
 

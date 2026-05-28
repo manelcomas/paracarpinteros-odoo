@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#008069">
+<title>WhatsApp Bot · Paracarpinteros</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Helvetica,'Lucida Grande',Arial,Ubuntu,Cantarell,'Fira Sans',sans-serif;
+  background:#f0f2f5;color:#111b21;font-weight:400;-webkit-font-smoothing:antialiased;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:127px;background:#008069;z-index:0}
+.box{max-width:400px;width:100%;background:#ffffff;border:none;border-radius:3px;overflow:hidden;box-shadow:0 1px 3px rgba(11,20,26,.1);position:relative;z-index:1}
+.head{padding:32px 28px 20px;text-align:center}
+.logo{font-size:1.4rem;color:#008069;font-weight:500}
+.sub{font-size:.85rem;color:#667781;margin-top:4px;font-weight:400}
+.body{padding:0 28px 32px}
+input{width:100%;background:#ffffff;border:1px solid #e9edef;border-radius:6px;padding:11px 14px;
+  color:#111b21;font-size:.95rem;outline:none;margin-bottom:14px;font-family:inherit;font-weight:400;transition:.15s}
+input:focus{border-color:#008069;box-shadow:0 0 0 1px #008069}
+button{width:100%;background:#008069;color:#fff;border:none;border-radius:24px;padding:12px;
+  font-weight:500;cursor:pointer;font-size:.95rem;font-family:inherit;transition:.15s}
+button:hover{background:#017561}
+.err{color:#c53030;font-size:.82rem;margin-top:12px;text-align:center;min-height:18px;font-weight:400}
+.hint{font-size:.85rem;color:#667781;margin-bottom:18px;text-align:center;font-weight:400}
+</style></head>
+<body>
+<div class="box">
+  <div class="head">
+    <div class="logo">Paracarpinteros · WA Bot</div>
+    <div class="sub">Centro de atención WhatsApp</div>
+  </div>
+  <div class="body">
+    <div class="hint">Acceso restringido</div>
+    <input id="pwd" type="password" placeholder="Contraseña" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter') doLogin()">
+    <button onclick="doLogin()">Entrar</button>
+    <div id="err" class="err"></div>
+  </div>
+</div>
+<script>
+async function doLogin(){
+  const pwd = document.getElementById('pwd').value;
+  const err = document.getElementById('err');
+  err.textContent = '';
+  const fd = new FormData(); fd.append('password', pwd);
+  try{
+    const r = await fetch('/login', {method:'POST', body: fd, credentials:'same-origin'});
+    if(r.ok){ location.reload(); }
+    else { const d = await r.json(); err.textContent = d.error || 'Error'; }
+  } catch(e){ err.textContent = 'Error de conexión'; }
+}
+</script>
+</body></html>

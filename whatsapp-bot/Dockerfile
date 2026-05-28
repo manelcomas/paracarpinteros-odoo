@@ -16,5 +16,6 @@ RUN pip install --no-cache-dir \
         Pillow
 COPY main.py .
 COPY product_card.py .
+COPY zonas_dual.py .
 COPY static /app/static
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

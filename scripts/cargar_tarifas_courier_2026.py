@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
-"""Actualiza carriers Tavo + Dual en Odoo con las tarifas vigentes mayo 2026.
+"""Sincroniza tarifas Tavo + Dual desde whatsapp-bot/zonas_dual.py hacia Odoo.
 
-Tavo (#10): renombra para incluir los 7 destinos del Caribe en el nombre
-visible. Tarifas se mantienen (₡2.500 hasta 15 kg, ₡5.000 más).
+FUENTE ÚNICA DE VERDAD: whatsapp-bot/zonas_dual.py
+  * Editás las tarifas o el mapeo de cantones ahí
+  * Corrés este script para reflejar el cambio en delivery.carrier de Odoo
+  * Rsync wa-bot al VPS para que el bot también las use
 
-Dual Global: divide en 3 carriers por zona (GAM / Intermedia / Remota), cada
-uno con 4 reglas de peso (0-2 / 2-5 / 5-10 / +10 kg). El wa-bot deriva la
-zona desde el cantón del partner (módulo whatsapp-bot/zonas_dual.py). Aquí en
-Odoo, las 3 carriers existen para que el SO refleje el precio correcto
-según la zona elegida en la venta.
-
-- #11 'Dual Global' se renombra a 'Dual Global - GAM' (mantiene el ID para
-  no romper SOs históricos) y se le actualizan las reglas a tarifas GAM.
-- Se crean #12 'Dual Global - Intermedia' y #13 'Dual Global - Remota'.
+Sin este script las tarifas en Odoo (precio que ve el SO/factura) y las del
+wa-bot (precio que cotiza al cliente) se desincronizan.
 
 Uso:
     python3 scripts/cargar_tarifas_courier_2026.py            # dry-run
@@ -24,61 +19,22 @@ import argparse
 import xmlrpc.client
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _env import load_project_env
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / 'scripts'))
+sys.path.insert(0, str(REPO_ROOT / 'whatsapp-bot'))
+
+from _env import load_project_env  # type: ignore
 load_project_env()
 
-
-TAVO_CARRIER_ID = 10
-DUAL_GAM_ID = 11  # existente, se renombra
-
-TAVO_NEW_NAME = ('Envío Transtusa Turrialba → Caribe '
-                 '(Guápiles, Limón, Pócora, Matina, Siquirres, Cariari, Pto Viejo)')
-
-# Tarifas Dual por zona (CRC). Espejo de whatsapp-bot/zonas_dual.py:DUAL_TARIFFS
-DUAL_ZONES = {
-    'GAM': {
-        'name':        'Dual Global - GAM',
-        'b_0_2':       2000,
-        'b_2_5':       2700,
-        'b_5_10':      3900,
-        'over10_base': 3900,
-        'over10_kg':    450,
-    },
-    'Intermedia': {
-        'name':        'Dual Global - Intermedia',
-        'b_0_2':       2300,
-        'b_2_5':       3200,
-        'b_5_10':      5200,
-        'over10_base': 5200,
-        'over10_kg':    550,
-    },
-    'Remota': {
-        'name':        'Dual Global - Remota',
-        'b_0_2':       2500,
-        'b_2_5':       3700,
-        'b_5_10':      6500,
-        'over10_base': 6500,
-        'over10_kg':    650,
-    },
-}
-
-
-def build_rules(z: dict) -> list:
-    """4 reglas de peso. Para +10 kg el base se ajusta para que el total sea
-    over10_base + (peso-10) * over10_kg cuando Odoo computa
-    price = list_base_price + list_price * weight."""
-    over10_offset = z['over10_base'] - 10 * z['over10_kg']
-    return [
-        {'sequence': 10, 'variable': 'weight', 'operator': '<=', 'max_value': 2.0,
-         'list_base_price': z['b_0_2'],     'list_price': 0,            'variable_factor': 'weight'},
-        {'sequence': 20, 'variable': 'weight', 'operator': '<=', 'max_value': 5.0,
-         'list_base_price': z['b_2_5'],     'list_price': 0,            'variable_factor': 'weight'},
-        {'sequence': 30, 'variable': 'weight', 'operator': '<=', 'max_value': 10.0,
-         'list_base_price': z['b_5_10'],    'list_price': 0,            'variable_factor': 'weight'},
-        {'sequence': 40, 'variable': 'weight', 'operator': '>',  'max_value': 10.0,
-         'list_base_price': over10_offset,  'list_price': z['over10_kg'], 'variable_factor': 'weight'},
-    ]
+# Importar la fuente única
+from zonas_dual import (  # type: ignore
+    DUAL_TARIFFS,
+    DUAL_CARRIER_ID_BY_ZONE,
+    DUAL_CARRIER_NAME_BY_ZONE,
+    TAVO_CARRIER_ID,
+    TAVO_NAME,
+    build_odoo_price_rules,
+)
 
 
 def fmt_rule(r: dict) -> str:
@@ -100,92 +56,80 @@ def main():
     def kw(model, method, *args, **kwargs):
         return models.execute_kw(db, uid, key, model, method, list(args), kwargs)
 
-    # ─── 1) Tavo: solo renombrar (tarifa no cambió) ───
+    # ─── 1) Tavo (#10): renombrar para reflejar destinos ───
     tavo = kw('delivery.carrier', 'read', [TAVO_CARRIER_ID], fields=['name', 'fixed_price'])
     if tavo:
         cur = tavo[0]
         print(f"\n── TAVO #{TAVO_CARRIER_ID} ──")
-        print(f"  ANTES: {cur['name']}")
-        print(f"  AHORA: {TAVO_NEW_NAME}")
-        print(f"  (tarifas sin cambios: ₡{cur['fixed_price']:.0f} hasta 15 kg, ₡5.000 más)")
-        if args.apply and cur['name'] != TAVO_NEW_NAME:
-            kw('delivery.carrier', 'write', [TAVO_CARRIER_ID], {'name': TAVO_NEW_NAME})
-            print("  ✓ renombrado")
+        print(f"  ACTUAL: {cur['name']}")
+        print(f"  ESPERADO: {TAVO_NAME}")
+        if cur['name'] == TAVO_NAME:
+            print(f"  ✓ ya está sincronizado")
+        else:
+            print(f"  (tarifas no cambian: ₡{cur['fixed_price']:.0f} hasta 15 kg)")
+            if args.apply:
+                kw('delivery.carrier', 'write', [TAVO_CARRIER_ID], {'name': TAVO_NAME})
+                print(f"  ✓ renombrado")
 
-    # ─── 2) Dual Global - GAM (renombra #11 + reemplaza reglas) ───
-    gam_existing = kw('delivery.carrier', 'read', [DUAL_GAM_ID],
-                      fields=['name', 'price_rule_ids', 'delivery_type', 'fixed_price'])
-    if not gam_existing:
-        print(f"⚠ ERROR: carrier #{DUAL_GAM_ID} no existe")
-        return
+    # ─── 2) Dual: 3 carriers (uno por zona) ───
+    for zone in ('gam', 'intermedia', 'remota'):
+        name = DUAL_CARRIER_NAME_BY_ZONE[zone]
+        target_id = DUAL_CARRIER_ID_BY_ZONE.get(zone)
+        new_rules = build_odoo_price_rules(zone)
+        t = DUAL_TARIFFS[zone]
 
-    print(f"\n── DUAL GAM #{DUAL_GAM_ID} (renombre + reemplazo reglas) ──")
-    print(f"  ANTES: {gam_existing[0]['name']}  rules={len(gam_existing[0]['price_rule_ids'])}")
-    z = DUAL_ZONES['GAM']
-    new_rules = build_rules(z)
-    print(f"  AHORA: {z['name']}")
-    for r in new_rules:
-        print(f"    {fmt_rule(r)}")
+        # Encontrar el carrier por ID (preferido) o por nombre
+        existing = []
+        if target_id:
+            existing = kw('delivery.carrier', 'read', [target_id],
+                          fields=['id', 'name', 'price_rule_ids'])
+        if not existing:
+            ids_byname = kw('delivery.carrier', 'search', [('name', '=', name)])
+            if ids_byname:
+                existing = kw('delivery.carrier', 'read', [ids_byname[0]],
+                              fields=['id', 'name', 'price_rule_ids'])
 
-    if args.apply:
-        # Borrar reglas previas
-        if gam_existing[0]['price_rule_ids']:
-            kw('delivery.price.rule', 'unlink', gam_existing[0]['price_rule_ids'])
-        # Renombrar + actualizar type + fixed_price (de respaldo, igual al rango 0-2)
-        kw('delivery.carrier', 'write', [DUAL_GAM_ID], {
-            'name': z['name'],
-            'delivery_type': 'base_on_rule',
-            'fixed_price': z['b_0_2'],
-        })
-        # Crear reglas nuevas
-        for r in new_rules:
-            r2 = dict(r); r2['carrier_id'] = DUAL_GAM_ID
-            kw('delivery.price.rule', 'create', r2)
-        print("  ✓ aplicado")
-
-    # ─── 3) Crear Dual Intermedia + Remota ───
-    for zkey in ('Intermedia', 'Remota'):
-        z = DUAL_ZONES[zkey]
-        # ¿ya existe por nombre?
-        existing_ids = kw('delivery.carrier', 'search', [('name', '=', z['name'])])
-        print(f"\n── {z['name']} ──")
-        new_rules = build_rules(z)
+        print(f"\n── DUAL {zone.upper()} ({name}) ──")
         for r in new_rules:
             print(f"    {fmt_rule(r)}")
-        if existing_ids:
-            cid = existing_ids[0]
-            print(f"  YA EXISTE como #{cid} → reemplazo reglas")
+
+        if existing:
+            cur = existing[0]
+            print(f"  carrier #{cur['id']} (rules={len(cur['price_rule_ids'])})")
             if args.apply:
-                cur_rules = kw('delivery.price.rule', 'search', [('carrier_id', '=', cid)])
-                if cur_rules:
-                    kw('delivery.price.rule', 'unlink', cur_rules)
-                kw('delivery.carrier', 'write', [cid], {
+                # Limpiar reglas viejas
+                if cur['price_rule_ids']:
+                    kw('delivery.price.rule', 'unlink', cur['price_rule_ids'])
+                # Actualizar metadata
+                kw('delivery.carrier', 'write', [cur['id']], {
+                    'name': name,
                     'delivery_type': 'base_on_rule',
-                    'fixed_price': z['b_0_2'],
+                    'fixed_price': t['b_0_2'],
+                    'active': True,
                 })
+                # Crear reglas nuevas
                 for r in new_rules:
-                    r2 = dict(r); r2['carrier_id'] = cid
+                    r2 = dict(r); r2['carrier_id'] = cur['id']
                     kw('delivery.price.rule', 'create', r2)
-                print(f"  ✓ actualizado #{cid}")
+                print(f"  ✓ sincronizado #{cur['id']}")
         else:
-            print(f"  NUEVO carrier a crear")
+            print(f"  no existe → crear")
             if args.apply:
-                # Necesita un product_id. Buscar 'Delivery' o crear uno simple.
-                # Usar el product del carrier GAM #11 como base — los couriers comparten product type.
-                base_carrier = kw('delivery.carrier', 'read', [DUAL_GAM_ID],
-                                  fields=['product_id'])[0]
-                prod_id = base_carrier['product_id'][0] if base_carrier.get('product_id') else None
-                cid = kw('delivery.carrier', 'create', {
-                    'name': z['name'],
+                # Usar el product del carrier GAM #11 como base
+                base_carrier = kw('delivery.carrier', 'read', [11], fields=['product_id'])
+                prod_id = (base_carrier[0]['product_id'][0]
+                           if base_carrier and base_carrier[0].get('product_id') else None)
+                new_id = kw('delivery.carrier', 'create', {
+                    'name': name,
                     'delivery_type': 'base_on_rule',
-                    'fixed_price': z['b_0_2'],
+                    'fixed_price': t['b_0_2'],
                     'product_id': prod_id,
                     'active': True,
                 })
                 for r in new_rules:
-                    r2 = dict(r); r2['carrier_id'] = cid
+                    r2 = dict(r); r2['carrier_id'] = new_id
                     kw('delivery.price.rule', 'create', r2)
-                print(f"  ✓ creado #{cid}")
+                print(f"  ✓ creado #{new_id} — RECORDÁ actualizar DUAL_CARRIER_ID_BY_ZONE en zonas_dual.py con el ID {new_id}")
 
     if not args.apply:
         print("\n[DRY-RUN] No se escribió nada. Para aplicar: --apply")

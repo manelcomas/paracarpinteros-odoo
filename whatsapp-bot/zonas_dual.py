@@ -1,15 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Mapeo cantón CR → zona Dual Global + tarifas vigentes mayo 2026.
+"""Tarifas Dual Global y mapeo cantón CR → zona. FUENTE ÚNICA DE VERDAD.
 
-Dual cobra por peso × zona. Como Odoo's delivery.price.rule sólo filtra por
-peso (no por destino), la decisión de zona vive aquí, en el wa-bot.
+Este módulo es la canonical source para:
+  * Tarifas Dual por zona × peso (DUAL_TARIFFS)
+  * Mapeo cantón → zona (DUAL_ZONE_BY_CANTON_ID)
+  * IDs de los delivery.carrier en Odoo por zona (DUAL_CARRIER_ID_BY_ZONE)
 
-Para mover un cantón entre zonas: editar DUAL_ZONE_BY_CANTON_ID y redesplegar.
-La fuente única de las tarifas es DUAL_TARIFFS — Odoo tiene una réplica solo
-para que el SO refleje un precio razonable (zona Intermedia como default).
+Lo consumen DOS sistemas:
+  1. El wa-bot (runtime, /api/odoo/carriers/{id}/quote)
+  2. scripts/cargar_tarifas_courier_2026.py (sync hacia Odoo)
 
-IDs de cantón corresponden a x_canton_cr en Odoo Online. Los rangos de peso
-y precios salen de dualglobal.cr (visto mayo 2026).
+Por eso este archivo NO debe importar nada del wa-bot ni del bridge — solo
+stdlib. Así puede importarlo cualquier script desde fuera del Docker.
+
+────────── FLUJO DE CAMBIO DE TARIFAS ──────────
+  1. Editar DUAL_TARIFFS aquí (o DUAL_ZONE_BY_CANTON_ID si cambia un cantón)
+  2. python3 scripts/cargar_tarifas_courier_2026.py --apply   (sincroniza Odoo)
+  3. Commit + rsync whatsapp-bot/ al VPS + docker compose up -d --build
+  4. Verificar con /api/odoo/carriers/11/quote
 """
 from typing import Optional, Literal
 
@@ -193,3 +201,42 @@ def quote_dual_by_canton(weight_g: float, canton_id: Optional[int],
     """Wrapper que primero deriva la zona desde el cantón del partner."""
     z = zone_for_canton(canton_id)
     return quote_dual(weight_g, z, home_delivery)
+
+
+def build_odoo_price_rules(zone: ZoneT) -> list[dict]:
+    """Construye las 4 reglas price.rule en formato Odoo para una zona.
+
+    Odoo computa: price = list_base_price + list_price * variable_value.
+    Para el rango '+10 kg' (cobrar over10_base hasta 10 kg + over10_kg por kg
+    extra), el offset es list_base = over10_base - 10 * over10_kg, y
+    list_price = over10_kg. Así a 11 kg da: offset + 11*kg = over10_base + kg.
+    """
+    t = DUAL_TARIFFS[zone]
+    over10_offset = t['over10_base'] - 10 * t['over10_kg']
+    return [
+        {'sequence': 10, 'variable': 'weight', 'operator': '<=', 'max_value': 2.0,
+         'list_base_price': t['b_0_2'],     'list_price': 0,              'variable_factor': 'weight'},
+        {'sequence': 20, 'variable': 'weight', 'operator': '<=', 'max_value': 5.0,
+         'list_base_price': t['b_2_5'],     'list_price': 0,              'variable_factor': 'weight'},
+        {'sequence': 30, 'variable': 'weight', 'operator': '<=', 'max_value': 10.0,
+         'list_base_price': t['b_5_10'],    'list_price': 0,              'variable_factor': 'weight'},
+        {'sequence': 40, 'variable': 'weight', 'operator': '>',  'max_value': 10.0,
+         'list_base_price': over10_offset,  'list_price': t['over10_kg'], 'variable_factor': 'weight'},
+    ]
+
+
+DUAL_CARRIER_NAME_BY_ZONE: dict = {
+    'gam':        'Dual Global - GAM',
+    'intermedia': 'Dual Global - Intermedia',
+    'remota':     'Dual Global - Remota',
+}
+
+
+def odoo_carrier_name(zone: ZoneT) -> str:
+    """Nombre exacto del delivery.carrier en Odoo correspondiente a la zona."""
+    return DUAL_CARRIER_NAME_BY_ZONE[zone]
+
+
+TAVO_CARRIER_ID = 10
+TAVO_NAME = ('Envío Transtusa Turrialba → Caribe '
+             '(Guápiles, Limón, Pócora, Matina, Siquirres, Cariari, Pto Viejo)')

@@ -12,7 +12,7 @@ Uso:
     python3 scripts/fichas_premium/run.py A814       # solo un producto
     python3 scripts/fichas_premium/run.py --limit 5  # primeros 5
 """
-import sys, os, re, json, html, argparse
+import sys, os, re, json, html, argparse, base64
 from datetime import datetime
 from html.parser import HTMLParser
 from urllib.parse import urlparse, parse_qs
@@ -40,6 +40,20 @@ SHOP_TAGLINE = 'Equipo profesional para carpintería · Costa Rica'
 
 OUT_DIR = os.path.join(THIS_DIR, 'output')
 BACKUP_DIR = os.path.join(THIS_DIR, 'backup')
+
+# Logo oficial embebido como data-URI (machote de la ficha imprimible).
+# Se lee del archivo versionado; reemplazar ese .webp cambia el logo en todas las fichas.
+LOGO_PATH = os.path.join(THIS_DIR, 'assets', 'logo-paracarpinteros.webp')
+
+def _load_logo_data_uri():
+    try:
+        with open(LOGO_PATH, 'rb') as f:
+            b64 = base64.b64encode(f.read()).decode()
+        return f'data:image/webp;base64,{b64}'
+    except Exception:
+        return None
+
+LOGO_DATA_URI = _load_logo_data_uri()
 os.makedirs(OUT_DIR, exist_ok=True)
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
@@ -622,6 +636,12 @@ def render_print(product, parsed, ai_extra=None):
 
     fecha = datetime.now().strftime('%d/%m/%Y')
 
+    # Machote: logo embebido si está disponible, sino el nombre en serif (fallback)
+    brand_block = (
+        f'<img class="brand-logo" src="{LOGO_DATA_URI}" alt="{SHOP_NAME}">'
+        if LOGO_DATA_URI else f'<div class="brand-name">{SHOP_NAME}</div>'
+    )
+
     return f"""<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -643,6 +663,7 @@ html,body{{background:var(--surface-2);color:var(--text);font-family:var(--font-
 .head{{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:16px;border-bottom:2px solid var(--text);margin-bottom:32px;gap:24px}}
 .head .brand{{flex:1;min-width:0}}
 .head .brand .brand-name{{font-family:var(--font-serif);font-size:1.6rem;font-weight:500;letter-spacing:-0.025em;line-height:1;color:var(--text)}}
+.head .brand .brand-logo{{height:46px;width:auto;display:block;margin-bottom:7px}}
 .head .brand .brand-tag{{font-family:var(--font-sans);font-size:.7rem;color:var(--text-2);font-weight:400;margin-top:6px;letter-spacing:0.03em;line-height:1.3}}
 .head .meta{{text-align:right;font-family:var(--font-mono);font-size:.7rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.05em;line-height:1.6;flex-shrink:0}}
 .head .meta b{{color:var(--text);font-weight:500}}
@@ -660,16 +681,16 @@ html,body{{background:var(--surface-2);color:var(--text);font-family:var(--font-
 
 /* Specs */
 .specs-block, .feats-block, .narr-block{{margin-bottom:22px}}
-.specs-block h3, .feats-block h3, .narr-block h3{{font-family:var(--font-serif);font-size:.98rem;font-weight:600;letter-spacing:-0.01em;margin:0 0 8px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px}}
+.specs-block h3, .feats-block h3, .narr-block h3{{font-family:var(--font-serif);font-size:1.12rem;font-weight:600;letter-spacing:-0.01em;margin:0 0 9px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px}}
 table.specs{{width:100%;border-collapse:collapse;margin:0}}
 table.specs tr{{border-bottom:1px solid var(--border)}}
 table.specs tr:last-child{{border-bottom:none}}
-table.specs th,table.specs td{{padding:8px 0;text-align:left;font-size:.83rem;vertical-align:top;text-indent:0}}
-table.specs th{{width:38%;color:var(--text-2);font-weight:500;padding-right:14px;font-size:.74rem;text-transform:uppercase;letter-spacing:0.04em}}
-table.specs td{{color:var(--text);font-family:var(--font-mono);font-size:.81rem;padding-left:0}}
-.narr-block p{{font-size:.86rem;line-height:1.6;color:var(--text);margin:0 0 7px;text-indent:0;padding:0}}
+table.specs th,table.specs td{{padding:9px 0;text-align:left;font-size:.94rem;vertical-align:top;text-indent:0}}
+table.specs th{{width:38%;color:var(--text-2);font-weight:500;padding-right:14px;font-size:.83rem;text-transform:uppercase;letter-spacing:0.04em}}
+table.specs td{{color:var(--text);font-family:var(--font-mono);font-size:.92rem;padding-left:0}}
+.narr-block p{{font-size:.96rem;line-height:1.6;color:var(--text);margin:0 0 8px;text-indent:0;padding:0}}
 .feats-block ul.feats{{list-style:none;padding:0;margin:0}}
-.feats-block ul.feats li{{padding:5px 0 5px 18px;font-size:.84rem;color:var(--text);position:relative;line-height:1.5;text-indent:0;margin:0}}
+.feats-block ul.feats li{{padding:6px 0 6px 20px;font-size:.94rem;color:var(--text);position:relative;line-height:1.55;text-indent:0;margin:0}}
 .feats-block ul.feats li::before{{content:'';position:absolute;left:0;top:12px;width:6px;height:6px;background:var(--accent);border-radius:50%}}
 .feats-block ul.feats.feats-warn li::before{{background:#956400}}
 
@@ -693,11 +714,11 @@ table.specs td{{color:var(--text);font-family:var(--font-mono);font-size:.81rem;
   .hero{{margin-bottom:20px;gap:24px}}
   .hero h1{{font-size:1.4rem}}
   .hero .img-wrap{{max-height:240px}}
-  table.specs th, table.specs td{{padding:6px 0;font-size:.78rem}}
-  table.specs td{{font-size:.76rem}}
-  .feats-block ul.feats li{{padding:3px 0 3px 16px;font-size:.78rem}}
-  .narr-block p{{font-size:.8rem}}
-  .specs-block h3, .feats-block h3, .narr-block h3{{font-size:.9rem;margin-bottom:6px;padding-bottom:4px}}
+  table.specs th, table.specs td{{padding:7px 0;font-size:.9rem}}
+  table.specs td{{font-size:.88rem}}
+  .feats-block ul.feats li{{padding:4px 0 4px 18px;font-size:.9rem}}
+  .narr-block p{{font-size:.9rem}}
+  .specs-block h3, .feats-block h3, .narr-block h3{{font-size:1.02rem;margin-bottom:7px;padding-bottom:4px}}
   @page{{size:A4;margin:12mm}}
 }}
 </style>
@@ -712,7 +733,7 @@ table.specs td{{color:var(--text);font-family:var(--font-mono);font-size:.81rem;
 
   <header class="head">
     <div class="brand">
-      <div class="brand-name">{SHOP_NAME}</div>
+      {brand_block}
       <div class="brand-tag">{SHOP_TAGLINE}</div>
     </div>
     <div class="meta">

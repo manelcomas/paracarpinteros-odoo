@@ -1,0 +1,5 @@
+# Generado por el pipeline — no versionar
+output/
+__pycache__/
+*.pyc
+backup/ai_cache/

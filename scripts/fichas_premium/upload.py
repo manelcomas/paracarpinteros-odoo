@@ -112,7 +112,9 @@ def upload_one(call, code, dry_run=False, from_backup_map=None, use_ai=False):
     # 1) Subir attachment con HTML imprimible (incluye IA si disponible)
     print_html = render_print(p, parsed, ai_extra=ai_extra)
     att_id = upsert_ficha_attachment(call, p['id'], code, print_html)
-    ficha_url = f'/web/content/{att_id}?download=false&filename={ATT_NAME_PATTERN.format(code=code)}'
+    # download=true: el attachment HTML se sirve con CSP `default-src 'none'` (anti-XSS de Odoo),
+    # que inline bloquea foto/CSS/script. Bajado como archivo local no hay CSP y la ficha funciona.
+    ficha_url = f'/web/content/{att_id}?download=true&filename={ATT_NAME_PATTERN.format(code=code)}'
 
     # 2) Renderizar website_description con botón apuntando al attachment
     new_html = render(p, parsed, kpis, ficha_url=ficha_url, ai_extra=ai_extra)

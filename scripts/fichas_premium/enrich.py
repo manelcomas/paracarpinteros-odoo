@@ -131,7 +131,23 @@ def call_claude_vision(name, code, desc_short, image_b64, media_type=None):
         return {'_raw': text, '_error': str(e), '_usage': usage}
 
 
-def enrich_one(call, code, verbose=True):
+CACHE_DIR = os.path.join(THIS_DIR, 'backup', 'ai_cache')
+
+
+def enrich_one(call, code, verbose=True, use_cache=True):
+    # Cache persistente: el enrichment IA de un producto no cambia entre corridas
+    # (misma foto + mismo prompt), así que lo guardamos para no re-pagar la API al
+    # regenerar fichas por cambios de plantilla. Borrar backup/ai_cache/{code}.json fuerza refetch.
+    cache_file = os.path.join(CACHE_DIR, f'{code}.json')
+    if use_cache and os.path.exists(cache_file):
+        try:
+            with open(cache_file, encoding='utf-8') as f:
+                cached = json.load(f)
+            if verbose: print(f'  ⚡ {code}: desde cache ({len(cached.get("specs",[]))} specs)')
+            return cached
+        except Exception:
+            pass  # cache corrupto → refetch
+
     p = fetch_product(call, code)
     if not p:
         if verbose: print(f'  ✗ {code}: producto no encontrado')
@@ -146,6 +162,16 @@ def enrich_one(call, code, verbose=True):
         desc_short=p.get('description_sale') or '',
         image_b64=p['image_1920'],
     )
+
+    # Guardar en cache si el resultado es válido (limpio de metadatos privados _usage/_raw)
+    if result and '_error' not in result and result.get('specs'):
+        try:
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            clean = {k: v for k, v in result.items() if not k.startswith('_')}
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(clean, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
     if verbose:
         if '_error' in result:
             print(f'  ⚠ {code}: respuesta no parseable como JSON')

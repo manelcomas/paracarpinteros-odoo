@@ -22,7 +22,7 @@ from upload import load_backup_dir, upsert_ficha_attachment, ATT_NAME_PATTERN
 from enrich import enrich_one
 
 
-def regen_one(call, code, backup_map):
+def regen_one(call, code, backup_map, use_ai=True):
     ids = call('product.template', 'search', [[('default_code', '=', code)]])
     if not ids:
         print(f'  ✗ {code}: no existe'); return False
@@ -34,12 +34,13 @@ def regen_one(call, code, backup_map):
     parsed = parse_description(source_html)
 
     ai_extra = None
-    try:
-        r = enrich_one(call, code, verbose=False)  # cache o API
-        if r and '_error' not in r:
-            ai_extra = {k: v for k, v in r.items() if not k.startswith('_')}
-    except Exception as e:
-        print(f'  ⚠ {code}: IA falló ({e}), ficha sin enriquecer')
+    if use_ai:
+        try:
+            r = enrich_one(call, code, verbose=False)  # cache o API
+            if r and '_error' not in r:
+                ai_extra = {k: v for k, v in r.items() if not k.startswith('_')}
+        except Exception as e:
+            print(f'  ⚠ {code}: IA falló ({e}), ficha sin enriquecer')
 
     print_html = render_print(p, parsed, ai_extra=ai_extra)
     att_id = upsert_ficha_attachment(call, p['id'], code, print_html)
@@ -49,17 +50,40 @@ def regen_one(call, code, backup_map):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('code', nargs='?', help='Un solo default_code')
+    ap.add_argument('--non-premium', action='store_true',
+                    help='Regenerar todos los <₡100k (sin IA por defecto)')
+    ap.add_argument('--min', type=float, help='Precio mínimo del rango')
+    ap.add_argument('--max', type=float, help='Precio máximo del rango')
+    ap.add_argument('--no-ai', action='store_true',
+                    help='No enriquecer con IA (para tiers medio/bajo)')
+    args = ap.parse_args()
+
     call = odoo_connect()
     backup_map = load_backup_dir('backup')
-    code = sys.argv[1] if len(sys.argv) > 1 else None
-    if code:
-        return 0 if regen_one(call, code, backup_map) else 1
-    rows = fetch_products(call, min_price=PRICE_PREMIUM_MIN)
-    print(f'Regenerando fichas de {len(rows)} premium (attachment only)…')
+    use_ai = not args.no_ai
+
+    if args.code:
+        return 0 if regen_one(call, args.code, backup_map, use_ai=use_ai) else 1
+
+    if args.non_premium:
+        rows = fetch_products(call, max_price=PRICE_PREMIUM_MIN)
+        use_ai = False  # los no-premium nunca llevan IA
+        label = f'{len(rows)} no-premium (<₡100k, sin IA)'
+    elif args.min is not None or args.max is not None:
+        rows = fetch_products(call, min_price=args.min, max_price=args.max)
+        label = f'{len(rows)} en rango ₡{args.min or 0:,.0f}-₡{args.max or 0:,.0f}'
+    else:
+        rows = fetch_products(call, min_price=PRICE_PREMIUM_MIN)
+        label = f'{len(rows)} premium'
+
+    print(f'Regenerando fichas de {label} (attachment only)…')
     ok = fail = 0
     for r in rows:
         try:
-            if regen_one(call, r['default_code'], backup_map):
+            if regen_one(call, r['default_code'], backup_map, use_ai=use_ai):
                 ok += 1
             else:
                 fail += 1

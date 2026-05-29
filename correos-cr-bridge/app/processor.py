@@ -6,6 +6,7 @@ y adjunta el PDF de la etiqueta al picking.
 
 import base64
 import logging
+import re
 import threading
 from datetime import datetime
 
@@ -28,7 +29,39 @@ def _m2o_name(value):
     return ''
 
 
-def build_dest_direccion(partner: dict, senas_override: str = '') -> str:
+# ZIP CR oficial = PCCDD; el primer dígito es la provincia.
+PROVINCIAS_CR = {
+    '1': 'San José', '2': 'Alajuela', '3': 'Cartago', '4': 'Heredia',
+    '5': 'Guanacaste', '6': 'Puntarenas', '7': 'Limón',
+}
+
+# Placeholders que el modal pone en cantón/distrito cuando el partner no tiene
+# el dato ("Cantón 03", "Distrito 05"): no son nombres reales, se descartan.
+_GEO_PLACEHOLDER = re.compile(r'^(?:Cantón|Distrito)\s*\d+$', re.IGNORECASE)
+
+
+def _zip_digits(value) -> str:
+    """Normaliza a un ZIP CR de 5 dígitos válido (PCCDD) o '' si no lo es."""
+    z = ''.join(c for c in (value or '') if c.isdigit())
+    return z if len(z) == 5 and z[0] in '1234567' else ''
+
+
+def _clean_geo(value: str) -> str:
+    """Limpia un nombre de cantón/distrito venido del modal: descarta los
+    placeholders 'Cantón NN'/'Distrito NN' que no aportan info al cartero."""
+    v = (value or '').strip()
+    return '' if _GEO_PLACEHOLDER.match(v) else v
+
+
+def build_dest_direccion(
+    partner: dict,
+    senas_override: str = '',
+    zip_override: str = '',
+    canton_override: str = '',
+    distrito_override: str = '',
+    provincia_override: str = '',
+    zip_map: dict | None = None,
+) -> str:
     """
     Construye el DEST_DIRECCION que se envía a Correos CR concatenando
     señas + distrito + cantón + provincia, separados por coma.
@@ -39,6 +72,14 @@ def build_dest_direccion(partner: dict, senas_override: str = '') -> str:
 
     - senas_override: texto que ya viene del modal del panel (lo que el
       usuario editó). Si está vacío, cae a x_studio_senas y luego a street.
+    - Geografía (Distrito/Cantón/Provincia) por prioridad **ZIP → modal →
+      partner**, para no mezclar datos cuando el operador corrige a mano:
+        1. Si el ZIP efectivo (zip_override del modal o el del partner) es un
+           CR válido y está en zip_map, se derivan distrito/cantón de la tabla
+           maestra y la provincia del primer dígito. El ZIP manda: nunca queda
+           pegada la geo vieja del partner a unas señas nuevas.
+        2. Si no, los valores que el operador dejó en el modal.
+        3. Si no, los Studio fields del partner.
     - El nombre de la provincia que devuelve Odoo viene con sufijo
       " (CR)" — se limpia.
     - Se trunca a 500 chars (límite del WS).
@@ -47,9 +88,38 @@ def build_dest_direccion(partner: dict, senas_override: str = '') -> str:
     if not senas:
         senas = (partner.get('x_studio_senas') or partner.get('street') or '').strip()
 
-    canton = _m2o_name(partner.get('x_studio_canton_cr'))
-    distrito = _m2o_name(partner.get('x_studio_distrito_cr'))
-    provincia = _m2o_name(partner.get('state_id')).replace(' (CR)', '').strip()
+    canton = distrito = provincia = ''
+
+    def _from_zip(z):
+        """Rellena los huecos de canton/distrito/provincia desde un ZIP del mapa."""
+        nonlocal canton, distrito, provincia
+        entry = zip_map.get(z) if (z and zip_map) else None
+        if entry:
+            # zip_map[z] = (dist_id, dist_name, cant_id, cant_name)
+            distrito = distrito or (entry[1] or '').strip()
+            canton = canton or (entry[3] or '').strip()
+            provincia = provincia or PROVINCIAS_CR.get(z[0], '')
+
+    # 1) ZIP que el operador editó en el modal: fuente de la verdad.
+    _from_zip(_zip_digits(zip_override))
+
+    # 2) Lo que el operador dejó escrito en el modal.
+    if not canton:
+        canton = _clean_geo(canton_override)
+    if not distrito:
+        distrito = _clean_geo(distrito_override)
+    if not provincia:
+        provincia = (provincia_override or '').replace(' (CR)', '').strip()
+
+    # 3) Partner: primero su propio ZIP (clave para el worker automático, que
+    #    no pasa por el modal), luego los Studio fields como último recurso.
+    _from_zip(_zip_digits(partner.get('zip', '')))
+    if not canton:
+        canton = _m2o_name(partner.get('x_studio_canton_cr'))
+    if not distrito:
+        distrito = _m2o_name(partner.get('x_studio_distrito_cr'))
+    if not provincia:
+        provincia = _m2o_name(partner.get('state_id')).replace(' (CR)', '').strip()
 
     parts = [senas]
     if distrito:
@@ -154,7 +224,7 @@ class Processor:
         # Validaciones mínimas
         if not partner.get('zip'):
             raise Exception(f"Cliente '{partner.get('name')}' sin código postal")
-        direccion_dest = build_dest_direccion(partner)
+        direccion_dest = build_dest_direccion(partner, zip_map=self.odoo._load_zip_map())
         if not direccion_dest:
             raise Exception(f"Cliente '{partner.get('name')}' sin dirección")
 

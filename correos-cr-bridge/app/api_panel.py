@@ -703,6 +703,11 @@ class GenerarPayload(BaseModel):
     dest_direccion: str
     dest_telefono: str = ''
     dest_zip: str
+    # Geografía que el operador ve/edita en el modal. Se usan como fallback si
+    # el ZIP no está en la tabla maestra; el ZIP manda (ver build_dest_direccion).
+    dest_canton: str = ''
+    dest_distrito: str = ''
+    dest_provincia: str = ''
     peso_g: int = Field(..., ge=1)
     observaciones: str = 'Herramientas'
 
@@ -729,9 +734,20 @@ def generar_guia_picking(picking_id: int, payload: GenerarPayload):
         # Releer el partner para enriquecer la dirección con prov/cantón/distrito.
         # Sin esto, la etiqueta de Correos solo imprime las señas y se pierde
         # la info geográfica que el cartero necesita.
+        # Geografía por prioridad ZIP → modal → partner: el ZIP que el operador
+        # puso manda, así no se mezcla la dirección nueva con la geo vieja del
+        # partner (clientes con dos direcciones).
         partner_id = pks[0]['partner_id'][0] if pks[0].get('partner_id') else None
         partner_data = p.odoo.read_partner(partner_id) if partner_id else {}
-        dest_direccion_full = build_dest_direccion(partner_data, senas_override=payload.dest_direccion)
+        dest_direccion_full = build_dest_direccion(
+            partner_data,
+            senas_override=payload.dest_direccion,
+            zip_override=payload.dest_zip,
+            canton_override=payload.dest_canton,
+            distrito_override=payload.dest_distrito,
+            provincia_override=payload.dest_provincia,
+            zip_map=p.odoo._load_zip_map(),
+        )
 
         # 1) Generar guía
         envio_id = p.correos.generar_guia()

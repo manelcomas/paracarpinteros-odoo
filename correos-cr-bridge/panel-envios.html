@@ -2277,11 +2277,19 @@ async function confirmCambiarCourier(newCourier){
 
 async function confirmGenerar(){
   if(!MODAL_PICKING_ID) return;
+  const provSel = document.getElementById('m-provincia');
+  const provNombre = (provSel && provSel.selectedIndex > 0)
+    ? (provSel.options[provSel.selectedIndex].text || '').trim() : '';
   const payload = {
     dest_nombre: document.getElementById('m-nombre').value,
     dest_direccion: document.getElementById('m-direccion').value,
     dest_telefono: (document.getElementById('m-telefono')?.value || '').trim(),
     dest_zip: document.getElementById('m-cp').value,
+    // Geografía que se ve en el modal. El backend prioriza el ZIP; esto es
+    // fallback si el ZIP no está en la tabla maestra (ver build_dest_direccion).
+    dest_canton: (document.getElementById('m-canton')?.value || '').trim(),
+    dest_distrito: (document.getElementById('m-distrito')?.value || '').trim(),
+    dest_provincia: provNombre,
     peso_g: parseInt(document.getElementById('m-peso').value) || 500,
     observaciones: 'Herramientas',
   };

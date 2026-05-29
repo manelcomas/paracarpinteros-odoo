@@ -1468,18 +1468,76 @@ def entrega_mano(picking_id: int, payload: EntregaManoPayload):
     finally:
         conn.close()
 
-    # Marcar carrier_tracking_ref con prefijo MANO-{id} en Odoo para que aparezca
-    # en histórico y deje de aparecer como pendiente
+    # 1) Marcar carrier_tracking_ref con prefijo MANO-{id} en Odoo
+    # 2) Validar el picking + upstream para que el stock se descuente realmente.
+    # Sin esta validación el picking queda en assigned/waiting indefinidamente
+    # y las unidades quedan "reservadas" sin descontar — el e-shop muestra
+    # "Stock: N" con "Fuera de stock" simultáneamente (bug detectado 2026-05-28).
+    ref = "MANO-" + str(picking_id)
+    warnings = []
     try:
         p = get_processor()
         p.odoo.authenticate()
-        ref = "MANO-" + str(picking_id)
+        # Tracking
         p.odoo.execute_kw('stock.picking', 'write',
             [[picking_id], {'carrier_tracking_ref': ref}])
-        return {'ok': True, 'tracking': ref}
+        # Validar upstream(s) primero — el PICK debe estar done antes que el OUT
+        pk_info = p.odoo.execute_kw('stock.picking', 'read', [[picking_id]],
+            {'fields': ['sale_id', 'state']})
+        so_id = pk_info[0]['sale_id'][0] if pk_info and pk_info[0].get('sale_id') else None
+        if so_id:
+            upstream_ids = p.odoo.execute_kw('stock.picking', 'search',
+                [[('sale_id', '=', so_id), ('id', '!=', picking_id),
+                  ('state', 'not in', ['done', 'cancel'])]])
+            for up_id in upstream_ids:
+                try:
+                    _validate_picking_with_qtys(p.odoo, up_id)
+                except Exception as ev:
+                    warnings.append(f'upstream {up_id}: {ev}')
+        # Validar el OUT
+        try:
+            _validate_picking_with_qtys(p.odoo, picking_id)
+        except Exception as ev:
+            warnings.append(f'out {picking_id}: {ev}')
+        result = {'ok': True, 'tracking': ref}
+        if warnings:
+            result['warn'] = ' | '.join(str(w)[:120] for w in warnings)
+        return result
     except Exception as e:
-        _logger.warning("entrega-mano: no pude actualizar Odoo " + str(picking_id) + ": " + str(e))
-        return {'ok': True, 'tracking': "MANO-" + str(picking_id), 'warn': str(e)}
+        _logger.warning("entrega-mano: no pude actualizar Odoo %s: %s", picking_id, e)
+        return {'ok': True, 'tracking': ref, 'warn': str(e)}
+
+
+def _validate_picking_with_qtys(odoo, picking_id: int):
+    """Setea quantity = product_uom_qty en los moves del picking y llama
+    button_validate. Maneja el wizard 'immediate transfer' / backorder si
+    Odoo lo devuelve. Idempotente: si ya está 'done', no hace nada."""
+    pk = odoo.execute_kw('stock.picking', 'read', [[picking_id]],
+        {'fields': ['state', 'move_ids']})
+    if not pk or pk[0]['state'] == 'done':
+        return
+    moves = odoo.execute_kw('stock.move', 'read', [pk[0]['move_ids']],
+        {'fields': ['id', 'product_uom_qty', 'quantity', 'state']})
+    for mv in moves:
+        if mv['state'] in ('done', 'cancel'):
+            continue
+        demand = mv.get('product_uom_qty') or 0
+        if (mv.get('quantity') or 0) != demand:
+            odoo.execute_kw('stock.move', 'write', [[mv['id']], {'quantity': demand}])
+    # action_assign — transiciona waiting/confirmed → assigned
+    try:
+        odoo.execute_kw('stock.picking', 'action_assign', [[picking_id]])
+    except Exception:
+        pass
+    res = odoo.execute_kw('stock.picking', 'button_validate', [[picking_id]])
+    if isinstance(res, dict) and res.get('res_model'):
+        wmodel = res['res_model']
+        wctx = res.get('context', {})
+        wid = odoo.execute_kw(wmodel, 'create', [{}], {'context': wctx})
+        if 'immediate' in wmodel:
+            odoo.execute_kw(wmodel, 'process', [[wid]])
+        elif 'backorder' in wmodel:
+            odoo.execute_kw(wmodel, 'process_cancel_backorder', [[wid]])
 
 
 # ─── Auth verify estricto (usado por nginx auth_request) ───

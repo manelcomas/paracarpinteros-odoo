@@ -12,7 +12,7 @@ Uso:
     python3 seo_meta.py --write         # escribe los premium en producción
     python3 seo_meta.py --non-premium --write   # resto del catálogo (determinista)
 """
-import sys, os, re, json, argparse, urllib.request
+import sys, os, re, json, argparse, hashlib, urllib.request
 from urllib.error import HTTPError
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from run import odoo_connect, fetch_products, PRICE_PREMIUM_MIN
@@ -127,14 +127,31 @@ def _fit_desc(d):
     return d
 
 
+def _name_sha(name):
+    """Hash corto del nombre normalizado, para invalidar cache si el producto se renombra."""
+    return hashlib.sha1(clean(name).encode('utf-8')).hexdigest()[:12]
+
+
 def ai_meta(code, name, price, ai, use_cache=True):
-    """Genera {meta_title, meta_description} con Claude (texto). Cachea en seo_cache/."""
+    """Genera {meta_title, meta_description} con Claude (texto). Cachea en seo_cache/.
+
+    El cache se invalida si el nombre del producto cambió (compara _name_sha)."""
     cf = os.path.join(SEO_CACHE_DIR, f'{code}.json')
+    cur = _name_sha(name)
     if use_cache and os.path.exists(cf):
         try:
-            return json.load(open(cf, encoding='utf-8'))
+            cached = json.load(open(cf, encoding='utf-8'))
         except Exception:
-            pass
+            cached = None
+        if cached:
+            if cached.get('_name_sha') == cur:
+                return cached
+            if '_name_sha' not in cached:
+                # legacy sin hash: migrar estampando el nombre actual (mismo texto, sin re-gastar API)
+                cached['_name_sha'] = cur
+                json.dump(cached, open(cf, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+                return cached
+            # _name_sha presente y distinto → el nombre cambió, regenerar abajo
     if not API_KEY:
         raise RuntimeError('ANTHROPIC_API_KEY no está en el .env')
     user = (f'Producto: {name}\nReferencia: {code}\nPrecio: ₡{price:,.0f}\n'
@@ -152,7 +169,8 @@ def ai_meta(code, name, price, ai, use_cache=True):
     m = re.search(r'\{[\s\S]*\}', text)
     d = json.loads(m.group(0)) if m else {}
     res = {'meta_title': _fit_title(d.get('meta_title') or name),
-           'meta_description': _fit_desc(d.get('meta_description') or name)}
+           'meta_description': _fit_desc(d.get('meta_description') or name),
+           '_name_sha': cur}
     os.makedirs(SEO_CACHE_DIR, exist_ok=True)
     json.dump(res, open(cf, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     return res

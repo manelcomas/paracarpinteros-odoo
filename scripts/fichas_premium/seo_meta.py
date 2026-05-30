@@ -11,6 +11,7 @@ Uso:
     python3 seo_meta.py --sample 10     # dry-run, solo N de muestra
     python3 seo_meta.py --write         # escribe los premium en producción
     python3 seo_meta.py --non-premium --write   # resto del catálogo (determinista)
+    python3 seo_meta.py --non-premium --dedup --write  # idem + regenera con IA los títulos duplicados
 """
 import sys, os, re, json, argparse, hashlib, urllib.request
 from urllib.error import HTTPError
@@ -132,10 +133,19 @@ def _name_sha(name):
     return hashlib.sha1(clean(name).encode('utf-8')).hexdigest()[:12]
 
 
-def ai_meta(code, name, price, ai, use_cache=True):
+DEDUP_HINT = ('\n\nIMPORTANTE: este producto pertenece a una FAMILIA de productos casi idénticos '
+              'que se diferencian por una MEDIDA (diámetro, corte, vástago, largo, grosor) o una '
+              'VARIANTE (color, material). El meta_title DEBE incluir esa medida/variante distintiva '
+              'para que se distinga de sus hermanos. Abreviá el tipo genérico todo lo necesario '
+              '(p.ej. "Fresa CNC Round Nose / Media Caña – Corte" → "Fresa Round Nose") para que '
+              'la medida quepa en los 60 caracteres.')
+
+
+def ai_meta(code, name, price, ai, use_cache=True, dedup=False):
     """Genera {meta_title, meta_description} con Claude (texto). Cachea en seo_cache/.
 
-    El cache se invalida si el nombre del producto cambió (compara _name_sha)."""
+    El cache se invalida si el nombre del producto cambió (compara _name_sha). En modo
+    dedup pide a la IA front-loadear el dato distintivo y marca la entrada con _dedup."""
     cf = os.path.join(SEO_CACHE_DIR, f'{code}.json')
     cur = _name_sha(name)
     if use_cache and os.path.exists(cf):
@@ -144,18 +154,21 @@ def ai_meta(code, name, price, ai, use_cache=True):
         except Exception:
             cached = None
         if cached:
-            if cached.get('_name_sha') == cur:
+            name_ok = cached.get('_name_sha') == cur or '_name_sha' not in cached
+            dedup_ok = (not dedup) or cached.get('_dedup')
+            if name_ok and dedup_ok:
+                if '_name_sha' not in cached:
+                    # legacy sin hash: migrar estampando el nombre actual (sin re-gastar API)
+                    cached['_name_sha'] = cur
+                    json.dump(cached, open(cf, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
                 return cached
-            if '_name_sha' not in cached:
-                # legacy sin hash: migrar estampando el nombre actual (mismo texto, sin re-gastar API)
-                cached['_name_sha'] = cur
-                json.dump(cached, open(cf, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-                return cached
-            # _name_sha presente y distinto → el nombre cambió, regenerar abajo
+            # nombre cambió, o se pide dedup y la entrada no es dedup → regenerar abajo
     if not API_KEY:
         raise RuntimeError('ANTHROPIC_API_KEY no está en el .env')
     user = (f'Producto: {name}\nReferencia: {code}\nPrecio: ₡{price:,.0f}\n'
             f'Specs disponibles:\n{_specs_block(ai)}\n\nGenerá el JSON de meta tags.')
+    if dedup:
+        user += DEDUP_HINT
     payload = {
         'model': MODEL, 'max_tokens': 300,
         'system': [{'type': 'text', 'text': SEO_SYSTEM, 'cache_control': {'type': 'ephemeral'}}],
@@ -171,6 +184,8 @@ def ai_meta(code, name, price, ai, use_cache=True):
     res = {'meta_title': _fit_title(d.get('meta_title') or name),
            'meta_description': _fit_desc(d.get('meta_description') or name),
            '_name_sha': cur}
+    if dedup:
+        res['_dedup'] = True
     os.makedirs(SEO_CACHE_DIR, exist_ok=True)
     json.dump(res, open(cf, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     return res
@@ -197,12 +212,48 @@ def gen_for(call, rows, use_ai_meta=False):
     return out
 
 
+def _dups(items):
+    """Set de títulos que aparecen en más de un producto."""
+    seen = {}
+    for it in items:
+        seen[it['title']] = seen.get(it['title'], 0) + 1
+    return {t for t, n in seen.items() if n > 1}
+
+
+def dedup_titles(items):
+    """Regenera con IA los títulos colisionados (el determinista los trunca al mismo
+    prefijo y pierde el dato distintivo: diámetro, modelo…). Garantiza unicidad final
+    anexando el código de referencia a lo que aún colisione."""
+    dups = _dups(items)
+    if not dups:
+        print('[dedup] sin títulos duplicados')
+        return items
+    print(f'[dedup] {sum(1 for it in items if it["title"] in dups)} productos con título duplicado → regenero con IA')
+    for it in items:
+        if it['title'] in dups:
+            try:
+                m = ai_meta(it['code'], it['name'], 0, load_ai(it['code']), dedup=True)
+                it['title'], it['desc'], it['ai'] = m['meta_title'], m['meta_description'], True
+            except Exception as e:
+                print(f'  ⚠ {it["code"]}: dedup IA falló ({e})')
+    # fallback determinista: lo que la IA no logró diferenciar, lleva el código
+    still = _dups(items)
+    for it in items:
+        if it['title'] in still:
+            core = it['title'][:-len(BRAND)] if it['title'].endswith(BRAND) else it['title']
+            core = word_trunc(core, MAXT - len(BRAND) - len(it['code']) - 1)
+            it['title'] = f"{core} {it['code']}{BRAND}"
+            print(f'  · {it["code"]}: unicidad por código → {it["title"]}')
+    return items
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--write', action='store_true', help='Escribir en Odoo (sin esto, dry-run)')
     ap.add_argument('--non-premium', action='store_true', help='Resto del catálogo (<₡100k)')
     ap.add_argument('--sample', type=int, help='Mostrar solo N en dry-run')
     ap.add_argument('--ai', action='store_true', help='Generar meta con IA (texto, cacheado)')
+    ap.add_argument('--dedup', action='store_true', help='Regenerar con IA los títulos duplicados (anti-colisión)')
     args = ap.parse_args()
 
     call = odoo_connect()
@@ -213,6 +264,8 @@ def main():
     if args.sample and not args.write:
         rows = rows[:args.sample]
     items = gen_for(call, rows, use_ai_meta=args.ai)
+    if args.dedup:
+        items = dedup_titles(items)
 
     if not args.write:
         show = items[:args.sample] if args.sample else items

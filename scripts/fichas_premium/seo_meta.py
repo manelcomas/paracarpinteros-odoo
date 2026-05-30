@@ -84,7 +84,7 @@ def build_title(name, ai):
 
 
 def build_desc(name, ai, price):
-    budget = MAXD - len(CTA)
+    budget = MAXD - len(CTA) - 1  # -1 reserva el punto final
     # Frase núcleo: nombre + (1ª aplicación del cache IA si hay)
     lead = clean(name)
     if ai and ai.get('applications'):
@@ -123,7 +123,7 @@ def _fit_title(t):
 def _fit_desc(d):
     d = clean(d).strip('"')
     if len(d) > MAXD:
-        d = word_trunc(d, MAXD).rstrip(' .,;:·-') + '.'
+        d = word_trunc(d, MAXD - 1).rstrip(' .,;:·-') + '.'
     return d
 
 

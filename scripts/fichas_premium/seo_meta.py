@@ -179,8 +179,13 @@ def ai_meta(code, name, price, ai, use_cache=True, dedup=False):
     with urllib.request.urlopen(req, timeout=60) as r:
         data = json.loads(r.read())
     text = data['content'][0]['text']
-    m = re.search(r'\{[\s\S]*\}', text)
-    d = json.loads(m.group(0)) if m else {}
+    m = re.search(r'\{', text)
+    d = {}
+    if m:
+        try:  # raw_decode ignora texto extra tras el objeto JSON
+            d, _ = json.JSONDecoder().raw_decode(text[m.start():])
+        except ValueError:
+            d = {}
     res = {'meta_title': _fit_title(d.get('meta_title') or name),
            'meta_description': _fit_desc(d.get('meta_description') or name),
            '_name_sha': cur}

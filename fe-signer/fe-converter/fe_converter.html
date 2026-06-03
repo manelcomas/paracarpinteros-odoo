@@ -2146,7 +2146,7 @@ ${v7_receptorXml}
   <PlazoCredito>${v7_cvPlazo}</PlazoCredito>
 
   <DetalleServicio>${detalleLines}
-  </DetalleServicio>${v6_irXml}
+  </DetalleServicio>
 
   <ResumenFactura>
     <CodigoTipoMoneda><CodigoMoneda>${moneda}</CodigoMoneda><TipoCambio>1</TipoCambio></CodigoTipoMoneda>
@@ -2170,7 +2170,7 @@ ${v7_receptorXml}
     <TotalImpuesto>${fmtX(taxFact)}</TotalImpuesto>
     <MedioPago><TipoMedioPago>${v7_mpTipo}</TipoMedioPago><TotalMedioPago>${fmtX(totalFact)}</TotalMedioPago></MedioPago>
     <TotalComprobante>${fmtX(totalFact)}</TotalComprobante>
-  </ResumenFactura>
+  </ResumenFactura>${v6_irXml}
 
 </${v6_xmlInfo.tag}>`;
 
@@ -2486,7 +2486,7 @@ ${v7_receptorXml}
   <CondicionVenta>${v7_cvTipo}</CondicionVenta>
   <PlazoCredito>${v7_cvPlazo}</PlazoCredito>
   <DetalleServicio>${detalleLines}
-  </DetalleServicio>${v6_irXml}
+  </DetalleServicio>
   <ResumenFactura>
     <CodigoTipoMoneda><CodigoMoneda>${moneda}</CodigoMoneda><TipoCambio>1</TipoCambio></CodigoTipoMoneda>
     <TotalServGravados>${fmtX(v26_totalServGrav)}</TotalServGravados>
@@ -2509,7 +2509,7 @@ ${v7_receptorXml}
     <TotalImpuesto>${fmtX(taxFact)}</TotalImpuesto>
     <MedioPago><TipoMedioPago>${v7_mpTipo}</TipoMedioPago><TotalMedioPago>${fmtX(totalFact)}</TotalMedioPago></MedioPago>
     <TotalComprobante>${fmtX(totalFact)}</TotalComprobante>
-  </ResumenFactura>
+  </ResumenFactura>${v6_irXml}
 </${v6_xmlInfo.tag}>`;
 
     // === v25: FIRMA SERVER-SIDE en VPS Contabo (CRLibre PHP) ===

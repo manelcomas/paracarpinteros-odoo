@@ -1965,7 +1965,10 @@ function updateClave() {
   const sit = document.getElementById('n-sit').value;
   const seg = pad(document.getElementById('n-seg').value, 8);
 
-  const consec = tipo + suc + ter + con;
+  // Estructura oficial (art.4 res.48-2016): Sucursal(3) + Terminal(5) + TipoDoc(2) + Consecutivo(10).
+  // 'suc' es el campo de 5 díg (en realidad la Terminal); la Sucursal casa-matriz es 001;
+  // el TipoDoc de 2 díg sale de los últimos 2 del selector (001→01, 003→03).
+  const consec = '001' + suc + tipo.slice(-2) + con;
   document.getElementById('consec-full').textContent = consec;
 
   const today = new Date();

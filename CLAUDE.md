@@ -140,6 +140,25 @@ Ambos comparten el patrón: `oauth-start.php` → `oauth-callback.php` → `poll
 
 **OAuth Gmail — token y caducidad (gotcha):** el refresh token se guarda en **SQLite cifrado** (AES-256-GCM), no en `.env` ni `token.json`: tabla `oauth_tokens` (fila `id=1`, columna `refresh_token_enc`) de `buzon.db` (`BUZON_DB_PATH`, default `/var/www/html/buzon-rx/storage/buzon.db`, volumen Docker `./storage`). La clave de cifrado se deriva de `SIGNER_API_KEY` + `OAUTH_ENC_KEY_DERIVE` — si esos env cambian, el descifrado falla. **Si la app OAuth está en modo "Testing" (no publicada) en Google Cloud Console, Google revoca los refresh tokens cada 7 días** → `invalid_grant` / "Token has been expired or revoked" en "Revisar correo ahora". Pasó el 2026-05-29 (la app estaba sin publicar). Fix: publicar la app a **"In production"** (los scopes Gmail son *restricted*, así que sale aviso de "app no verificada" — para uso personal se sigue igual). Importante: **publicar no des-caduca el token ya emitido en Testing**; hay que re-autorizar (`oauth-start`) **después** de publicar para que el token nuevo nazca sin reloj de 7 días. Regenerar = abrir `https://panel.paracarpinteros.com/buzon-rx/oauth-start` (ó `/alibaba-rx/oauth-start`) logueado en `envios@` → el callback hace UPSERT en SQLite. `bx_get_access_token()` en `lib.php` es quien refresca/lanza la excepción.
 
+### FE Converter (emisión de factura electrónica) — vive en Odoo, no en el repo
+
+La **factura electrónica de emisión** (FE Hacienda CR) **NO la genera Odoo nativo**
+(no hay módulo CR instalado: los campos de Hacienda en `account.move` están vacíos)
+ni el repo. La arma un **conversor HTML/JS que vive DENTRO de Odoo** como
+`ir.attachment` **37459** (`fe_converter_v22.html`, ~530KB), servido en la página
+website **`/fe-converter`** (`website.page` 64 → `ir.ui.view` 7307, un wrapper con
+un iframe que carga `/web/content/37459`). El panel (`panel.paracarpinteros.com`)
+lo **embebe por iframe**. `fe-signer` **solo firma** (CRLibre `/sign`); el conversor
+le manda el XML y reenvía a Hacienda.
+
+- **Deploy:** NO es `git pull`. Se sube el HTML al attachment 37459 **por XML-RPC**
+  (write `datas` base64). Copia versionada + instrucciones en
+  [`fe-signer/fe-converter/`](fe-signer/fe-converter/README.md). Tras subir,
+  Ctrl+Shift+R (el iframe cachea).
+- **Gotcha tarifa IVA:** el `<TotalDesgloseImpuesto>` (resumen) debe llevar el
+  **mismo `CodigoTarifaIVA` que las líneas**. UCR paga **2% (tarifa 03**, Ley 9635
+  Art. 11.4); hardcodear `08` (13%) en el resumen → rechazo Hacienda **-488**.
+
 ### wa-bot deploy
 
 `whatsapp-bot/` **no se despliega con `git pull`** porque vive en `/opt/whatsapp-bot/` (fuera del clon del monorepo en `/opt/paracarpinteros-odoo/`). El layout en VPS quedó así por historia: nació antes que el monorepo y se mantiene ahí porque tiene su volumen `./data` (media + `conversations.db`) y `/var/backups/whatsapp-bot` mapeado fuera.

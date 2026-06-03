@@ -1747,7 +1747,7 @@ function renderTotales() {
     <div class="totals-wrap">
       <div class="tot-row"><span class="tot-lbl">Subtotal</span><span class="tot-val">₡${fmtN(bruto)}</span></div>
       ${descRow}
-      <div class="tot-row"><span class="tot-lbl">IVA (13%)</span><span class="tot-val">₡${fmtN(tax)}</span></div>
+      <div class="tot-row"><span class="tot-lbl">IVA (${(currentLines.find(l=>l.taxDet&&l.taxDet.length)||{taxDet:[{amount:13}]}).taxDet[0].amount}%)</span><span class="tot-val">₡${fmtN(tax)}</span></div>
       <div class="tot-row grand"><span class="tot-lbl">TOTAL</span><span class="tot-val">₡${fmtN(total)}</span></div>
     </div>
   `;
@@ -4223,7 +4223,7 @@ function v31_generarPDF(d) {
       y += bold?8:5;
     };
     tot('Subtotal:', d.totalVentaNeta, false);
-    tot('IVA 13%:', d.totalImpuesto, false);
+    tot('IVA ' + (d.totalVentaNeta>0?Math.round(d.totalImpuesto/d.totalVentaNeta*100):13) + '%:', d.totalImpuesto, false);
     tot('TOTAL:', d.totalComprobante, true);
     y += 4;
     // Badge aceptada
@@ -4279,7 +4279,7 @@ function v31_bodyEmail(d, nota) {
   + '</table>'
   + '<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:.95rem;">'
   +   '<tr><td style="padding:6px 14px;text-align:right;color:#666;">Subtotal:</td><td style="padding:6px 14px;text-align:right;width:160px;">' + v31_fmtMoneda(d.totalVentaNeta,d.moneda) + '</td></tr>'
-  +   '<tr><td style="padding:6px 14px;text-align:right;color:#666;">Impuesto (IVA 13%):</td><td style="padding:6px 14px;text-align:right;">' + v31_fmtMoneda(d.totalImpuesto,d.moneda) + '</td></tr>'
+  +   '<tr><td style="padding:6px 14px;text-align:right;color:#666;">Impuesto (IVA ' + (d.totalVentaNeta>0?Math.round(d.totalImpuesto/d.totalVentaNeta*100):13) + '%):</td><td style="padding:6px 14px;text-align:right;">' + v31_fmtMoneda(d.totalImpuesto,d.moneda) + '</td></tr>'
   +   '<tr style="background:#FFF7ED;"><td style="padding:10px 14px;text-align:right;font-weight:700;font-size:1.1rem;color:#7C2D12;">TOTAL:</td><td style="padding:10px 14px;text-align:right;font-weight:700;font-size:1.1rem;color:#7C2D12;">' + v31_fmtMoneda(d.totalComprobante,d.moneda) + '</td></tr>'
   + '</table>'
   + '<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:12px;margin-top:20px;font-size:.85rem;">'

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>wa-bot — Esquema de comportamiento</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 24px 32px 64px;
+      background: #0f1115; color: #e6e8eb;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    h2 { font-size: 16px; margin: 32px 0 10px; color: #cbd2da; }
+    .sub { color: #9aa3ad; font-size: 13px; margin: 0 0 24px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 20px; font-size: 12.5px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .card { background: #161a20; border: 1px solid #232a33; border-radius: 12px; padding: 18px; overflow-x: auto; margin-bottom: 8px; }
+    .note { color: #9aa3ad; font-size: 12.5px; margin: 6px 2px 0; }
+    .mermaid { display: flex; justify-content: center; }
+    footer { color: #6b7480; font-size: 12px; margin-top: 28px; }
+    code { background: #232a33; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+    table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #232a33; vertical-align: top; }
+    th { color: #9aa3ad; font-weight: 600; }
+    .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+    .t-normal { background:#0c2e2b; color:#5eead4; border:1px solid #0d9488; }
+    .t-cons { background:#3a2a0c; color:#fbbf24; border:1px solid #b45309; }
+    .t-esc { background:#3a1212; color:#fca5a5; border:1px solid #b91c1c; }
+  </style>
+</head>
+<body>
+  <h1>wa-bot — Esquema de comportamiento</h1>
+  <p class="sub">Bot WhatsApp Paracarpinteros · <code>wa.paracarpinteros.com</code> · modelo <code>claude-sonnet-4-6</code> · referencias a <code>whatsapp-bot/main.py</code> (3.909 líneas) · generado 2026-06-03</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#2563eb"></span> Decisión / guardia</span>
+    <span><span class="dot" style="background:#7c3aed"></span> Modelo (ai_reply)</span>
+    <span><span class="dot" style="background:#0d9488"></span> Tool → Odoo / datos</span>
+    <span><span class="dot" style="background:#b45309"></span> Salida a cliente</span>
+    <span><span class="dot" style="background:#475569"></span> Estado / SQLite</span>
+  </div>
+
+  <!-- ====================================================== -->
+  <h2>1 · Flujo de un mensaje entrante (las 3 guardias antes de responder)</h2>
+  <div class="card">
+    <pre class="mermaid">
+flowchart TB
+  in(["📱 Cliente escribe<br/>POST /webhook"]):::out
+  parse["Parsea texto / imagen / audio<br/>(Vision · Whisper si hay OPENAI_API_KEY)"]:::dec
+  persist["Guarda en conversations + messages<br/>resuelve / crea res.partner en Odoo"]:::store
+
+  in --> parse --> persist --> g1
+
+  g1{"¿escalated = 1?"}:::dec
+  g2{"¿bot_mode =<br/>escalate_all?"}:::dec
+  g3{"¿is_business_hours()?<br/>L-V 8-18 CR (UTC-6)"}:::dec
+
+  g1 -- sí --> finH(["🙎 Solo humano<br/>(sin auto-respuesta)"]):::out
+  g1 -- no --> g2
+  g2 -- sí --> markE["marca escalated=1"]:::store --> finH
+  g2 -- no --> g3
+  g3 -- no --> ooh(["⏰ OUT_OF_HOURS_MSG fijo"]):::out
+  g3 -- sí --> ai
+
+  ai["🧠 ai_reply(history 6, texto, foto, modo)<br/>system = SYSTEM_PROMPT + bloque bot_knowledge<br/>prompt caching (TTL 5min)"]:::model
+  loop{"tool loop<br/>(máx 5 vueltas)"}:::model
+  tools["herramientas (ver §3)"]:::tool
+
+  ai --> loop
+  loop -- el modelo pide tool --> tools --> loop
+  loop -- texto final --> send(["💬 send_wa_message<br/>guarda 'out' + avanza estado"]):::out
+
+  classDef dec  fill:#152544,stroke:#2563eb,color:#e6e8eb;
+  classDef model fill:#2a1d4d,stroke:#7c3aed,color:#e6e8eb;
+  classDef tool fill:#0c2e2b,stroke:#0d9488,color:#e6e8eb;
+  classDef out  fill:#3a2a0c,stroke:#b45309,color:#e6e8eb;
+  classDef store fill:#1c222b,stroke:#475569,color:#cbd2da,stroke-dasharray:4 3;
+    </pre>
+  </div>
+  <p class="note">Las 3 guardias (escalado · modo · horario) se evalúan <b>antes</b> de tocar el modelo. Si cualquiera corta, el cliente no recibe respuesta de IA. Webhook: <code>main.py:2008</code> · horario: <code>main.py:1474</code>.</p>
+
+  <!-- ====================================================== -->
+  <h2>2 · Máquina de estados de la conversación</h2>
+  <div class="card">
+    <pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> nuevo
+  nuevo --> en_conversacion: bot responde
+  en_conversacion --> cotizado: create_quotation
+  cotizado --> pagado: mark_payment_received (force)
+  pagado --> a_despachar
+  a_despachar --> cerrado
+  cerrado --> en_conversacion: llega mensaje nuevo
+  note right of cerrado
+    Única regresión permitida.
+    _set_status respeta jerarquía
+    salvo force=True (pago).
+  end note
+    </pre>
+  </div>
+  <p class="note">Columna <code>escalated</code> es ortogonal al estado: vale para cualquier estado y desactiva la auto-respuesta. <code>STATUS_ORDER</code>: <code>main.py:1488</code> · transiciones: <code>main.py:1545</code>.</p>
+
+  <!-- ====================================================== -->
+  <h2>3 · Las 7 herramientas y a qué tocan</h2>
+  <div class="card">
+    <pre class="mermaid">
+flowchart LR
+  m["🧠 Claude"]:::model
+
+  sp["search_products"]:::tool
+  cs["calculate_shipping_quote"]:::tool
+  fd["find_dual_agency"]:::tool
+  ph["send_product_photo"]:::tool
+  up["update_partner_info"]:::tool
+  cq["create_quotation"]:::tool
+  pay["mark_payment_received"]:::tool
+
+  m --> sp & cs & fd & ph & up & cq & pay
+
+  sp --> ot["Odoo product.template<br/>list_price&gt;100 · sale_ok · default_code"]:::store
+  cs --> oc["5 carriers: Pymex · Encom · Tavo*<br/>Dual · Retiro (gratis)<br/>*Tavo solo SJ/Cartago · &gt;30kg → humano"]:::store
+  fd --> dj["dual_agencias.json<br/>(54 agencias por provincia)"]:::store
+  ph --> pc["product_card.py → tarjeta PNG<br/>+ botón 'Ver detalles'"]:::store
+  up --> op["res.partner<br/>(solo si cliente da datos)"]:::store
+  cq --> os["sale.order draft<br/>+ línea de envío"]:::store
+  pay --> pm["payment_meta JSON<br/>status → pagado"]:::store
+
+  classDef model fill:#2a1d4d,stroke:#7c3aed,color:#e6e8eb;
+  classDef tool fill:#0c2e2b,stroke:#0d9488,color:#e6e8eb;
+  classDef store fill:#1c222b,stroke:#475569,color:#cbd2da,stroke-dasharray:4 3;
+    </pre>
+  </div>
+  <p class="note"><code>create_quotation</code> y <code>mark_payment_received</code> solo existen en modo <b>normal</b>. <code>create_quotation</code> además requiere intención de compra detectada (<code>detect_purchase_intent</code>, <code>main.py:1661</code>) → entonces <code>tool_choice=any</code>. Definición de tools: <code>main.py:554-768</code>.</p>
+
+  <!-- ====================================================== -->
+  <h2>4 · Los 3 modos (interruptor <code>/api/bot/mode</code>)</h2>
+  <div class="card">
+    <table>
+      <tr><th>Modo</th><th>Tools</th><th>max_tokens</th><th>Comportamiento</th><th>Cuándo</th></tr>
+      <tr>
+        <td><span class="tag t-normal">normal</span></td>
+        <td>7</td><td>600</td>
+        <td>Bot completo: busca, cotiza, registra pagos, manda fotos.</td>
+        <td>Operación sana (GREEN)</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-cons">conservative</span></td>
+        <td>5</td><td>350</td>
+        <td>Responde pero <b>no</b> crea cotizaciones ni registra pagos; respuestas más cortas, fotos solo si las piden.</td>
+        <td>Dudas / volumen (YELLOW)</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-esc">escalate_all</span></td>
+        <td>0</td><td>—</td>
+        <td>Cero IA. Marca todo como escalado para que conteste un humano.</td>
+        <td>Riesgo / incidencia (RED)</td>
+      </tr>
+    </table>
+  </div>
+  <p class="note">Persistido en tabla <code>app_settings</code> clave <code>bot_reply_mode</code>. Lectura en cada mensaje (<code>get_bot_mode</code>, <code>main.py:3325</code>). El modo recorta la lista de tools y los tokens dentro de <code>ai_reply</code> (<code>main.py:1735</code>).</p>
+
+  <!-- ====================================================== -->
+  <h2>5 · Dónde se edita cada cosa (capas del comportamiento)</h2>
+  <div class="card">
+    <table>
+      <tr><th>Capa</th><th>Qué gobierna</th><th>Dónde vive</th><th>Cómo se cambia</th></tr>
+      <tr>
+        <td>SYSTEM_PROMPT</td>
+        <td>Tono, prohibiciones A-N, anti-baneo Meta, cribar por uso, brevedad, cero emojis</td>
+        <td><code>main.py:66-203</code></td>
+        <td>rsync + <code>docker compose up -d --build</code></td>
+      </tr>
+      <tr>
+        <td>bot_knowledge</td>
+        <td>Datos de cara al cliente: números WA, horarios, ubicación, envíos, pagos</td>
+        <td>tabla <code>bot_knowledge</code> en <code>conversations.db</code> (volumen)</td>
+        <td><code>UPDATE</code> SQL en vivo → <b>inmediato, sin rebuild</b></td>
+      </tr>
+      <tr>
+        <td>Tools + flujo</td>
+        <td>Qué <i>puede</i> hacer y las guardias (escalado, horario, estados)</td>
+        <td><code>main.py</code> (lógica Python)</td>
+        <td>rsync + rebuild</td>
+      </tr>
+    </table>
+  </div>
+  <p class="note"><b>Gotcha:</b> el seed de <code>bot_knowledge</code> en el código solo se inserta si la tabla está vacía. En prod ya tiene filas, así que editar el seed NO cambia nada — hay que hacer <code>UPDATE</code> sobre la DB viva (ver CLAUDE.md → "wa-bot: la verdad de cara al cliente vive en SQLite").</p>
+
+  <footer>
+    Para perfeccionar comportamiento/tono → editar <code>SYSTEM_PROMPT</code> (rebuild). Para datos al cliente → <code>UPDATE bot_knowledge</code> (en vivo). Para nuevas capacidades → añadir tool en <code>CLAUDE_TOOLS</code> + su función backend.
+  </footer>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', flowchart: { curve: 'basis' } });
+  </script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="940" viewBox="0 0 1480 940" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+    <style>
+      .title { font-size: 28px; font-weight: 700; fill: #0f172a; }
+      .sub   { font-size: 15px; fill: #475569; }
+      .hdr   { font-size: 16px; font-weight: 700; fill: #ffffff; }
+      .body  { font-size: 13px; fill: #1e293b; }
+      .mono  { font-size: 12.5px; fill: #334155; font-family: 'SFMono-Regular', Consolas, monospace; }
+      .lbl   { font-size: 12px; fill: #64748b; font-style: italic; }
+      .chip  { font-size: 12.5px; fill: #ffffff; font-weight: 600; }
+    </style>
+  </defs>
+
+  <rect width="1480" height="940" fill="#f1f5f9"/>
+
+  <!-- Title -->
+  <text x="48" y="52" class="title">wa.paracarpinteros.com &#8212; cómo funciona el bot de WhatsApp</text>
+  <text x="48" y="80" class="sub">FastAPI (container wa-bot-paracarpinteros, :8000 → 127.0.0.1:8002) · Claude claude-sonnet-4-6 · Odoo XML-RPC · SQLite. Vive en /opt/whatsapp-bot/ (fuera del monorepo).</text>
+
+  <!-- ===== Top request lane ===== -->
+  <!-- Cliente -->
+  <g>
+    <rect x="48" y="120" width="200" height="92" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <rect x="48" y="120" width="200" height="30" rx="10" fill="#16a34a"/>
+    <rect x="48" y="138" width="200" height="12" fill="#16a34a"/>
+    <text x="62" y="141" class="hdr">Cliente</text>
+    <text x="62" y="172" class="body">Escribe por WhatsApp</text>
+    <text x="62" y="192" class="mono">texto · foto · pago</text>
+  </g>
+
+  <!-- Meta -->
+  <g>
+    <rect x="312" y="120" width="220" height="92" rx="10" fill="#dbeafe" stroke="#1877F2" stroke-width="2"/>
+    <rect x="312" y="120" width="220" height="30" rx="10" fill="#1877F2"/>
+    <rect x="312" y="138" width="220" height="12" fill="#1877F2"/>
+    <text x="326" y="141" class="hdr">Meta WhatsApp Cloud API</text>
+    <text x="326" y="172" class="mono">graph.facebook.com/v21.0</text>
+    <text x="326" y="192" class="body">2 líneas: 6104-3421 (bot)</text>
+  </g>
+
+  <!-- nginx -->
+  <g>
+    <rect x="596" y="120" width="200" height="92" rx="10" fill="#dcfce7" stroke="#009639" stroke-width="2"/>
+    <rect x="596" y="120" width="200" height="30" rx="10" fill="#009639"/>
+    <rect x="596" y="138" width="200" height="12" fill="#009639"/>
+    <text x="610" y="141" class="hdr">nginx (host VPS)</text>
+    <text x="610" y="172" class="mono">wa.paracarpinteros.com</text>
+    <text x="610" y="192" class="body">proxy → 127.0.0.1:8002</text>
+  </g>
+
+  <!-- Panel admin (top right) -->
+  <g>
+    <rect x="1050" y="120" width="382" height="92" rx="10" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+    <rect x="1050" y="120" width="382" height="30" rx="10" fill="#475569"/>
+    <rect x="1050" y="138" width="382" height="12" fill="#475569"/>
+    <text x="1064" y="141" class="hdr">Panel admin (Gabriela / Manel)</text>
+    <text x="1064" y="172" class="body">GET / (login WA_PANEL_PASSWORD) · PWA</text>
+    <text x="1064" y="192" class="mono">/api/* : conversaciones, stats, bot/mode, knowledge</text>
+  </g>
+
+  <!-- arrows top lane -->
+  <line x1="248" y1="166" x2="306" y2="166" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="532" y1="166" x2="590" y2="166" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="404" y="158" class="lbl" text-anchor="middle">webhook</text>
+
+  <!-- ===== wa-bot hub ===== -->
+  <g>
+    <rect x="430" y="280" width="420" height="168" rx="12" fill="#e0f2fe" stroke="#0b5cad" stroke-width="2.5"/>
+    <rect x="430" y="280" width="420" height="32" rx="12" fill="#0b5cad"/>
+    <rect x="430" y="300" width="420" height="12" fill="#0b5cad"/>
+    <text x="446" y="302" class="hdr">wa-bot · FastAPI (main.py)</text>
+    <text x="446" y="338" class="body">▸ POST /webhook &#8212; recibe mensaje entrante</text>
+    <text x="446" y="362" class="body">▸ ai_reply() &#8212; loop con Claude + tools</text>
+    <text x="446" y="386" class="body">▸ send_wa_message() &#8212; respuesta saliente</text>
+    <text x="446" y="410" class="body">▸ GET / panel + /api/* (cookie sesión)</text>
+    <text x="446" y="434" class="mono">SQLite estado · 1 mensaje por turno (anti-baneo)</text>
+  </g>
+
+  <!-- nginx -> wa-bot -->
+  <path d="M 696 212 L 696 250 L 640 250 L 640 276" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <!-- panel -> wa-bot /api -->
+  <path d="M 1100 212 L 1100 250 L 820 250 L 820 276" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- return path: wa-bot -> meta -> cliente (dashed green) -->
+  <path d="M 446 320 L 360 320 L 360 240 L 422 240" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrowGreen)"/>
+  <text x="300" y="280" class="lbl" fill="#16a34a">respuesta</text>
+  <path d="M 312 200 L 270 200 L 270 214" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrowGreen)"/>
+
+  <!-- ===== Claude ===== -->
+  <g>
+    <rect x="430" y="500" width="420" height="120" rx="12" fill="#f7ede6" stroke="#CC785C" stroke-width="2.5"/>
+    <rect x="430" y="500" width="420" height="32" rx="12" fill="#CC785C"/>
+    <rect x="430" y="520" width="420" height="12" fill="#CC785C"/>
+    <text x="446" y="522" class="hdr">Claude API &#8212; claude-sonnet-4-6</text>
+    <text x="446" y="558" class="body">SYSTEM_PROMPT (tono, reglas, no inventar)</text>
+    <text x="446" y="580" class="body">+ knowledge_block + define las 7 tools</text>
+    <text x="446" y="602" class="mono">decide qué tool llamar o responde en texto</text>
+  </g>
+  <!-- wa-bot <-> claude loop -->
+  <line x1="620" y1="448" x2="620" y2="496" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="665" y1="496" x2="665" y2="448" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="700" y="476" class="lbl">tool loop</text>
+
+  <!-- knowledge source -->
+  <g>
+    <rect x="48" y="500" width="340" height="120" rx="12" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+    <rect x="48" y="500" width="340" height="30" rx="12" fill="#ca8a04"/>
+    <rect x="48" y="518" width="340" height="12" fill="#ca8a04"/>
+    <text x="62" y="521" class="hdr">INFORMACIÓN OFICIAL (verdad)</text>
+    <text x="62" y="552" class="body">tabla bot_knowledge (SQLite live)</text>
+    <text x="62" y="574" class="body">leída fresca por mensaje</text>
+    <text x="62" y="596" class="mono">números, horarios, pagos, envíos</text>
+  </g>
+  <line x1="388" y1="560" x2="426" y2="560" stroke="#ca8a04" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== Tools cluster ===== -->
+  <g>
+    <rect x="120" y="672" width="1242" height="96" rx="12" fill="#eef2ff" stroke="#4f46e5" stroke-width="2"/>
+    <text x="138" y="696" class="body" font-weight="700" fill="#3730a3">Las 7 herramientas (Claude las invoca; el bot las ejecuta)</text>
+    <!-- chips -->
+    <g>
+      <rect x="138" y="712" width="168" height="40" rx="8" fill="#4f46e5"/>
+      <text x="222" y="737" class="chip" text-anchor="middle">search_products</text>
+      <rect x="318" y="712" width="210" height="40" rx="8" fill="#4f46e5"/>
+      <text x="423" y="737" class="chip" text-anchor="middle">calculate_shipping_quote</text>
+      <rect x="540" y="712" width="158" height="40" rx="8" fill="#4f46e5"/>
+      <text x="619" y="737" class="chip" text-anchor="middle">find_dual_agency</text>
+      <rect x="710" y="712" width="178" height="40" rx="8" fill="#4f46e5"/>
+      <text x="799" y="737" class="chip" text-anchor="middle">send_product_photo</text>
+      <rect x="900" y="712" width="196" height="40" rx="8" fill="#7c3aed"/>
+      <text x="998" y="737" class="chip" text-anchor="middle">mark_payment_received</text>
+      <rect x="1108" y="712" width="150" height="40" rx="8" fill="#7c3aed"/>
+      <text x="1183" y="737" class="chip" text-anchor="middle">create_quotation</text>
+      <rect x="1268" y="712" width="86" height="40" rx="8" fill="#7c3aed"/>
+      <text x="1311" y="730" class="chip" text-anchor="middle" font-size="11">update_</text>
+      <text x="1311" y="744" class="chip" text-anchor="middle" font-size="11">partner_info</text>
+    </g>
+  </g>
+  <!-- claude -> tools -->
+  <line x1="640" y1="620" x2="640" y2="668" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== Backends ===== -->
+  <!-- Odoo -->
+  <g>
+    <rect x="240" y="808" width="560" height="104" rx="12" fill="#f3e8ff" stroke="#714B67" stroke-width="2.5"/>
+    <rect x="240" y="808" width="560" height="30" rx="12" fill="#714B67"/>
+    <rect x="240" y="826" width="560" height="12" fill="#714B67"/>
+    <text x="256" y="829" class="hdr">Odoo Online &#8212; XML-RPC (paracarpinteros.odoo.com)</text>
+    <text x="256" y="860" class="mono">product.template / product.product · sale.order · res.partner</text>
+    <text x="256" y="882" class="mono">delivery.carrier (envíos) · stock.picking · bot_knowledge edit por panel</text>
+    <text x="256" y="903" class="lbl">catálogo, precios, disponible, cotizaciones, partner</text>
+  </g>
+  <!-- SQLite -->
+  <g>
+    <rect x="840" y="808" width="420" height="104" rx="12" fill="#cffafe" stroke="#003B57" stroke-width="2.5"/>
+    <rect x="840" y="808" width="420" height="30" rx="12" fill="#003B57"/>
+    <rect x="840" y="826" width="420" height="12" fill="#003B57"/>
+    <text x="856" y="829" class="hdr">SQLite &#8212; data/conversations.db</text>
+    <text x="856" y="860" class="mono">conversations · messages · bot_knowledge</text>
+    <text x="856" y="882" class="mono">payments / estado · bot/mode (auto/manual)</text>
+    <text x="856" y="903" class="lbl">volumen Docker, persiste rebuilds</text>
+  </g>
+  <!-- tools -> backends -->
+  <path d="M 500 768 L 500 800" fill="none" stroke="#714B67" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M 1000 768 L 1000 800" fill="none" stroke="#003B57" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- footer legend -->
+  <text x="48" y="930" class="lbl">Flujo: Cliente → Meta → nginx → wa-bot → Claude → (tool) → Odoo/SQLite → Claude redacta → wa-bot → Meta → Cliente.  Línea verde discontinua = respuesta de vuelta.</text>
+</svg>

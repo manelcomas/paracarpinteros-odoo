@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>wa.paracarpinteros — grafo de conexiones</title>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+  html,body{margin:0;height:100%;background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',Helvetica,Arial,sans-serif}
+  #head{padding:14px 20px;border-bottom:1px solid #1e293b}
+  #head h1{margin:0;font-size:19px}
+  #head p{margin:4px 0 0;font-size:13px;color:#94a3b8}
+  #net{width:100%;height:calc(100% - 116px)}
+  #legend{display:flex;gap:16px;flex-wrap:wrap;padding:8px 20px;font-size:12px;color:#cbd5e1;border-top:1px solid #1e293b}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div id="head">
+  <h1>wa.paracarpinteros.com &mdash; grafo de conexiones del bot</h1>
+  <p>Arrastrá los nodos, acercá con scroll. Cada flecha es una conexión real; pasá el cursor para ver la etiqueta. Verde = camino de respuesta al cliente.</p>
+</div>
+<div id="net"></div>
+<div id="legend">
+  <span><span class="dot" style="background:#16a34a"></span>Cliente / Meta</span>
+  <span><span class="dot" style="background:#009639"></span>nginx</span>
+  <span><span class="dot" style="background:#0b5cad"></span>wa-bot (FastAPI)</span>
+  <span><span class="dot" style="background:#CC785C"></span>Claude</span>
+  <span><span class="dot" style="background:#4f46e5"></span>tools (consulta)</span>
+  <span><span class="dot" style="background:#7c3aed"></span>tools (escriben)</span>
+  <span><span class="dot" style="background:#714B67"></span>Odoo XML-RPC</span>
+  <span><span class="dot" style="background:#0e7490"></span>SQLite / datos locales</span>
+  <span><span class="dot" style="background:#475569"></span>Panel admin</span>
+</div>
+
+<script>
+const G = {
+  cli:'#16a34a', meta:'#16a34a', nginx:'#009639', bot:'#0b5cad', claude:'#CC785C',
+  tq:'#4f46e5', tw:'#7c3aed', odoo:'#714B67', data:'#0e7490', panel:'#475569'
+};
+function node(id,label,color,shape){return {id,label,color:{background:color,border:'#0f172a'},font:{color:'#fff'},shape:shape||'box',margin:8};}
+
+const nodes = new vis.DataSet([
+  node('cli','Cliente\nWhatsApp', G.cli),
+  node('meta','Meta WhatsApp\nCloud API', G.meta),
+  node('nginx','nginx\nwa.paracarpinteros.com', G.nginx),
+  node('bot','wa-bot · FastAPI\nmain.py  (:8002)', G.bot),
+  node('panel','Panel admin\n(Gabriela / Manel)', G.panel),
+  node('claude','Claude\nclaude-sonnet-4-6', G.claude, 'ellipse'),
+  // tools de consulta
+  node('search','search_products', G.tq),
+  node('ship','calculate_shipping_quote', G.tq),
+  node('dual','find_dual_agency', G.tq),
+  node('photo','send_product_photo', G.tq),
+  // tools que escriben
+  node('pay','mark_payment_received', G.tw),
+  node('quote','create_quotation', G.tw),
+  node('partner','update_partner_info', G.tw),
+  // backends
+  node('odoo','Odoo Online\nXML-RPC', G.odoo, 'database'),
+  node('sqlite','SQLite\nconversations.db', G.data, 'database'),
+  node('zonas','zonas_dual.py\n(datos locales)', G.data),
+]);
+
+function edge(from,to,label,opt){return Object.assign({from,to,label,arrows:'to',font:{color:'#cbd5e1',size:11,strokeWidth:3,strokeColor:'#0f172a'},color:{color:'#64748b',highlight:'#e2e8f0'}},opt||{});}
+const green = {color:{color:'#16a34a',highlight:'#22c55e'},dashes:true};
+
+const edges = new vis.DataSet([
+  // entrada
+  edge('cli','meta','mensaje (texto/foto/pago)'),
+  edge('meta','nginx','POST /webhook'),
+  edge('nginx','bot',':8002'),
+  edge('panel','bot','/api/* (login)'),
+  // loop con Claude
+  edge('bot','claude','system_prompt + tools'),
+  edge('claude','bot','tool_use / texto'),
+  edge('sqlite','claude','bot_knowledge (fresco por msg)'),
+  // claude invoca tools (las ejecuta el bot)
+  edge('claude','search','invoca'),
+  edge('claude','ship','invoca'),
+  edge('claude','dual','invoca'),
+  edge('claude','photo','invoca'),
+  edge('claude','pay','invoca'),
+  edge('claude','quote','invoca'),
+  edge('claude','partner','invoca'),
+  // tools -> backends
+  edge('search','odoo','product.template (total/hay_mas)'),
+  edge('ship','odoo','delivery.carrier'),
+  edge('quote','odoo','sale.order'),
+  edge('partner','odoo','res.partner'),
+  edge('photo','odoo','image_1920'),
+  edge('photo','meta','sube media + envía'),
+  edge('dual','zonas','agencias Dual'),
+  edge('pay','sqlite','registra pago/estado'),
+  edge('bot','sqlite','conversaciones, modo auto/manual'),
+  // respuesta (verde, discontinua)
+  edge('bot','meta','send_wa_message', green),
+  edge('meta','cli','respuesta', green),
+]);
+
+const net = new vis.Network(document.getElementById('net'), {nodes,edges}, {
+  nodes:{borderWidth:2, shadow:true, font:{size:14,multi:false}},
+  edges:{smooth:{type:'dynamic'}, length:200},
+  physics:{barnesHut:{gravitationalConstant:-9000, springLength:170, springConstant:0.03}, stabilization:{iterations:300}},
+  interaction:{hover:true, tooltipDelay:120, navigationButtons:true, keyboard:true},
+  layout:{improvedLayout:true}
+});
+</script>
+</body>
+</html>

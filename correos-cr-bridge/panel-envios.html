@@ -1572,7 +1572,7 @@ function renderRows(filter='todos'){
     // Selector courier inline: por defecto el detectado, el usuario puede sobreescribir
     const sel = (p.courier_slug && ['pymex','tavo','dual'].includes(p.courier_slug)) ? p.courier_slug : 'pymex';
     const courierSelect = `
-      <select id="cs-${p.picking_id}" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:4px 6px; border-radius:var(--rsm); font-size:.7rem; width:90px">
+      <select id="cs-${p.picking_id}" title="Courier (se guarda al cambiarlo)" onchange="setCourierOverride(${p.picking_id}, this.value, false)" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:4px 6px; border-radius:var(--rsm); font-size:.7rem; width:90px">
         <option value="pymex" ${sel==='pymex'?'selected':''}>Pymex</option>
         <option value="tavo" ${sel==='tavo'?'selected':''}>Tavo</option>
         <option value="dual" ${sel==='dual'?'selected':''}>Dual</option>
@@ -2554,6 +2554,19 @@ async function rescheduleFromAgenda(picking_id, newDate){
   }
 }
 
+// Persiste la elección de courier (sin generar guía) en el backend.
+// Lo respetan agenda/pendientes/calendario; sobrevive a salir y volver a entrar.
+async function setCourierOverride(picking_id, courier, reload){
+  try{
+    await api(`/api/picking/${picking_id}/set-courier`, {
+      method:'POST', body: JSON.stringify({courier})
+    });
+    if(reload && typeof loadAgenda === 'function') await loadAgenda();
+  } catch(e){
+    alert('No se pudo guardar el courier: ' + e.message);
+  }
+}
+
 // Generar guía desde Agenda — carga el picking si no está en PEDIDOS y abre el modal correcto
 async function genGuiaFromAgenda(picking_id, courier){
   try{
@@ -2912,7 +2925,7 @@ async function loadAgenda(){
               // El selector por defecto trae el courier inferido del bloque, pero el
               // usuario puede sobreescribirlo (ej. cliente pide Tavo en vez de Pymex).
               const courierGen = (b === 'unassigned') ? 'pymex' : b;
-              actBtns += `<select id="agc-${it.picking_id}" title="Courier para la guía" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:5px 6px; border-radius:var(--rsm); font-size:.72rem; width:84px; margin-right:3px">
+              actBtns += `<select id="agc-${it.picking_id}" title="Courier (se guarda al cambiarlo)" onchange="setCourierOverride(${it.picking_id}, this.value, true)" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:5px 6px; border-radius:var(--rsm); font-size:.72rem; width:84px; margin-right:3px">
                 <option value="pymex" ${courierGen==='pymex'?'selected':''}>Pymex</option>
                 <option value="tavo" ${courierGen==='tavo'?'selected':''}>Tavo</option>
                 <option value="dual" ${courierGen==='dual'?'selected':''}>Dual</option>

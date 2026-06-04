@@ -189,6 +189,25 @@ def _slug_from_tracking(tracking_ref) -> Optional[str]:
         return 'pymex'
     return None
 
+
+def _courier_overrides(picking_ids) -> dict:
+    """Override manual de courier por picking (tabla courier_override en SQLite).
+    Es lo que persiste cuando el usuario elige otro courier desde el panel SIN
+    generar guía todavía (la inferencia por líneas del pedido lo revertía).
+    Devuelve {picking_id: slug}. Vacío si no hay ids."""
+    pids = [int(i) for i in (picking_ids or [])]
+    if not pids:
+        return {}
+    conn = db()
+    try:
+        rows = conn.execute(
+            f"SELECT picking_id, slug FROM courier_override "
+            f"WHERE picking_id IN ({','.join('?' * len(pids))})", pids
+        ).fetchall()
+        return {r['picking_id']: r['slug'] for r in rows}
+    finally:
+        conn.close()
+
 def _detect_carriers() -> dict:
     """
     Devuelve {'pymex': id, 'tavo': id, 'dual': id} matcheando delivery.carrier por nombre.
@@ -365,6 +384,11 @@ def db_init():
             notas TEXT,
             entregado_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS courier_override (
+            picking_id INTEGER PRIMARY KEY,
+            slug TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
     """)
     conn.commit()
     conn.close()
@@ -501,6 +525,9 @@ def list_pendientes(limit: int = 50, courier: str = 'pymex', solo_sin_agendar: b
             {'fields': ['id', 'name', 'street', 'zip', 'city', 'phone']})
         partners_map = {pr['id']: pr for pr in prows}
 
+    # Override manual de courier (elección del panel, persiste sobre la inferencia)
+    overrides = _courier_overrides([pk['id'] for pk in pickings])
+
     # Estado de preparación (cuántas líneas marcadas)
     conn = db()
     items = []
@@ -512,8 +539,10 @@ def list_pendientes(limit: int = 50, courier: str = 'pymex', solo_sin_agendar: b
             (pk['id'],)
         ).fetchone()[0]
         cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
-        # Slug: primero por carrier_id en picking; si no, inferido desde sale lines
-        slug = inv.get(cid) if cid else None
+        # Slug: override manual > carrier_id en picking > inferido desde sale lines
+        slug = overrides.get(pk['id'])
+        if not slug:
+            slug = inv.get(cid) if cid else None
         if not slug and pk.get('sale_id'):
             slug = sale_courier.get(pk['sale_id'][0])
         partner = partners_map.get(pk['partner_id'][0], {}) if pk.get('partner_id') else {}
@@ -1144,6 +1173,31 @@ def reschedule_picking(picking_id: int, payload: SchedulePayload):
     return {'ok': True, 'scheduled_date': full}
 
 
+# ────────────────────────────────────────────────────
+#  POST /api/picking/{id}/set-courier
+#  Persiste la elección manual de courier (sin generar guía).
+#  Lo respetan /pendientes, /agenda, /agenda-semana y /calendario.
+# ────────────────────────────────────────────────────
+class SetCourierPayload(BaseModel):
+    courier: str  # pymex | tavo | dual
+
+@router.post('/picking/{picking_id}/set-courier', dependencies=[Depends(verify_session)])
+def set_courier(picking_id: int, payload: SetCourierPayload):
+    slug = (payload.courier or '').strip().lower()
+    if slug not in ('pymex', 'tavo', 'dual'):
+        raise HTTPException(400, "courier debe ser pymex|tavo|dual")
+    conn = db()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO courier_override (picking_id, slug, updated_at) "
+            "VALUES (?, ?, ?)",
+            (picking_id, slug, datetime.now().isoformat()))
+        conn.commit()
+    finally:
+        conn.close()
+    return {'ok': True, 'picking_id': picking_id, 'courier': slug}
+
+
 @router.get('/agenda', dependencies=[Depends(verify_session)])
 def agenda(fecha: str):
     """Pickings cuya scheduled_date sea el día indicado, agrupados por courier."""
@@ -1222,6 +1276,9 @@ def agenda(fecha: str):
         finally:
             conn.close()
 
+    # Override manual de courier (panel) para los picks de hoy
+    overrides = _courier_overrides([pk['id'] for pk in pks])
+
     # Construir items y conteo por courier
     items = {'pymex': [], 'tavo': [], 'dual': [], 'unassigned': []}
     counts = {'pymex': 0, 'tavo': 0, 'dual': 0, 'unassigned': 0}
@@ -1229,11 +1286,14 @@ def agenda(fecha: str):
         # 1) Prioridad: prefijo del tracking ya generado (TV/DG/PY). Refleja el
         #    courier REAL con que se hizo la guía, incluso tras "🔄 Cambiar".
         slug = _slug_from_tracking(pk.get('carrier_tracking_ref'))
-        # 2) carrier_id en el picking
+        # 2) Override manual del panel (elección sin guía aún)
+        if not slug:
+            slug = overrides.get(pk['id'])
+        # 3) carrier_id en el picking
         if not slug:
             cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
             slug = inv.get(cid) if cid else None
-        # 3) Inferencia por líneas del pedido (fallback)
+        # 4) Inferencia por líneas del pedido (fallback)
         if not slug and pk.get('sale_id'):
             slug = sale_courier.get(pk['sale_id'][0])
         bucket = slug if slug in ('pymex', 'tavo', 'dual') else 'unassigned'
@@ -1339,13 +1399,16 @@ def agenda_semana(desde: str):
             'counts': {'pymex': 0, 'tavo': 0, 'dual': 0, 'unassigned': 0, 'done': 0},
         }
 
+    overrides = _courier_overrides([pk['id'] for pk in pks])
     total = 0
     for pk in pks:
         sched = pk.get('scheduled_date') or ''
         day_key = sched[:10] if sched else None
         if day_key not in days: continue
-        # Prioridad al prefijo del tracking ya generado (ver /agenda).
+        # Prioridad: prefijo del tracking > override manual > carrier_id > inferencia (ver /agenda).
         slug = _slug_from_tracking(pk.get('carrier_tracking_ref'))
+        if not slug:
+            slug = overrides.get(pk['id'])
         if not slug:
             cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
             slug = inv.get(cid) if cid else None

@@ -205,6 +205,17 @@ El bot sirve **dos audiencias** desde el mismo proceso FastAPI:
 
 **Sin auth**: `GET /health`.
 
+### wa-bot: procesamiento de mensajes entrantes (dedup + debounce + async)
+
+El `POST /webhook` **no responde inline**: persiste el mensaje y devuelve `200` al instante; la respuesta de Claude ocurre en segundo plano. Esto evita que Meta reintente el webhook (su causa #1 de baneo es spam/duplicados) mientras Claude piensa. Piezas (todo en `main.py`):
+
+- **Dedup por `wa_msg_id`** (`_is_duplicate_inbound` / `_mark_seen_inbound`): Meta reenvía duplicados; si un id entrante ya se vio (set en memoria, respaldo `SELECT ... direction='in'` en DB que sobrevive reinicios), se ignora. Sin esto el cliente recibía la respuesta dos veces.
+- **Debounce / coalescing** (`_enqueue_inbound` → `_debounced_process` → `_respond_to_buffered`): varias burbujas seguidas del mismo teléfono ("hola" / "busco sierra" / "circular") se juntan en **una sola** respuesta. Espera `WA_DEBOUNCE_SECONDS` (default 3s) tras el último mensaje. **Invariante clave:** `_debounced_process` saca su task de `_debounce_tasks` **antes** del primer `await` de la respuesta, para que un mensaje nuevo nunca cancele una respuesta ya en curso (solo cancela el timer de debounce). El partner, escalado, fuera de horario y la llamada a Claude viven ahora en `_respond_to_buffered`, no en el webhook.
+- **Read receipt + typing** (`mark_read_and_typing`): un POST a la Cloud API con `status=read` + `typing_indicator` marca el doble-check azul y muestra "escribiendo…" antes de pensar la respuesta (comodidad del cliente). Cosmético: falla en silencio.
+- **Throttle fuera de horario** (`_ooh_throttled`): el aviso fijo nocturno no se reenvía más de una vez cada `OOH_THROTTLE_SECONDS` (default 6h) por conversación (clave `ooh_notice:{phone}` en `app_settings`). Antes se reenviaba idéntico en cada mensaje.
+
+Env nuevas (opcionales, con default): `WA_DEBOUNCE_SECONDS`, `OOH_THROTTLE_SECONDS`. El buffer de debounce es **en memoria**: un restart del container pierde mensajes encolados aún no respondidos (ventana de pocos segundos).
+
 ### wa-bot: la "verdad" de cara al cliente vive en SQLite, no en el código
 
 Los datos oficiales que el bot da a clientes (números de WhatsApp, horarios, ubicación, métodos de pago, envíos) **NO** están en el `SYSTEM_PROMPT` de `main.py` sino en la tabla **`bot_knowledge`** de `data/conversations.db` (volumen Docker). `_knowledge_block()` la lee **fresca en cada mensaje** y la concatena al system prompt como bloque "INFORMACIÓN OFICIAL DE LA EMPRESA". El bloque está marcado como verdad absoluta en el prompt.

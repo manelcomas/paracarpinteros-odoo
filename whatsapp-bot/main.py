@@ -42,6 +42,13 @@ BIZ_HOUR_START      = int(os.environ.get("BIZ_HOUR_START", "8"))
 BIZ_HOUR_END        = int(os.environ.get("BIZ_HOUR_END", "18"))
 BIZ_WEEKENDS_OPEN   = os.environ.get("BIZ_WEEKENDS_OPEN", "false").lower() in ("true", "1", "yes")
 
+# Debounce: segundos a esperar tras el último mensaje del cliente antes de responder,
+# para agrupar burbujas seguidas ("hola" / "busco sierra" / "circular") en UNA sola respuesta.
+WA_DEBOUNCE_SECONDS = float(os.environ.get("WA_DEBOUNCE_SECONDS", "3.0"))
+# Throttle del aviso fuera de horario: no repetir el mensaje fijo más de una vez cada N segundos
+# por conversación (evita spamear al cliente que escribe varias veces de noche).
+OOH_THROTTLE_SECONDS = int(os.environ.get("OOH_THROTTLE_SECONDS", str(6 * 3600)))
+
 # Whisper / OpenAI (opcional — si está, se transcriben audios entrantes)
 OPENAI_API_KEY      = os.environ.get("OPENAI_API_KEY", "")
 WHISPER_API         = "https://api.openai.com/v1/audio/transcriptions"
@@ -65,6 +72,9 @@ CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 # Temperatura baja: bot de ventas con tono estricto (usted, sin emojis). Baja deriva de tono
 # y respuestas más consistentes. Configurable por env si hace falta subirla.
 CLAUDE_TEMPERATURE = float(os.environ.get("CLAUDE_TEMPERATURE", "0.4"))
+# Cantidad de mensajes recientes que se pasan como contexto a Claude. Una sola cota usada
+# tanto en la query del webhook como en ai_reply (antes 6 vs 4, inconsistente).
+HISTORY_MSGS = int(os.environ.get("WA_HISTORY_MSGS", "6"))
 
 SYSTEM_PROMPT = """Eres el asistente de WhatsApp de Paracarpinteros, una empresa de Costa Rica que vende herramientas y suministros para carpinteros.
 
@@ -1396,9 +1406,17 @@ async def send_product_photo(phone: str, codigo: str) -> dict:
                 "aviso_sin_stock": None if info.get("disponible", True) else "Avisar al cliente que no hay stock disponible."}
     return {"sent": False, "error": str(resp)[:200]}
 
+def _fmt_hour_12(h: int) -> str:
+    """18 → '6pm', 8 → '8am', 12 → '12md'. Para textos de cara al cliente."""
+    if h == 0:
+        return "12mn"
+    if h == 12:
+        return "12md"
+    return f"{h-12}pm" if h > 12 else f"{h}am"
+
 OUT_OF_HOURS_MSG = (
     f"Gracias por escribir a Paracarpinteros. "
-    f"Atendemos de lunes a viernes de {BIZ_HOUR_START}am a {BIZ_HOUR_END}h hora Costa Rica. "
+    f"Atendemos de lunes a viernes de {_fmt_hour_12(BIZ_HOUR_START)} a {_fmt_hour_12(BIZ_HOUR_END)} hora Costa Rica. "
     f"Le respondemos apenas volvamos al horario."
 )
 
@@ -1686,6 +1704,32 @@ async def send_wa_message(to: str, text: str) -> dict:
         return data
 
 
+async def mark_read_and_typing(wa_msg_id: Optional[str]) -> None:
+    """Marca el mensaje entrante como leído (doble-check azul) y muestra 'escribiendo…'.
+    Un solo POST a la Cloud API: status=read + typing_indicator. El indicador dura hasta
+    ~25s o hasta que enviemos la respuesta. Falla en silencio (es cosmético)."""
+    if not wa_msg_id:
+        return
+    url = f"{WA_API_BASE}/{WA_PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {WA_ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "status": "read",
+        "message_id": wa_msg_id,
+        "typing_indicator": {"type": "text"},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.post(url, json=payload, headers=headers)
+            if r.status_code != 200:
+                print(f"[mark_read err] HTTP {r.status_code}: {r.text[:200]}")
+    except Exception as e:
+        print(f"[mark_read err] {e}")
+
+
 # ───────── WEB PUSH ─────────
 def _send_push_sync(subs: list[dict], payload: str) -> tuple[int, list[int]]:
     """Envía un push a cada subscripción (síncrono — usado vía to_thread).
@@ -1741,7 +1785,11 @@ async def send_push_notification(title: str, body: str, data: Optional[dict] = N
 
 
 PURCHASE_INTENT_PATTERNS = [
-    "quiero", "lo llevo", "los llevo", "me lo llevo", "me los llevo",
+    # "quiero" suelto NO va: matchea "quiero saber el precio/ver" y fuerza tool innecesariamente.
+    # Solo "quiero" + verbo/objeto de compra.
+    "quiero comprar", "quiero llevar", "quiero pedir", "quiero ese", "quiero esa",
+    "quiero esos", "quiero esas", "quiero el ", "quiero los ", "quiero la ", "quiero las ",
+    "lo llevo", "los llevo", "me lo llevo", "me los llevo",
     "envíame", "enviame", "envíamelo", "enviamelo", "envialo",
     "hacé el pedido", "haz el pedido", "hace el pedido", "hace pedido",
     "reservame", "reservámelo", "reservamelo", "reservalo",
@@ -1778,9 +1826,10 @@ def _knowledge_block() -> str:
 
 async def ai_reply(history: list[dict], user_text: str, phone: str = "", image_b64: Optional[str] = None, bot_mode: str = "normal") -> str:
     msgs = []
-    # Construir histórico alternado user/assistant (limitado a 4 turnos: balance entre contexto y costo/alucinaciones)
+    # Construir histórico alternado user/assistant (limitado a HISTORY_MSGS mensajes: balance
+    # entre contexto y costo/alucinaciones). Misma cota que la query del webhook (no recortar dos veces).
     last_role = None
-    for h in history[-4:]:
+    for h in history[-HISTORY_MSGS:]:
         role = "user" if h["direction"] == "in" else "assistant"
         if not h.get("text"):
             continue
@@ -2076,6 +2125,177 @@ init_db()
 app = FastAPI(title="WhatsApp Bot Paracarpinteros")
 
 
+# ───────── DEDUP + DEBOUNCE + PROCESO ASÍNCRONO ─────────
+# Meta reintenta el webhook si no recibe 200 rápido y a veces reenvía duplicados.
+# Procesamos la respuesta en segundo plano (devolvemos 200 al instante) y deduplicamos
+# por wa_msg_id para no contestar dos veces el mismo mensaje.
+from collections import OrderedDict
+
+_seen_inbound_ids: "OrderedDict[str, bool]" = OrderedDict()  # IDs ya vistos (bounded)
+_SEEN_MAX = 2000
+# Buffer de debounce: junta burbujas seguidas del mismo teléfono en una sola respuesta.
+_inbound_buffer: dict = {}          # phone -> list[item]
+_debounce_tasks: dict = {}          # phone -> asyncio.Task
+
+
+def _is_duplicate_inbound(wa_msg_id: Optional[str]) -> bool:
+    """True si este mensaje entrante ya se procesó (in-memory rápido + respaldo en DB)."""
+    if not wa_msg_id:
+        return False
+    if wa_msg_id in _seen_inbound_ids:
+        return True
+    # Respaldo en DB (sobrevive a reinicios del proceso)
+    try:
+        with db() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM messages WHERE wa_msg_id=? AND direction='in' LIMIT 1",
+                (wa_msg_id,),
+            ).fetchone()
+        if row:
+            _mark_seen_inbound(wa_msg_id)
+            return True
+    except Exception as e:
+        print(f"[dedup err] {e}")
+    return False
+
+
+def _mark_seen_inbound(wa_msg_id: Optional[str]) -> None:
+    if not wa_msg_id:
+        return
+    _seen_inbound_ids[wa_msg_id] = True
+    _seen_inbound_ids.move_to_end(wa_msg_id)
+    while len(_seen_inbound_ids) > _SEEN_MAX:
+        _seen_inbound_ids.popitem(last=False)
+
+
+def _enqueue_inbound(phone: str, item: dict) -> None:
+    """Añade un mensaje al buffer del teléfono y (re)programa la respuesta con debounce."""
+    _inbound_buffer.setdefault(phone, []).append(item)
+    old = _debounce_tasks.get(phone)
+    if old and not old.done():
+        old.cancel()
+    _debounce_tasks[phone] = asyncio.create_task(_debounced_process(phone))
+
+
+async def _debounced_process(phone: str) -> None:
+    """Espera WA_DEBOUNCE_SECONDS; si llega otro mensaje, este task se cancela y el nuevo
+    drena todo el buffer. Así varias burbujas seguidas producen UNA sola respuesta."""
+    try:
+        await asyncio.sleep(WA_DEBOUNCE_SECONDS)
+    except asyncio.CancelledError:
+        return  # llegó un mensaje más nuevo; su task se encargará de todo el buffer
+    items = _inbound_buffer.pop(phone, [])
+    _debounce_tasks.pop(phone, None)
+    if not items:
+        return
+    try:
+        await _respond_to_buffered(phone, items)
+    except Exception as e:
+        print(f"[debounced process err] phone={phone} {e}")
+
+
+def _ooh_throttled(phone: str) -> bool:
+    """True si ya le mandamos el aviso de fuera de horario hace menos de OOH_THROTTLE_SECONDS."""
+    try:
+        last = get_setting(f"ooh_notice:{phone}")
+        if last and (now_ts() - int(last)) < OOH_THROTTLE_SECONDS:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+async def _respond_to_buffered(phone: str, items: list) -> None:
+    """Procesa el lote de mensajes acumulados de un teléfono: escalado, modo, fuera de
+    horario, read receipt + typing, y respuesta de Claude. Una sola respuesta por lote."""
+    # Último wa_msg_id entrante del lote (para marcar leído / typing)
+    last_wa_id = None
+    for it in reversed(items):
+        if it.get("wa_msg_id"):
+            last_wa_id = it["wa_msg_id"]
+            break
+
+    # ¿Escalada? Saltamos auto-reply (un humano atiende)
+    with db() as conn:
+        row = conn.execute("SELECT escalated FROM conversations WHERE phone=?", (phone,)).fetchone()
+    if row and row["escalated"]:
+        return
+
+    bot_mode = get_bot_mode()
+    if bot_mode == "escalate_all":
+        try:
+            with db() as conn:
+                conn.execute("UPDATE conversations SET escalated=1 WHERE phone=?", (phone,))
+            print(f"[bot mode] escalate_all → conv {phone} marcada escalada sin responder")
+        except Exception as e:
+            print(f"[escalate_all err] {e}")
+        return
+
+    # Fuera de horario → aviso fijo, pero con throttle (no repetir en cada mensaje)
+    if not is_business_hours():
+        if _ooh_throttled(phone):
+            print(f"[out-of-hours] {phone} throttled, sin reenviar aviso")
+            return
+        try:
+            await mark_read_and_typing(last_wa_id)
+            _res = await send_wa_message(phone, OUT_OF_HOURS_MSG)
+            _wid = None
+            if isinstance(_res, dict) and _res.get("messages"):
+                _wid = (_res["messages"][0] or {}).get("id")
+            _save_outbound(phone, OUT_OF_HOURS_MSG, bot=True, wa_msg_id=_wid)
+            set_setting(f"ooh_notice:{phone}", str(now_ts()))
+        except Exception as e:
+            print(f"[out-of-hours send error] {e}")
+        return
+
+    # En horario: marcar leído + typing antes de pensar la respuesta
+    await mark_read_and_typing(last_wa_id)
+
+    # Combinar el texto de las burbujas y tomar la última imagen del lote (si hubo)
+    combined_text = "\n".join((it.get("text") or "").strip() for it in items if (it.get("text") or "").strip())
+    image_b64 = None
+    for it in reversed(items):
+        if it.get("image_b64"):
+            image_b64 = it["image_b64"]
+            break
+
+    # Resolver / crear partner en Odoo si todavía no se hizo
+    try:
+        with db() as conn:
+            cur = conn.execute(
+                "SELECT odoo_partner_id, name FROM conversations WHERE phone=?", (phone,)
+            ).fetchone()
+        if cur and not cur["odoo_partner_id"]:
+            contact_name = next((it.get("contact_name") for it in items if it.get("contact_name")), None)
+            partner = odoo_resolve_partner(phone, contact_name or (cur["name"] if cur else None))
+            if partner and partner.get("id"):
+                with db() as conn:
+                    conn.execute(
+                        "UPDATE conversations SET odoo_partner_id=?, name=COALESCE(name, ?) WHERE phone=?",
+                        (partner["id"], partner.get("name") or None, phone),
+                    )
+                print(f"[odoo partner] phone={phone} → id={partner['id']} ({'existing' if partner.get('is_existing') else 'NEW'})")
+    except Exception as e:
+        print(f"[odoo resolve err] {e}")
+
+    # Respuesta de Claude
+    try:
+        with db() as conn:
+            history = [dict(r) for r in conn.execute(
+                f"SELECT direction, text FROM messages WHERE phone=? ORDER BY ts DESC LIMIT {HISTORY_MSGS}",
+                (phone,),
+            )][::-1]
+        reply = await ai_reply(history, combined_text, phone=phone, image_b64=image_b64, bot_mode=bot_mode)
+        _res = await send_wa_message(phone, reply)
+        _wid = None
+        if isinstance(_res, dict) and _res.get("messages"):
+            _wid = (_res["messages"][0] or {}).get("id")
+        _save_outbound(phone, reply, bot=True, wa_msg_id=_wid)
+        _set_status(phone, "en_conversacion")
+    except Exception as e:
+        print(f"[AI reply error] {e}")
+
+
 # ───────── WEBHOOK ─────────
 @app.get("/webhook")
 async def webhook_verify(request: Request):
@@ -2136,6 +2356,12 @@ async def webhook_receive(request: Request):
                     if not phone:
                         continue
                     wa_msg_id = msg.get("id")
+                    # Dedup: Meta reintenta/reenvía. Si ya procesamos este id, lo ignoramos
+                    # (evita respuestas duplicadas y doble coste de Claude).
+                    if _is_duplicate_inbound(wa_msg_id):
+                        print(f"[dedup] mensaje {wa_msg_id} ya visto, ignorado")
+                        continue
+                    _mark_seen_inbound(wa_msg_id)
                     mtype = msg.get("type", "text")
                     image_b64 = None
                     in_media_fname = None
@@ -2253,78 +2479,19 @@ async def webhook_receive(request: Request):
                     except Exception as e:
                         print(f"[push trigger err] {e}")
 
-                    # Resolver / crear partner en Odoo si todavía no se hizo
+                    # Encolar para respuesta con debounce (agrupa burbujas seguidas) y
+                    # procesamiento en segundo plano. El 200 al webhook sale de inmediato:
+                    # resolución de partner, escalado, fuera de horario y la respuesta de
+                    # Claude ocurren en _respond_to_buffered (ver arriba).
                     try:
-                        with db() as conn:
-                            cur = conn.execute(
-                                "SELECT odoo_partner_id, name FROM conversations WHERE phone=?",
-                                (phone,)
-                            ).fetchone()
-                        if cur and not cur["odoo_partner_id"]:
-                            partner = odoo_resolve_partner(phone, contact_name or cur["name"])
-                            if partner and partner.get("id"):
-                                with db() as conn:
-                                    conn.execute(
-                                        "UPDATE conversations SET odoo_partner_id=?, name=COALESCE(name, ?) WHERE phone=?",
-                                        (partner["id"], partner.get("name") or None, phone)
-                                    )
-                                print(f"[odoo partner] phone={phone} → id={partner['id']} ({'existing' if partner.get('is_existing') else 'NEW'})")
+                        _enqueue_inbound(phone, {
+                            "text": text,
+                            "image_b64": image_b64,
+                            "wa_msg_id": wa_msg_id,
+                            "contact_name": contact_name,
+                        })
                     except Exception as e:
-                        print(f"[odoo resolve err] {e}")
-
-                    # ¿Escalada? Saltamos auto-reply
-                    with db() as conn:
-                        row = conn.execute(
-                            "SELECT escalated FROM conversations WHERE phone=?", (phone,)
-                        ).fetchone()
-                        escalated = bool(row["escalated"]) if row else False
-                    if escalated:
-                        continue
-
-                    # Modo del bot — control de agresividad
-                    bot_mode = get_bot_mode()
-                    if bot_mode == "escalate_all":
-                        # Modo pánico: ninguna respuesta automática, marcar como escalada
-                        try:
-                            with db() as conn:
-                                conn.execute(
-                                    "UPDATE conversations SET escalated=1 WHERE phone=?",
-                                    (phone,)
-                                )
-                            print(f"[bot mode] escalate_all → conv {phone} marcada escalada sin responder")
-                        except Exception as e:
-                            print(f"[escalate_all err] {e}")
-                        continue
-
-                    # Fuera de horario → mensaje fijo
-                    if not is_business_hours():
-                        try:
-                            _res = await send_wa_message(phone, OUT_OF_HOURS_MSG)
-                            _wid = None
-                            if isinstance(_res, dict) and _res.get("messages"):
-                                _wid = (_res["messages"][0] or {}).get("id")
-                            _save_outbound(phone, OUT_OF_HOURS_MSG, bot=True, wa_msg_id=_wid)
-                        except Exception as e:
-                            print(f"[out-of-hours send error] {e}")
-                        continue
-
-                    # En horario → respuesta Claude (modo normal o conservador)
-                    try:
-                        with db() as conn:
-                            history = [dict(r) for r in conn.execute(
-                                "SELECT direction, text FROM messages WHERE phone=? ORDER BY ts DESC LIMIT 6",
-                                (phone,)
-                            )][::-1]
-                        reply = await ai_reply(history, text, phone=phone, image_b64=image_b64, bot_mode=bot_mode)
-                        _res = await send_wa_message(phone, reply)
-                        _wid = None
-                        if isinstance(_res, dict) and _res.get("messages"):
-                            _wid = (_res["messages"][0] or {}).get("id")
-                        _save_outbound(phone, reply, bot=True, wa_msg_id=_wid)
-                        # Si seguía en 'nuevo', el bot ya respondió → avanzar a 'en_conversacion'
-                        _set_status(phone, "en_conversacion")
-                    except Exception as e:
-                        print(f"[AI reply error] {e}")
+                        print(f"[enqueue inbound error] {e}")
 
         return JSONResponse({"status": "ok"})
     except Exception as e:

@@ -2908,9 +2908,16 @@ async function loadAgenda(){
                 actBtns += `<button class="btn btn-ghost" onclick="editAndReprintHist(${it.picking_id}, '${b}')" title="Editar datos y regenerar etiqueta" style="padding:5px 8px; font-size:.72rem; margin-left:3px">✎ Editar</button>`;
               }
             } else {
-              // No tiene guía → botón principal de generar + opción de entrega a mano
+              // No tiene guía → selector de courier + botón de generar + entrega a mano.
+              // El selector por defecto trae el courier inferido del bloque, pero el
+              // usuario puede sobreescribirlo (ej. cliente pide Tavo en vez de Pymex).
               const courierGen = (b === 'unassigned') ? 'pymex' : b;
-              actBtns += `<button class="btn btn-prim" onclick="genGuiaFromAgenda(${it.picking_id}, '${courierGen}')" title="Generar guía con ${courierGen.toUpperCase()}" style="padding:5px 10px; font-size:.72rem; margin-left:3px">🖨 Generar guía</button>`;
+              actBtns += `<select id="agc-${it.picking_id}" title="Courier para la guía" style="background:var(--card2); border:1px solid var(--border2); color:var(--text); padding:5px 6px; border-radius:var(--rsm); font-size:.72rem; width:84px; margin-right:3px">
+                <option value="pymex" ${courierGen==='pymex'?'selected':''}>Pymex</option>
+                <option value="tavo" ${courierGen==='tavo'?'selected':''}>Tavo</option>
+                <option value="dual" ${courierGen==='dual'?'selected':''}>Dual</option>
+              </select>`;
+              actBtns += `<button class="btn btn-prim" onclick="genGuiaFromAgenda(${it.picking_id}, document.getElementById('agc-${it.picking_id}').value)" title="Generar guía con el courier seleccionado" style="padding:5px 10px; font-size:.72rem; margin-left:3px">🖨 Generar guía</button>`;
               actBtns += `<button class="btn btn-sec" onclick="genGuiaFromAgenda(${it.picking_id}, 'mano')" title="Entrega a mano (Turrialba o Almacén) — no genera guía courier" style="padding:5px 8px; font-size:.72rem; margin-left:3px; background:rgba(232,168,0,.10); border-color:rgba(232,168,0,.4); color:#ffc94a">📍 Mano</button>`;
             }
             const rowClass = it.has_guide ? 'row-has-guide' : '';

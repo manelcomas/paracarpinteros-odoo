@@ -2922,7 +2922,7 @@ async function loadAgenda(){
           <span class="courier-tag ${b}">${COURIER_LBL[b]?.short || '?'}</span>
           ${blockTitle[b]} <span style="color:var(--text3); font-size:.85rem; margin-left:auto">${its.length}</span>
         </h3>
-        <table style="width:100%; font-size:.78rem"><thead>
+        <div style="overflow-x:auto; -webkit-overflow-scrolling:touch"><table style="width:100%; min-width:760px; font-size:.78rem"><thead>
           <tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Tracking</th><th style="width:170px">Mover a</th><th style="width:80px">Acción</th></tr>
         </thead><tbody>
           ${its.map(it => {
@@ -2975,7 +2975,7 @@ async function loadAgenda(){
             </td>
             <td class="row-actions" style="text-align:center; white-space:nowrap">${actBtns}</td>
           </tr>`;}).join('')}
-        </tbody></table>
+        </tbody></table></div>
       </div>`;
     });
     list.innerHTML = html;
@@ -3134,7 +3134,7 @@ async function loadHistorico(){
     const html = `
       <div class="card list-wrap" style="padding:18px">
         <h3 style="font-family:Bebas Neue,Impact,sans-serif; letter-spacing:1.5px; margin-bottom:14px">${total} resultado${total!==1?'s':''}</h3>
-        <table style="width:100%; font-size:.78rem"><thead>
+        <div style="overflow-x:auto; -webkit-overflow-scrolling:touch"><table style="width:100%; min-width:820px; font-size:.78rem"><thead>
           <tr><th>Tracking</th><th>Courier</th><th>Picking</th><th>Cliente</th><th>Origen</th><th>Fecha</th><th style="width:90px">Acción</th></tr>
         </thead><tbody>
           ${(data.pedidos||[]).map(p=>{
@@ -3167,7 +3167,7 @@ async function loadHistorico(){
             <td data-label="Fecha">${fmtDateTime(m.created_at)}</td>
             <td class="row-actions"></td>
           </tr>`).join('')}
-        </tbody></table>
+        </tbody></table></div>
       </div>`;
     card.innerHTML = html;
   } catch(e){

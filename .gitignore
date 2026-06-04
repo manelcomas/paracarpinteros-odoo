@@ -28,3 +28,8 @@ clientes_incompletos.csv
 Thumbs.db
 *.bak-*
 *.bak.*
+graphify-out/
+**/graphify-out/
+.vscode/
+# Borradores de facturación electrónica (datos fiscales reales de clientes, NO subir)
+fe-signer/fe-converter/borrador_*.xml

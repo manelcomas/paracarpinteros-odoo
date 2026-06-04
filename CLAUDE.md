@@ -221,6 +221,8 @@ c.commit()"'
 
 Como se lee fresca por mensaje, el cambio en la DB **es inmediato sin rebuild**. Editá igual el seed del código para mantener coherencia en instalaciones nuevas. El `SYSTEM_PROMPT` de `main.py` sí gobierna el comportamiento/tono (eso sí requiere rsync+rebuild). Pasó el 2026-06-04: el bot solo conocía un número (8606-9717) y negaba el segundo (6104-3421, su propia línea); el fix fue `UPDATE` a la fila `ubicacion` + ajuste del pie del prompt.
 
+**"Enseñar al bot" desde el panel:** el panel tiene un botón (icono birrete) junto a la respuesta manual en el `chat-foot`. Abre un modal (título + dato) que hace `POST /api/knowledge` con `category="aprendido"`, `active=1` → inserta una fila en `bot_knowledge`, así que el dato queda vivo al instante para todas las conversaciones futuras (no retroactivo a la actual) y es editable/borrable en el editor de conocimiento. El canal es solo la respuesta manual (lo enseña el equipo, no el cliente) para evitar envenenamiento. El backend (`POST/PUT/DELETE /api/knowledge`) ya existía; lo nuevo es solo UI en `static/panel.{html,js}`, desplegable por static hot-reload (rsync + `docker cp`, sin rebuild).
+
 ## The `.env` baúl pattern
 
 El proyecto tiene **un `.env` raíz** que centraliza credenciales para los scripts en `scripts/`:

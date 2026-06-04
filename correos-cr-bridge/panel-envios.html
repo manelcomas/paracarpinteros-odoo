@@ -2259,23 +2259,43 @@ function closeCambiarCourier(){
   document.getElementById('modalCambiarCourier').classList.remove('show');
 }
 
-async function confirmCambiarCourier(newCourier){
-  if(!CC_PICKING_ID) return;
-  const errEl = document.getElementById('cc-error');
-  errEl.textContent = '';
+// Núcleo reutilizable: anula la guía actual y abre el modal del nuevo courier.
+async function doCambiarCourier(picking_id, newCourier){
   try {
     // 1) Limpiar guía actual (Odoo + SQLite + chatter)
-    await api(`/api/picking/${CC_PICKING_ID}/limpiar-guia`, {method:'POST'});
+    await api(`/api/picking/${picking_id}/limpiar-guia`, {method:'POST'});
   } catch(e){
-    errEl.textContent = 'Error limpiando guía actual: ' + e.message;
-    return;
+    alert('Error limpiando guía actual: ' + e.message);
+    return false;
   }
-  const picking_id = CC_PICKING_ID;
-  closeCambiarCourier();
   // 2) Recargar agenda para reflejar el cambio (la fila vuelve a no tener guía)
   if(typeof loadAgenda === 'function') await loadAgenda();
   // 3) Abrir el modal del nuevo courier (mismo flujo que click en "Generar guía")
   await genGuiaFromAgenda(picking_id, newCourier);
+  return true;
+}
+
+async function confirmCambiarCourier(newCourier){
+  if(!CC_PICKING_ID) return;
+  const picking_id = CC_PICKING_ID;
+  closeCambiarCourier();
+  await doCambiarCourier(picking_id, newCourier);
+}
+
+// Cambio de courier desde el desplegable inline de una fila CON guía.
+// Es destructivo (anula la guía actual), por eso confirma antes.
+async function changeCourierGuided(picking_id, newCourier){
+  const it = AGENDA_CACHE[picking_id] || {};
+  const ok = confirm(
+    `¿Cambiar el courier de ${it.sale || it.picking || ('PK'+picking_id)}?\n\n` +
+    `Se anulará la guía actual (${it.tracking || '—'}) y se abrirá el modal del nuevo courier.`
+  );
+  if(!ok){
+    // El usuario canceló: recargar para que el desplegable vuelva al courier actual.
+    if(typeof loadAgenda === 'function') await loadAgenda();
+    return;
+  }
+  await doCambiarCourier(picking_id, newCourier);
 }
 
 async function confirmGenerar(){
@@ -2914,7 +2934,16 @@ async function loadAgenda(){
             actBtns += `<button class="btn btn-sec" onclick="viewAgendaItems(${it.picking_id})" title="Ver productos del picking" style="padding:5px 10px; font-size:.72rem">📦 Ver Productos</button>`;
             if(it.has_guide){
               actBtns += `<button class="btn btn-sec" onclick="reimprimirGuia(${it.picking_id}, '${it.tracking||''}', '${b}')" title="Reabrir e imprimir etiqueta guardada" style="padding:5px 8px; font-size:.72rem; margin-left:3px">🖨 Reimprimir</button>`;
-              actBtns += `<button class="btn btn-ghost" onclick="openCambiarCourier(${it.picking_id}, '${(it.tracking||'').replace(/'/g,"\\'")}')" title="Anular esta guía y re-asignar a otro courier" style="padding:5px 8px; font-size:.72rem; margin-left:3px; color:#ffc94a; border-color:rgba(232,168,0,.4)">🔄 Cambiar</button>`;
+              // Cambiar courier (anula la guía y abre el modal del nuevo). Mismo
+              // desplegable que en filas sin guía, para que TODA fila se cambie igual.
+              const isMano = (it.tracking||'').toUpperCase().startsWith('MANO-');
+              const curSel = isMano ? 'mano' : (['pymex','tavo','dual'].includes(b) ? b : 'pymex');
+              actBtns += `<select id="agc-${it.picking_id}" title="Cambiar courier (anula la guía actual)" onchange="changeCourierGuided(${it.picking_id}, this.value)" style="background:var(--card2); border:1px solid rgba(232,168,0,.45); color:#ffc94a; padding:5px 6px; border-radius:var(--rsm); font-size:.72rem; width:90px; margin-left:3px">
+                <option value="pymex" ${curSel==='pymex'?'selected':''}>🔄 Pymex</option>
+                <option value="tavo" ${curSel==='tavo'?'selected':''}>🔄 Tavo</option>
+                <option value="dual" ${curSel==='dual'?'selected':''}>🔄 Dual</option>
+                <option value="mano" ${curSel==='mano'?'selected':''}>🔄 Mano</option>
+              </select>`;
               actBtns += `<button class="btn btn-ghost" onclick="shareGuiaWA('${it.tracking||''}', '${b}', '${tel}')" title="Compartir por WhatsApp" style="padding:5px 8px; font-size:.72rem; margin-left:3px; color:#25D366; border-color:rgba(37,211,102,.3)">📱 WhatsApp</button>`;
               actBtns += `<button class="btn btn-ghost" onclick="shareGuiaMail('${it.tracking||''}', '${b}', '${eml}')" title="Enviar por email" style="padding:5px 8px; font-size:.72rem; margin-left:3px">✉ Email</button>`;
               if(editable){

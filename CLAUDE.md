@@ -205,6 +205,22 @@ El bot sirve **dos audiencias** desde el mismo proceso FastAPI:
 
 **Sin auth**: `GET /health`.
 
+### wa-bot: la "verdad" de cara al cliente vive en SQLite, no en el código
+
+Los datos oficiales que el bot da a clientes (números de WhatsApp, horarios, ubicación, métodos de pago, envíos) **NO** están en el `SYSTEM_PROMPT` de `main.py` sino en la tabla **`bot_knowledge`** de `data/conversations.db` (volumen Docker). `_knowledge_block()` la lee **fresca en cada mensaje** y la concatena al system prompt como bloque "INFORMACIÓN OFICIAL DE LA EMPRESA". El bloque está marcado como verdad absoluta en el prompt.
+
+**Gotcha:** el seed de `bot_knowledge` en `main.py` (`_init_db`) **solo se inserta si la tabla está vacía** (`COUNT(*)==0`). En producción la tabla ya tiene filas (editables por el panel en `/api/knowledge`), así que **editar el seed en el código NO cambia nada en prod** — hay que hacer `UPDATE` sobre la DB viva:
+
+```bash
+ssh root@66.94.99.220 'docker exec wa-bot-paracarpinteros python3 -c "
+import sqlite3, time
+c=sqlite3.connect(\"/opt/whatsapp-bot/data/conversations.db\")
+c.execute(\"UPDATE bot_knowledge SET content=?, updated_at=? WHERE id=?\", (NUEVO, int(time.time()), ID))
+c.commit()"'
+```
+
+Como se lee fresca por mensaje, el cambio en la DB **es inmediato sin rebuild**. Editá igual el seed del código para mantener coherencia en instalaciones nuevas. El `SYSTEM_PROMPT` de `main.py` sí gobierna el comportamiento/tono (eso sí requiere rsync+rebuild). Pasó el 2026-06-04: el bot solo conocía un número (8606-9717) y negaba el segundo (6104-3421, su propia línea); el fix fue `UPDATE` a la fila `ubicacion` + ajuste del pie del prompt.
+
 ## The `.env` baúl pattern
 
 El proyecto tiene **un `.env` raíz** que centraliza credenciales para los scripts en `scripts/`:

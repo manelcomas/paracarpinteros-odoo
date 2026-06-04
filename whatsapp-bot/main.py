@@ -85,7 +85,7 @@ Tu rol:
   5. Solo si después de 2 búsquedas distintas search_products devolvió 0 resultados, podés decir que no hay y ofrecer pasar a un humano.
 
   Si dudás entre A y B (no es claro si es pago o producto), preguntale al cliente "¿esto es un comprobante de pago o me podés decir qué producto buscás?".
-- Si `search_products` devuelve resultados, presentá hasta 3 al cliente con código, nombre y precio en colones (formato "₡4,500"). Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
+- Si `search_products` devuelve resultados, presentá hasta 3 al cliente con código, nombre y precio en colones (formato "₡4,500"). OJO con `total` y `hay_mas`: la lista que ves NO es todo el catálogo, es solo lo más barato que coincidió. Si `hay_mas` es true (hay más modelos de los que muestra la lista), NUNCA digas "es el único", "el único modelo que tenemos" ni "solo tenemos esta": decí que hay varios (podés mencionar cuántos con `total`) y o bien presentá hasta 3 representativos, o mejor preguntá por el uso para acotar (ver sección H). Si el cliente vuelve a preguntar tras una búsqueda, hacé otra `search_products` con otras palabras antes de afirmar que algo no existe o que es lo único. Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
 - Sobre disponibilidad: usá SIEMPRE el campo `disponible` (booleano) que devuelve `search_products`, NO el número `stock`. Casi todo el catálogo se vende por encargo, así que `disponible` casi siempre es `true` aunque el `stock` numérico sea 0 — eso es normal y NO significa que falte el producto. Tratá el producto como disponible salvo que `disponible` sea explícitamente `false`. NUNCA menciones el número exacto de stock al cliente ni digas "tenemos 34 unidades".
 - Solo si `disponible` es `false` para un producto, avisá: "este producto no lo tenemos disponible en este momento, un compañero te confirma si entra pronto". Si `disponible` es `true` (el caso normal), presentalo sin advertencias de stock.
 - Antes de invocar `send_product_photo`, si `disponible` es `false` para ese código, avisá primero con texto ("Te paso la foto, pero ojo: este producto no lo tenemos disponible en este momento. Un compañero te confirma si entra pronto.") y DESPUÉS mandá la foto. Si `disponible` es `true`, mandá la foto sin advertencias.
@@ -310,16 +310,42 @@ def _odoo_search(domain: list, limit: int):
         return []
 
 
-def search_products_odoo(query: str, limit: int = 3) -> list[dict]:
+def _odoo_count(domain: list) -> int:
+    """search_count sobre un domain. Sirve para saber cuántos productos hay en
+    total más allá del límite que mostramos (para que el bot no diga 'es el único'
+    cuando solo vio los primeros N)."""
+    uid = odoo_authenticate()
+    if not uid:
+        return 0
+    try:
+        models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object", allow_none=True)
+        return int(models.execute_kw(
+            ODOO_DB, uid, ODOO_API_KEY,
+            "product.template", "search_count", [domain],
+        ) or 0)
+    except Exception as e:
+        print(f"[odoo count err] {e}")
+        return 0
+
+
+def search_products_odoo(query: str, limit: int = 8) -> dict:
     """
     Busca productos en Odoo.
     Estrategia: tokeniza la query y hace AND de ILIKE por token contra nombre.
     Si no encuentra nada con AND, hace fallback con OR sobre tokens >=4 chars.
     Si no encuentra nada, fallback con la query completa cruda.
     Filtra basura del catálogo: precios <= 100 CRC (sin precio cargado) y productos sin default_code.
+
+    Devuelve un dict con:
+      - productos: lista (hasta `limit`) ordenada por precio asc.
+      - total: cuántos productos coinciden EN TOTAL con la búsqueda (puede ser > len(productos)).
+      - hay_mas: True si total > len(productos) (hay más de los que se muestran).
+    Así el bot sabe si lo que ve es todo el catálogo de ese término o solo una parte,
+    y nunca afirma "es el único" cuando en realidad hay más.
     """
+    empty = {"productos": [], "total": 0, "hay_mas": False}
     if not query or not query.strip():
-        return []
+        return empty
     tokens = _tokenize_query(query)
 
     # Excluir productos basura: precio dummy ≤₡100 y sin código asignado
@@ -329,11 +355,14 @@ def search_products_odoo(query: str, limit: int = 3) -> list[dict]:
         ("default_code", "!=", False),
     ]
     rows = []
+    used_domain = None
 
     # Estrategia 1: AND de todos los tokens
     if tokens:
         domain = list(base) + [("name", "ilike", t) for t in tokens]
         rows = _odoo_search(domain, limit)
+        if rows:
+            used_domain = domain
 
     # Estrategia 2: solo tokens "fuertes" (>=4 chars y no número) AND
     if not rows and tokens:
@@ -341,6 +370,8 @@ def search_products_odoo(query: str, limit: int = 3) -> list[dict]:
         if strong:
             domain = list(base) + [("name", "ilike", t) for t in strong]
             rows = _odoo_search(domain, limit)
+            if rows:
+                used_domain = domain
 
     # Estrategia 3: OR sobre tokens fuertes (cualquiera matchea)
     if not rows and tokens:
@@ -355,10 +386,15 @@ def search_products_odoo(query: str, limit: int = 3) -> list[dict]:
                 or_part.insert(0, "|")
             domain = list(base) + or_part
             rows = _odoo_search(domain, limit)
+            if rows:
+                used_domain = domain
 
     # Estrategia 4: query crudo (último recurso)
     if not rows:
-        rows = _odoo_search([("name", "ilike", query.strip()), ("sale_ok", "=", True)], limit)
+        domain = [("name", "ilike", query.strip()), ("sale_ok", "=", True)]
+        rows = _odoo_search(domain, limit)
+        if rows:
+            used_domain = domain
 
     out = []
     for p in rows:
@@ -372,7 +408,12 @@ def search_products_odoo(query: str, limit: int = 3) -> list[dict]:
             "descripcion": (p.get("description_sale") or "").strip()[:160],
             "peso_kg": weight_kg if weight_kg > 0 else None,
         })
-    return out
+
+    # Total real de coincidencias (para saber si hay más de las que mostramos)
+    total = _odoo_count(used_domain) if used_domain else len(out)
+    if total < len(out):
+        total = len(out)
+    return {"productos": out, "total": total, "hay_mas": total > len(out)}
 
 
 # Carriers que la tool calculate_shipping_quote debe consultar (ordenados por preferencia del usuario)
@@ -557,8 +598,11 @@ CLAUDE_TOOLS = [
         "description": (
             "Busca productos en el catálogo real de Paracarpinteros en Odoo. "
             "Usalo SIEMPRE que el cliente mencione un producto, herramienta, marca, "
-            "medida o pida precio/stock. Devuelve hasta 3 resultados con: código, "
-            "nombre, precio en colones, `disponible` (booleano: si se puede vender; casi siempre true porque se vende por encargo) y peso en kg (si está cargado en la ficha). "
+            "medida o pida precio/stock. Devuelve un objeto con: `productos` (lista de hasta 8, ordenados por precio), "
+            "`total` (cuántos productos coinciden EN TOTAL con la búsqueda, puede ser mayor que los que se muestran) y "
+            "`hay_mas` (true si hay más de los que aparecen en la lista). Cada producto trae: código, "
+            "nombre, precio en colones, `disponible` (booleano: si se puede vender; casi siempre true porque se vende por encargo), descripcion y peso en kg (si está cargado en la ficha). "
+            "Mirá `total`/`hay_mas` antes de afirmar cuántos modelos hay: si `hay_mas` es true, NO digas que es el único. "
             "Si necesitás el peso del producto para cotizar envío con `calculate_shipping_quote`, "
             "usá el `peso_kg` que devuelve esta tool (no preguntes al cliente si Odoo ya lo trae). "
             "Ejemplos de query: 'avellanador 8mm', 'sierra circular makita', "

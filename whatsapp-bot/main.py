@@ -86,21 +86,23 @@ Tu rol:
 
   Si dudás entre A y B (no es claro si es pago o producto), preguntale al cliente "¿esto es un comprobante de pago o me podés decir qué producto buscás?".
 - Si `search_products` devuelve resultados, presentá hasta 3 al cliente con código, nombre y precio en colones (formato "₡4,500"). Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
-- ANTES de invocar `send_product_photo`, revisá el `stock` devuelto por el último `search_products` para ese código. Si `stock <= 0`, primero avisá al cliente con texto: "Te paso la foto, pero ojo: este producto no lo tenemos disponible en este momento. Un compañero te confirma si entra pronto." y DESPUÉS mandá la foto. No mandes una foto sin avisar de la falta de stock.
-- Sobre disponibilidad: NO menciones el número exacto de stock al cliente. Decí "disponible" si stock > 0, "no lo tenemos disponible en este momento" si stock <= 0. Nunca digas "tenemos 34 unidades".
+- Sobre disponibilidad: usá SIEMPRE el campo `disponible` (booleano) que devuelve `search_products`, NO el número `stock`. Casi todo el catálogo se vende por encargo, así que `disponible` casi siempre es `true` aunque el `stock` numérico sea 0 — eso es normal y NO significa que falte el producto. Tratá el producto como disponible salvo que `disponible` sea explícitamente `false`. NUNCA menciones el número exacto de stock al cliente ni digas "tenemos 34 unidades".
+- Solo si `disponible` es `false` para un producto, avisá: "este producto no lo tenemos disponible en este momento, un compañero te confirma si entra pronto". Si `disponible` es `true` (el caso normal), presentalo sin advertencias de stock.
+- Antes de invocar `send_product_photo`, si `disponible` es `false` para ese código, avisá primero con texto ("Te paso la foto, pero ojo: este producto no lo tenemos disponible en este momento. Un compañero te confirma si entra pronto.") y DESPUÉS mandá la foto. Si `disponible` es `true`, mandá la foto sin advertencias.
 - Si la búsqueda devuelve precios sospechosamente bajos (₡1, ₡10) significa que el producto no tiene precio cargado: NO se lo muestres al cliente, decile "déjame confirmar el precio con un compañero" y ofrecé pasarlo al equipo.
 - Si la búsqueda devuelve vacío, decí amablemente que no encontraste ese producto exacto y ofrecé pasarlo al equipo humano.
 - Dar información sobre envíos por Pymexpress, Encomienda Nacional Correos CR, Tavo Encomiendas o Dual Global a todo el país.
 
 ENVÍOS — leer con atención:
 - Cuando el cliente pregunte cuánto cuesta el envío, qué opciones tiene, o pida comparar precios entre servicios, usá la herramienta `calculate_shipping_quote` con el peso aproximado del pedido en kilos. Si no sabés el peso, preguntale al cliente cuánto pesa aproximadamente el pedido (1 kg, 5 kg, etc.).
-- Presentá las opciones devueltas al cliente como una lista breve con precios. Ej:
-  "Para X kg, las opciones de envío son:
-  - Pymexpress (entrega a domicilio): ₡8.400
-  - Encomienda Nacional (retira en oficina Correos): ₡5.300
-  - Transtusa/Tavo: ₡2.500
-  - Dual Global (retira en agencia): ₡3.000
-  - Retirada en almacén Santa Cruz, Turrialba: gratis"
+- Presentá las opciones devueltas al cliente como una lista breve con precios, cada una en su propia línea y con el precio en negrita. Dejá una línea en blanco entre la frase de entrada y la lista. Ej:
+  "Para X kg, estas son las opciones de envío:
+
+  - Pymexpress (entrega a domicilio): *₡8.400*
+  - Encomienda Nacional (retira en oficina Correos): *₡5.300*
+  - Transtusa/Tavo: *₡2.500*
+  - Dual Global (retira en agencia): *₡3.000*
+  - Retirada en almacén Santa Cruz, Turrialba: *gratis*"
 - Si la respuesta de `calculate_shipping_quote` trae `needs_human_quote: true` o algún carrier tiene `price_crc: null`, decile al cliente que ese servicio específico lo cotiza un compañero (no inventes precio).
 - Para Dual Global, si el cliente eligió Dual o pregunta por la agencia más cercana, USÁ la herramienta `find_dual_agency` con la provincia del cliente (y cantón si lo dijo). La tool devuelve agencias reales con dirección, horario y Google Maps. Presentale al cliente hasta 2-3 opciones. Si el cliente no te dijo la provincia, preguntásela primero (Dual tiene sucursales en las 7 provincias). NUNCA inventes direcciones de agencias Dual.
 - El precio del envío SIEMPRE va aparte del precio del producto. Cuando armes el total final, listá ambos (producto + envío) por separado.
@@ -154,7 +156,7 @@ I. **TONO**: amable, claro y profesional. No "compa", no robot.
      · Nada de adjetivos inflados ni publicitarios ("excelente", "increíble", "amplia gama", "la mejor opción"). Describí seco y concreto.
      · Variá la frase de escalado: no repitas siempre "Un compañero te confirma". Alterná, p.ej. "Lo verifico con el equipo y te digo", "Dejá que lo confirme y te aviso", "Eso lo coordina Gabriela, te contacta ella".
 
-J. **EN PROCESO**: Si ya estás en medio de un flujo de compra (cotizaste, peso, envío) y el cliente cambia de tema bruscamente, retomá pero recordale dónde quedamos: "Genial, te ayudo con eso. Y respecto a la tapeteadora que estábamos viendo, ¿seguís interesado o lo dejamos para otro momento?"
+J. **EN PROCESO**: Si ya estás en medio de un flujo de compra (cotizaste, peso, envío) y el cliente cambia de tema bruscamente, retomá pero recordale dónde quedamos: "Claro, te ayudo con eso. Y sobre la tapeteadora que estábamos viendo, ¿seguís interesado o lo dejamos para otro momento?"
 
 D. **REPETICIÓN**: Si notás que el cliente está enviando la MISMA pregunta 2-3 veces seguidas (porque no le diste lo que quería), NO repitas la misma respuesta. Reconocé la repetición y ofrecé pasarlo con un humano: "Veo que te estoy dando vueltas con esto, dejame pasarte con un compañero que te resuelve mejor."
 
@@ -169,6 +171,20 @@ K. **CONSEJOS — SOLO CUANDO LOS PIDEN**: NUNCA des recomendaciones, consejos t
    - Si el cliente solo describió un problema ("se me astilla la madera"), NO ofrezcas solución a menos que pregunte. Limitate a "Un compañero te puede dar la solución exacta. ¿Te paso con él?"
 
 L. **BREVEDAD**: respuestas de 1 a 2 oraciones por defecto. Solo extendete cuando listás productos (hasta 3, una línea cada uno) o opciones de envío. Nada de explicaciones largas, contexto innecesario, ni "como te decía antes". Si el cliente pregunta algo simple, contestá con lo justo.
+
+M. **FORMATO EN WHATSAPP (que se vea ordenado, no robótico)**: WhatsApp entiende formato. Usalo con moderación para que el mensaje se lea limpio, nunca para decorar.
+   - Negrita con *asteriscos* solo en lo que importa: el precio y, si listás varios, el nombre del producto. Ej de línea de producto: "*Sierra circular Makita 5007* · ₡92,000 (cód. SM-5007)".
+   - Cuando listés 2-3 productos u opciones de envío, poné cada ítem en su propia línea (salto de línea real), no todo en un párrafo corrido. Dejá una línea en blanco entre la frase de entrada y la lista para que respire.
+   - Para separar dato y dato dentro de una línea usá un punto medio " · " o paréntesis, nunca la raya larga (—).
+   - No abuses: máximo un par de negritas por mensaje, nada de TODO EN MAYÚSCULAS ni frases enteras en negrita. El exceso de formato y las mayúsculas se leen como spam y, además, hacen que la gente bloquee.
+   - El orden lo dan los saltos de línea y la negrita puntual, no los íconos: cero emojis (ya prohibidos).
+
+N. **POLÍTICA WHATSAPP / META — evitar que bloqueen el número (crítico, no negociable)**: el número es de la empresa; un bloqueo de Meta corta el canal con todos los clientes. Para evitarlo:
+   - Respondé SOLO a lo que el cliente escribió. Nunca mandes promociones, catálogos, ofertas ni "¿sigues ahí?" por iniciativa propia. Los mensajes no solicitados son la causa #1 de baneo.
+   - Un solo mensaje por respuesta siempre que se pueda. No partas la contestación en 4-5 mensajes seguidos: se ve como spam. La única excepción válida es la foto/card del producto, que va aparte por necesidad técnica.
+   - No repitas el mismo mensaje una y otra vez (ver regla D, REPETICIÓN). Si das vueltas, pasá a un humano en vez de insistir.
+   - Pocos enlaces y solo los propios (sitio o ficha del producto cuando aporta). Nada de links acortados ni varios enlaces en un mismo mensaje.
+   - Resolvé rápido y hablá natural: un bot pesado, repetitivo o que no entiende hace que el cliente bloquee o reporte, y eso es justo lo que dispara la baja del número.
 
 Tono: amable, profesional, cordial sin ser efusivo. Tratá de "usted" por defecto; pasá a "vos" solo si el cliente lo usa primero. Respuestas cortas. Cero emojis. Sin exclamaciones de relleno.
 
@@ -240,6 +256,26 @@ def _tokenize_query(query: str) -> list[str]:
     return out
 
 
+def _es_disponible(p: dict) -> bool:
+    """Replica la lógica de disponibilidad de la tienda web Odoo.
+
+    En este catálogo casi todos los productos son tipo 'consu' (consumible) o
+    'service': Odoo NUNCA bloquea su venta en la web por falta de stock, así que
+    aparecen como comprables en la página aunque `qty_available` sea 0. Solo los
+    'product' (almacenables) se bloquean al agotarse, y aún así se venden si
+    tienen `allow_out_of_stock_order=True`.
+
+    Antes el bot trataba `qty_available <= 0` como "no disponible" y rechazaba
+    ~413 productos que la web sí vende. Esto lo alinea con la tienda.
+    """
+    tipo = p.get("type")
+    if tipo in ("consu", "service"):
+        return True
+    if p.get("allow_out_of_stock_order"):
+        return True
+    return int(p.get("qty_available") or 0) > 0
+
+
 def _odoo_search(domain: list, limit: int):
     """Wrapper de search_read con manejo de sesión caída."""
     global _odoo_uid_cache
@@ -253,7 +289,7 @@ def _odoo_search(domain: list, limit: int):
             "product.template", "search_read",
             [domain],
             {
-                "fields": ["name", "default_code", "list_price", "qty_available", "description_sale", "weight"],
+                "fields": ["name", "default_code", "list_price", "qty_available", "description_sale", "weight", "type", "allow_out_of_stock_order"],
                 "limit": limit,
                 "order": "list_price asc",
             },
@@ -322,6 +358,7 @@ def search_products_odoo(query: str, limit: int = 3) -> list[dict]:
             "nombre": (p.get("name") or "").strip(),
             "precio_crc": int(round(p.get("list_price") or 0)),
             "stock": int(p.get("qty_available") or 0),
+            "disponible": _es_disponible(p),
             "descripcion": (p.get("description_sale") or "").strip()[:160],
             "peso_kg": weight_kg if weight_kg > 0 else None,
         })
@@ -511,7 +548,7 @@ CLAUDE_TOOLS = [
             "Busca productos en el catálogo real de Paracarpinteros en Odoo. "
             "Usalo SIEMPRE que el cliente mencione un producto, herramienta, marca, "
             "medida o pida precio/stock. Devuelve hasta 3 resultados con: código, "
-            "nombre, precio en colones, stock disponible y peso en kg (si está cargado en la ficha). "
+            "nombre, precio en colones, `disponible` (booleano: si se puede vender; casi siempre true porque se vende por encargo) y peso en kg (si está cargado en la ficha). "
             "Si necesitás el peso del producto para cotizar envío con `calculate_shipping_quote`, "
             "usá el `peso_kg` que devuelve esta tool (no preguntes al cliente si Odoo ya lo trae). "
             "Ejemplos de query: 'avellanador 8mm', 'sierra circular makita', "
@@ -877,7 +914,7 @@ def _get_product_full(codigo: str) -> Optional[dict]:
             ODOO_DB, uid, ODOO_API_KEY,
             "product.template", "search_read",
             [[("default_code", "=", codigo)]],
-            {"fields": ["id", "name", "image_1920", "list_price", "weight", "qty_available"], "limit": 1},
+            {"fields": ["id", "name", "image_1920", "list_price", "weight", "qty_available", "type", "allow_out_of_stock_order"], "limit": 1},
         )
         if not rows:
             return None
@@ -890,6 +927,7 @@ def _get_product_full(codigo: str) -> Optional[dict]:
             "image_bytes": base64.b64decode(img_b64) if img_b64 else None,
             "weight_kg": float(p.get("weight") or 0) or None,
             "stock": int(p.get("qty_available") or 0),
+            "disponible": _es_disponible(p),
             # URL de búsqueda por código (siempre funciona, sin depender del slug Odoo)
             "website_url": f"https://paracarpinteros.com/shop?search={codigo}",
         }
@@ -1241,8 +1279,8 @@ async def send_product_photo(phone: str, codigo: str) -> dict:
                     wa_msg_id=(resp.get("messages")[0] or {}).get("id"),
                 )
                 return {"sent": True, "type": "card", "codigo": codigo, "nombre": name,
-                        "stock_disponible": info.get("stock", 0) > 0,
-                        "aviso_sin_stock": "Avisar al cliente que no hay stock disponible." if info.get("stock", 0) <= 0 else None}
+                        "stock_disponible": info.get("disponible", True),
+                        "aviso_sin_stock": None if info.get("disponible", True) else "Avisar al cliente que no hay stock disponible."}
             # Si fallo el envío interactive, caemos al fallback de foto plana
             print(f"[card interactive failed, fallback to plain photo] resp={str(resp)[:200]}")
 
@@ -1262,8 +1300,8 @@ async def send_product_photo(phone: str, codigo: str) -> dict:
             fname = None
         _save_outbound(phone, f"[FOTO] {caption}", bot=True, media_path=fname, wa_msg_id=(resp.get("messages")[0] or {}).get("id"))
         return {"sent": True, "type": "photo", "codigo": codigo, "nombre": name,
-                "stock_disponible": info.get("stock", 0) > 0,
-                "aviso_sin_stock": "Avisar al cliente que no hay stock disponible." if info.get("stock", 0) <= 0 else None}
+                "stock_disponible": info.get("disponible", True),
+                "aviso_sin_stock": None if info.get("disponible", True) else "Avisar al cliente que no hay stock disponible."}
     return {"sent": False, "error": str(resp)[:200]}
 
 OUT_OF_HOURS_MSG = (

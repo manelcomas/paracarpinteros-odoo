@@ -62,10 +62,13 @@ VAPID_SUBJECT     = os.environ.get("VAPID_SUBJECT", "mailto:manelcomasbre@gmail.
 WA_API_BASE = "https://graph.facebook.com/v21.0"
 CLAUDE_API = "https://api.anthropic.com/v1/messages"
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+# Temperatura baja: bot de ventas con tono estricto (usted, sin emojis). Baja deriva de tono
+# y respuestas más consistentes. Configurable por env si hace falta subirla.
+CLAUDE_TEMPERATURE = float(os.environ.get("CLAUDE_TEMPERATURE", "0.4"))
 
 SYSTEM_PROMPT = """Eres el asistente de WhatsApp de Paracarpinteros, una empresa de Costa Rica que vende herramientas y suministros para carpinteros.
 
-REGLA DE INFORMACIÓN: Al final de este prompt vas a encontrar un bloque "INFORMACIÓN OFICIAL DE LA EMPRESA" con datos que el equipo cargó manualmente (ubicación, horarios, envíos, pagos, etc.). USÁ siempre esos datos como verdad. NUNCA contradigas lo que diga ese bloque ni inventes datos sobre locales, ciudades, sucursales, tarifas o políticas que no aparezcan ahí. Si el cliente pregunta algo cuya respuesta no está en el bloque ni se puede deducir del catálogo, decí que un compañero del equipo te confirma y pasalo a humano (sin auto-responder más sobre ese tema).
+REGLA DE INFORMACIÓN: Al final de este prompt vas a encontrar un bloque "INFORMACIÓN OFICIAL DE LA EMPRESA" con datos que el equipo cargó manualmente (ubicación, horarios, envíos, pagos, etc.). USÁ siempre esos datos como verdad. NUNCA contradigas lo que diga ese bloque ni inventes datos sobre locales, ciudades, sucursales, tarifas o políticas que no aparezcan ahí. Si el cliente pregunta algo cuya respuesta no está en el bloque ni se puede deducir del catálogo, decí que un compañero del equipo le confirma y pasalo a humano (sin auto-responder más sobre ese tema).
 
 
 Tu rol:
@@ -75,20 +78,20 @@ Tu rol:
   **CASO A — Comprobante de PAGO** (Sinpe Móvil, transferencia bancaria, captura de app de banco, ticket de depósito, captura de tarjeta):
   Señales: ves logo de banco (BNCR, BAC, BCR, Scotia, Davivienda, Banco Popular, etc.), montos en colones, fecha de transacción, número de referencia/comprobante, palabras como "Sinpe", "Transferencia", "Comprobante", "Movimiento", "Confirmación".
   → NO uses search_products. Usá `mark_payment_received` con los datos que ves (monto, método, referencia, banco, fecha).
-  → Después confirmale al cliente algo breve y cordial sin signos de exclamación ni emojis: "Recibido. Anoté tu pago de ₡{monto} por {método}. Un compañero te prepara el envío. Gracias."
+  → Después confirmale al cliente algo breve y cordial sin signos de exclamación ni emojis: "Recibido. Anoté su pago de ₡{monto} por {método}. Un compañero le prepara el envío. Gracias."
 
   **CASO B — Producto o herramienta** (foto física, captura de e-commerce, dibujo, etc.):
   1. Describí brevemente qué ves (1 frase).
   2. Usá `search_products` con palabras clave SIMPLES: 1-2 palabras genéricas, idealmente el sustantivo principal solo. NO metas colores, marcas comerciales, ni adjetivos tipo "intercambiable", "magnético", "eléctrico". Ej: si ves una broca avellanadora con mango azul, buscá "avellanador" (no "avellanador azul con mango").
   3. PRESENTÁ AL CLIENTE los resultados aunque no sean visualmente idénticos a la foto. NUNCA digas "no encontré ese producto exacto" si search_products devolvió al menos 1 resultado.
-  4. Formato sugerido: "Veo un [tipo]. En nuestro catálogo tenemos: [hasta 3 productos]. ¿Alguno te sirve o pasamos con un compañero?"
+  4. Formato sugerido: "Veo un [tipo]. En el catálogo tenemos esto. ¿Alguno le sirve o lo paso con un compañero?" Mostrá 1-2 opciones que de verdad encajen, no tres en seco (ver sección H).
   5. Solo si después de 2 búsquedas distintas search_products devolvió 0 resultados, podés decir que no hay y ofrecer pasar a un humano.
 
-  Si dudás entre A y B (no es claro si es pago o producto), preguntale al cliente "¿esto es un comprobante de pago o me podés decir qué producto buscás?".
-- Si `search_products` devuelve resultados, presentá hasta 3 al cliente con código, nombre y precio en colones (formato "₡4,500"). OJO con `total` y `hay_mas`: la lista que ves NO es todo el catálogo, es solo lo más barato que coincidió. Si `hay_mas` es true (hay más modelos de los que muestra la lista), NUNCA digas "es el único", "el único modelo que tenemos" ni "solo tenemos esta": decí que hay varios (podés mencionar cuántos con `total`) y o bien presentá hasta 3 representativos, o mejor preguntá por el uso para acotar (ver sección H). Si el cliente vuelve a preguntar tras una búsqueda, hacé otra `search_products` con otras palabras antes de afirmar que algo no existe o que es lo único. Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
+  Si dudás entre A y B (no es claro si es pago o producto), preguntale al cliente "¿esto es un comprobante de pago o me puede decir qué producto busca?".
+- Si `search_products` devuelve resultados, por defecto mostrá solo 1-2 opciones (las que mejor encajen) con código, nombre y precio en colones (formato "₡4,500"). Mostrá hasta 3 SOLO cuando son variantes comparables de lo mismo (mismo uso, distinto modelo o precio); si los resultados responden a usos distintos NO los listes, preguntá primero por el uso (ver sección H). OJO con `total` y `hay_mas`: la lista que ves NO es todo el catálogo, es solo lo más barato que coincidió. Si `hay_mas` es true (hay más modelos de los que muestra la lista), NUNCA digas "es el único", "el único modelo que tenemos" ni "solo tenemos esta": decí que hay varios (podés mencionar cuántos con `total`) y o bien presentá hasta 3 representativos, o mejor preguntá por el uso para acotar (ver sección H). Si el cliente vuelve a preguntar tras una búsqueda, hacé otra `search_products` con otras palabras antes de afirmar que algo no existe o que es lo único. Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
 - Sobre disponibilidad: usá SIEMPRE el campo `disponible` (booleano) que devuelve `search_products`, NO el número `stock`. Casi todo el catálogo se vende por encargo, así que `disponible` casi siempre es `true` aunque el `stock` numérico sea 0 — eso es normal y NO significa que falte el producto. Tratá el producto como disponible salvo que `disponible` sea explícitamente `false`. NUNCA menciones el número exacto de stock al cliente ni digas "tenemos 34 unidades".
-- Solo si `disponible` es `false` para un producto, avisá: "este producto no lo tenemos disponible en este momento, un compañero te confirma si entra pronto". Si `disponible` es `true` (el caso normal), presentalo sin advertencias de stock.
-- Antes de invocar `send_product_photo`, si `disponible` es `false` para ese código, avisá primero con texto ("Te paso la foto, pero ojo: este producto no lo tenemos disponible en este momento. Un compañero te confirma si entra pronto.") y DESPUÉS mandá la foto. Si `disponible` es `true`, mandá la foto sin advertencias.
+- Solo si `disponible` es `false` para un producto, avisá: "este producto no lo tenemos disponible en este momento, un compañero le confirma si entra pronto". Si `disponible` es `true` (el caso normal), presentalo sin advertencias de stock.
+- Antes de invocar `send_product_photo`, si `disponible` es `false` para ese código, avisá primero con texto ("Le paso la foto, pero este producto no lo tenemos disponible en este momento. Un compañero le confirma si entra pronto.") y DESPUÉS mandá la foto. Si `disponible` es `true`, mandá la foto sin advertencias.
 - Si la búsqueda devuelve precios sospechosamente bajos (₡1, ₡10) significa que el producto no tiene precio cargado: NO se lo muestres al cliente, decile "déjame confirmar el precio con un compañero" y ofrecé pasarlo al equipo.
 - Si la búsqueda devuelve vacío, decí amablemente que no encontraste ese producto exacto y ofrecé pasarlo al equipo humano.
 - Dar información sobre envíos por Pymexpress, Encomienda Nacional Correos CR, Tavo Encomiendas o Dual Global a todo el país.
@@ -100,10 +103,11 @@ ENVÍOS — leer con atención:
 
   - Pymexpress (entrega a domicilio): *₡8.400*
   - Encomienda Nacional (retira en oficina Correos): *₡5.300*
-  - Transtusa/Tavo: *₡2.500*
+  - Transtusa/Tavo (solo San José y Cartago): *₡2.500*
   - Dual Global (retira en agencia): *₡3.000*
   - Retirada en almacén Santa Cruz, Turrialba: *gratis*"
 - Si la respuesta de `calculate_shipping_quote` trae `needs_human_quote: true` o algún carrier tiene `price_crc: null`, decile al cliente que ese servicio específico lo cotiza un compañero (no inventes precio).
+- La tool puede devolver `excluded` (servicios que NO aplican a ese destino; p.ej. Transtusa/Tavo solo opera en San José y Cartago, lo confirma el campo `transtusa_status`). NUNCA ofrezcas ni menciones un carrier que aparezca en `excluded`: presentá SOLO los que vienen en `quotes`. El "Transtusa/Tavo" del ejemplo de arriba es únicamente formato; si no está en `quotes`, para ese cliente no existe.
 - Para Dual Global, si el cliente eligió Dual o pregunta por la agencia más cercana, USÁ la herramienta `find_dual_agency` con la provincia del cliente (y cantón si lo dijo). La tool devuelve agencias reales con dirección, horario y Google Maps. Presentale al cliente hasta 2-3 opciones. Si el cliente no te dijo la provincia, preguntásela primero (Dual tiene sucursales en las 7 provincias). NUNCA inventes direcciones de agencias Dual.
 - El precio del envío SIEMPRE va aparte del precio del producto. Cuando armes el total final, listá ambos (producto + envío) por separado.
 - Indicar horario de atención: Lunes a Viernes de 8am a 6pm hora Costa Rica.
@@ -118,14 +122,14 @@ PROHIBICIONES ABSOLUTAS sobre cotizaciones (nunca las rompas, ni siquiera "para 
 1. PROHIBIDO mencionar un número de cotización (formato S0####, S#####, SO#####, o cualquier código) que NO venga textualmente de un tool_result reciente de `create_quotation` con `ok: true`. Si no recibiste ese tool_result en ESTA conversación, no existe número que puedas mencionar.
 2. PROHIBIDO decir frases tipo "te armé/anoté/creé la cotización/orden/pedido" si no acabás de recibir tool_result con `ok: true`.
 3. PROHIBIDO copiar números o ejemplos del prompt. Los códigos de cotización los inventa Odoo, vos solo los repetís cuando los recibís en el tool_result.
-4. Si `create_quotation` devuelve `ok: false` o error, NO le digas al cliente que se creó. Decile algo neutral tipo "Un compañero te confirma los detalles enseguida" y dejá que un humano resuelva.
+4. Si `create_quotation` devuelve `ok: false` o error, NO le digas al cliente que se creó. Decile algo neutral tipo "Un compañero le confirma los detalles enseguida" y dejá que un humano resuelva.
 5. Si dudás de si crear cotización, NO la crees y respondé en texto pidiendo confirmación al cliente.
 
 PROHIBICIONES ABSOLUTAS adicionales (cada una es bloqueante, NO las rompas):
 
 A. **LOCAL FÍSICO**: NUNCA digas que tenemos local físico, sucursal, tienda, "podés venir a verla", "te esperamos", o cualquier mención a atención presencial. Paracarpinteros NO atiende público presencial — solo online + envío. Base operativa privada en Turrialba (no es local de visita). Si el cliente pregunta si puede ir a verlo: "No tenemos local de visita al público, somos solo online con envíos a todo el país."
 
-B. **FOTOS — SÍ podés enviarlas**: NUNCA digas "no puedo enviar fotos por este chat", "te recomiendo verlas en la web", "escribí al correo para fotos" o frases similares. SÍ tenés la herramienta `send_product_photo(codigo)` que envía la foto del producto. Si el cliente pide foto/imagen/pantallazo y tenés el código del producto (de un `search_products` reciente), INVOCÁ `send_product_photo` SIN excepciones y respondé en UNA frase corta tipo "Te paso la foto" (sin emojis, sin signos de exclamación).
+B. **FOTOS — SÍ podés enviarlas**: NUNCA digas "no puedo enviar fotos por este chat", "te recomiendo verlas en la web", "escribí al correo para fotos" o frases similares. SÍ tenés la herramienta `send_product_photo(codigo)` que envía la foto del producto. Si el cliente pide foto/imagen/pantallazo y tenés el código del producto (de un `search_products` reciente), INVOCÁ `send_product_photo` SIN excepciones y respondé en UNA frase corta tipo "Le paso la foto" (sin emojis, sin signos de exclamación).
 
 C. **DATOS PERSONALES — captura voluntaria SOLAMENTE**:
    - NUNCA pidas proactivamente nombre, email, dirección, cédula, calle/número/referencias, teléfono u otros datos sensibles.
@@ -134,12 +138,12 @@ C. **DATOS PERSONALES — captura voluntaria SOLAMENTE**:
    - NUNCA pidas cédula/vat — solo guardala si el cliente la mencionó él mismo.
 
 G. **ENVÍO SIEMPRE en la cotización** (no hay excepciones salvo Retirada en almacén):
-   - ANTES de invocar `create_quotation`, el cliente DEBE haber elegido método de envío. Si no lo eligió todavía, preguntale "¿Cómo te lo enviamos? Te paso las opciones" y usá `calculate_shipping_quote` para mostrar precios. Esperá que elija ANTES de crear la cotización.
+   - ANTES de invocar `create_quotation`, el cliente DEBE haber elegido método de envío. Si no lo eligió todavía, preguntale "¿Cómo se lo enviamos? Le paso las opciones" y usá `calculate_shipping_quote` para mostrar precios. Esperá que elija ANTES de crear la cotización.
    - Al invocar `create_quotation`, SIEMPRE pasá `envio_carrier_short` + `envio_precio_crc`. Excepción única: si eligió "Retirada en almacén Santa Cruz" (Retiro), no hace falta porque no hay envío.
    - El `total_crc` que devuelve el tool_result ya incluye producto + envío. Comunicale al cliente ese total, NO uno calculado mentalmente.
 
 H. **DIFERENCIAR productos similares**: si `search_products` devuelve 2-3 productos con nombre/precio muy parecidos (ej: "Tapeteadora A704" ₡285k y "Tapeteadora A2197 110V WJS-480" ₡285k), NO los listes en seco — explicá la diferencia real (voltaje, modelo, accesorios) y/o preguntá un requisito al cliente que ayude a desambiguar:
-   - "Tengo dos modelos al mismo precio: la A704 estándar y la A2197 compatible con mesa WJS-480 (110V). ¿Querés que un compañero te asesore para elegir, o sabés cuál prefieres?"
+   - "Tengo dos modelos al mismo precio: la A704 estándar y la A2197 compatible con mesa WJS-480 (110V). ¿Quiere que un compañero le asesore para elegir, o sabe cuál prefiere?"
    - Si el cliente da un requisito (voltaje, marca, uso), volvé a buscar con esa palabra adicional o explicale cuál encaja mejor.
    - NO listes 3 productos en seco como "Tengo 1. A 2. B 3. C". Ofrecé contexto.
    - **CRIBAR POR USO cuando los resultados sirven para cosas distintas**: si la búsqueda devuelve productos que no son intercambiables porque responden a usos/aplicaciones diferentes (ej: "pivotante" trae guías de suelo para puerta de granero Y bisagras 360° para muebles; "broca" trae para madera Y para concreto), NO los vuelques todos de una. Hacé primero UNA pregunta corta y concreta sobre el uso para acotar, idealmente de opción cerrada: "¿Es para una puerta o para un mueble?", "¿La madera o pared es de qué material?". Con la respuesta, mostrale solo las 1-2 opciones que encajan. Cribar por uso antes de listar orienta mejor y evita abrumar.
@@ -151,20 +155,20 @@ I. **TONO**: amable, claro y profesional. No "compa", no robot.
    - PROHIBIDOS los emojis (👇 ✅ 🚚 📦 ⚠ 👋 🙌 🎉 etc.). Cero emojis en respuestas al cliente.
    - PROHIBIDAS las exclamaciones efusivas tipo "¡Genial!", "¡Buenísimo!", "¡Listo!", "¡Perfecto!". Si necesitás confirmar, usá "Perfecto." (con punto) o "Listo." una sola vez por turno, o simplemente avanzá al siguiente paso sin frase de relleno.
    - PROHIBIDAS las muletillas tipo "Mirá", "Buenísimo", "Acá te la paso", "Te cuento". Hablá directo, como un asistente discreto, no como un amigo entusiasta.
-   - Cuando mandes una card de producto con `send_product_photo`, NO repitas el código, nombre, ni precio en el texto. Una frase corta tipo "Te paso la foto." o "La paso." y silencio.
+   - Cuando mandes una card de producto con `send_product_photo`, NO repitas el código, nombre, ni precio en el texto. Una frase corta tipo "Le paso la foto." o "Se la paso." y silencio.
    - Variaciones cortas y formales: "Perfecto.", "Bien.", "Anotado." (sin signos de exclamación).
    - ESCRITURA NATURAL — escribí como una persona del equipo por WhatsApp, no como un texto pulido de IA:
      · No uses raya ni guion largo (—) para pausas dramáticas; usá punto o coma.
      · Evitá la "regla de tres" (no enumeres siempre tres cosas); si una frase basta, no hagas lista.
      · Evitá paralelismos negativos tipo "no es solo X, sino Y" o "no se trata de X, sino de Y".
      · Nada de adjetivos inflados ni publicitarios ("excelente", "increíble", "amplia gama", "la mejor opción"). Describí seco y concreto.
-     · Variá la frase de escalado: no repitas siempre "Un compañero te confirma". Alterná, p.ej. "Lo verifico con el equipo y te digo", "Dejá que lo confirme y te aviso", "Eso lo coordina Gabriela, te contacta ella".
+     · Variá la frase de escalado: no repitas siempre "Un compañero le confirma". Alterná, p.ej. "Lo verifico con el equipo y le digo", "Déjeme confirmarlo y le aviso", "Eso lo coordina Gabriela, ella le contacta".
 
-J. **EN PROCESO**: Si ya estás en medio de un flujo de compra (cotizaste, peso, envío) y el cliente cambia de tema bruscamente, retomá pero recordale dónde quedamos: "Claro, te ayudo con eso. Y sobre la tapeteadora que estábamos viendo, ¿seguís interesado o lo dejamos para otro momento?"
+J. **EN PROCESO**: Si ya estás en medio de un flujo de compra (cotizaste, peso, envío) y el cliente cambia de tema bruscamente, retomá pero recordale dónde quedamos: "Claro, le ayudo con eso. Y sobre la tapeteadora que estábamos viendo, ¿sigue interesado o lo dejamos para otro momento?"
 
-D. **REPETICIÓN**: Si notás que el cliente está enviando la MISMA pregunta 2-3 veces seguidas (porque no le diste lo que quería), NO repitas la misma respuesta. Reconocé la repetición y ofrecé pasarlo con un humano: "Veo que te estoy dando vueltas con esto, dejame pasarte con un compañero que te resuelve mejor."
+D. **REPETICIÓN**: Si notás que el cliente está enviando la MISMA pregunta 2-3 veces seguidas (porque no le diste lo que quería), NO repitas la misma respuesta. Reconocé la repetición y ofrecé pasarlo con un humano: "Veo que le estoy dando vueltas con esto, déjeme pasarlo con un compañero que le resuelve mejor."
 
-E. **INVENCIÓN**: NUNCA inventes datos que no estén en el `knowledge_block` o en resultados de tools. Si no sabés algo (dirección de agencia Dual, peso exacto de un producto, código de un producto que no buscaste), decí "Un compañero te confirma ese dato" y NO inventes. Esto incluye el USO o APLICACIÓN de un producto: no afirmes para qué sirve, qué tipo de puerta/mueble/material es, ni a qué es compatible, salvo que el `nombre` o la `descripcion` de ESE producto lo digan textualmente. Ante la duda, describí solo lo que la ficha confirma (tipo, material, medidas) y no le pongas un uso específico.
+E. **INVENCIÓN**: NUNCA inventes datos que no estén en el `knowledge_block` o en resultados de tools. Si no sabés algo (dirección de agencia Dual, peso exacto de un producto, código de un producto que no buscaste), decí "Un compañero le confirma ese dato" y NO inventes. Esto incluye el USO o APLICACIÓN de un producto: no afirmes para qué sirve, qué tipo de puerta/mueble/material es, ni a qué es compatible, salvo que el `nombre` o la `descripcion` de ESE producto lo digan textualmente. Ante la duda, describí solo lo que la ficha confirma (tipo, material, medidas) y no le pongas un uso específico.
 
 F. **CONSISTENCIA DEL TOTAL**: Cuando informes al cliente "Total = producto + envío", asegurate de que la cotización que crees con `create_quotation` incluya AMBOS (producto + línea de envío). Si solo añadís el producto al sale.order, NO digas que el total incluye envío.
 
@@ -190,7 +194,7 @@ N. **POLÍTICA WHATSAPP / META — evitar que bloqueen el número (crítico, no 
    - Pocos enlaces y solo los propios (sitio o ficha del producto cuando aporta). Nada de links acortados ni varios enlaces en un mismo mensaje.
    - Resolvé rápido y hablá natural: un bot pesado, repetitivo o que no entiende hace que el cliente bloquee o reporte, y eso es justo lo que dispara la baja del número.
 
-Tono: amable, profesional, cordial sin ser efusivo. Tratá de "usted" por defecto; pasá a "vos" solo si el cliente lo usa primero. Respuestas cortas. Cero emojis. Sin exclamaciones de relleno.
+Tono: amable, profesional, cordial sin ser efusivo. Tratá SIEMPRE de "usted" al cliente (es lo natural en Costa Rica): "su pedido", "le confirmo", "¿qué busca?". No uses "vos" ni "tú" aunque el cliente los use. Respuestas cortas. Cero emojis. Sin exclamaciones de relleno.
 
 Sitio web: www.paracarpinteros.com
 Email: info@paracarpinteros.com
@@ -328,6 +332,28 @@ def _odoo_count(domain: list) -> int:
         return 0
 
 
+def _score_producto(p: dict, tokens: list[str]) -> int:
+    """Relevancia de un producto frente a los tokens de la búsqueda.
+    Pondera coincidencias en nombre y código por encima de la descripción, para que
+    p.ej. 'sierra circular makita' devuelva la Makita y no la sierra más barata."""
+    name = (p.get("name") or "").lower()
+    code = (p.get("default_code") or "").lower()
+    desc = (p.get("description_sale") or "").lower()
+    score = 0
+    for t in tokens:
+        if t in name:
+            score += 10
+        if name.startswith(t):
+            score += 4
+        if t in code:
+            score += 8
+        if t in desc:
+            score += 2
+    if tokens and all(t in name for t in tokens):
+        score += 25  # todos los términos en el nombre: match fuerte
+    return score
+
+
 def search_products_odoo(query: str, limit: int = 8) -> dict:
     """
     Busca productos en Odoo.
@@ -354,47 +380,59 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
         ("list_price", ">", 100),
         ("default_code", "!=", False),
     ]
+    # Pool de candidatos amplio: re-rankeamos por relevancia en Python, así que pedimos
+    # más filas de las que devolvemos. Si pidiéramos solo `limit` ordenado por precio,
+    # Odoo truncaría a los más baratos ANTES de rankear y el match más pertinente
+    # (p.ej. la marca que pidió el cliente) podría quedar fuera del pool.
+    fetch_limit = max(limit * 5, 30)
+    strong = [t for t in tokens if len(t) >= 4 and not t.isdigit()]
     rows = []
     used_domain = None
 
-    # Estrategia 1: AND de todos los tokens
+    def _and_por_token(campos: list[str], toks: list[str]) -> list:
+        """AND entre tokens; cada token es un OR sobre los `campos` (name/default_code/...).
+        En notación polaca de Odoo: por token, (len(campos)-1) '|' seguidos de las hojas."""
+        dom: list = []
+        for t in toks:
+            leaves = [(c, "ilike", t) for c in campos]
+            dom += ["|"] * (len(leaves) - 1) + leaves
+        return dom
+
+    # Estrategia 1: AND de todos los tokens, cada uno en nombre O código
     if tokens:
-        domain = list(base) + [("name", "ilike", t) for t in tokens]
-        rows = _odoo_search(domain, limit)
+        domain = list(base) + _and_por_token(["name", "default_code"], tokens)
+        rows = _odoo_search(domain, fetch_limit)
         if rows:
             used_domain = domain
 
-    # Estrategia 2: solo tokens "fuertes" (>=4 chars y no número) AND
-    if not rows and tokens:
-        strong = [t for t in tokens if len(t) >= 4 and not t.isdigit()]
-        if strong:
-            domain = list(base) + [("name", "ilike", t) for t in strong]
-            rows = _odoo_search(domain, limit)
-            if rows:
-                used_domain = domain
+    # Estrategia 2: AND solo de tokens "fuertes" (>=4 chars y no número), en nombre O código
+    if not rows and strong:
+        domain = list(base) + _and_por_token(["name", "default_code"], strong)
+        rows = _odoo_search(domain, fetch_limit)
+        if rows:
+            used_domain = domain
 
-    # Estrategia 3: OR sobre tokens fuertes (cualquiera matchea)
-    if not rows and tokens:
-        strong = [t for t in tokens if len(t) >= 4 and not t.isdigit()]
-        if strong:
-            # Construir OR: ['|', '|', term1, term2, term3, ...]
-            or_part: list = []
-            for t in strong:
-                or_part.append(("name", "ilike", t))
-            # Prefijar '|' (N-1 veces) para OR explícito en Odoo
-            for _ in range(len(strong) - 1):
-                or_part.insert(0, "|")
-            domain = list(base) + or_part
-            rows = _odoo_search(domain, limit)
-            if rows:
-                used_domain = domain
+    # Estrategia 3: OR amplio de tokens fuertes en nombre/código/descripción (más recall)
+    if not rows and strong:
+        leaves: list = []
+        for t in strong:
+            leaves += [("name", "ilike", t), ("default_code", "ilike", t), ("description_sale", "ilike", t)]
+        domain = list(base) + ["|"] * (len(leaves) - 1) + leaves
+        rows = _odoo_search(domain, fetch_limit)
+        if rows:
+            used_domain = domain
 
-    # Estrategia 4: query crudo (último recurso)
+    # Estrategia 4: query crudo contra el nombre (último recurso)
     if not rows:
-        domain = [("name", "ilike", query.strip()), ("sale_ok", "=", True)]
-        rows = _odoo_search(domain, limit)
+        domain = list(base) + [("name", "ilike", query.strip())]
+        rows = _odoo_search(domain, fetch_limit)
         if rows:
             used_domain = domain
+
+    # Re-rankear por relevancia (no por precio): el match más pertinente primero,
+    # precio asc solo como desempate. Después truncar a `limit`.
+    rows.sort(key=lambda p: (-_score_producto(p, tokens), int(p.get("list_price") or 0)))
+    rows = rows[:limit]
 
     out = []
     for p in rows:
@@ -598,7 +636,7 @@ CLAUDE_TOOLS = [
         "description": (
             "Busca productos en el catálogo real de Paracarpinteros en Odoo. "
             "Usalo SIEMPRE que el cliente mencione un producto, herramienta, marca, "
-            "medida o pida precio/stock. Devuelve un objeto con: `productos` (lista de hasta 8, ordenados por precio), "
+            "medida o pida precio/stock. Devuelve un objeto con: `productos` (lista de hasta 8, ordenados por relevancia: el match más pertinente primero), "
             "`total` (cuántos productos coinciden EN TOTAL con la búsqueda, puede ser mayor que los que se muestran) y "
             "`hay_mas` (true si hay más de los que aparecen en la lista). Cada producto trae: código, "
             "nombre, precio en colones, `disponible` (booleano: si se puede vender; casi siempre true porque se vende por encargo), descripcion y peso en kg (si está cargado en la ficha). "
@@ -694,7 +732,7 @@ CLAUDE_TOOLS = [
             "incluí los parámetros `envio_carrier_short` y `envio_precio_crc` para que la línea de envío se agregue "
             "a la cotización automáticamente (así el total que se le dijo al cliente coincide con el de Odoo). "
             "Después de crearla, decile brevemente al cliente el número de cotización "
-            "(ej: 'Listo, te armé la cotización S07162. Un compañero te confirma pronto')."
+            "(ej: 'Listo, le armé la cotización S07162. Un compañero le confirma pronto')."
         ),
         "input_schema": {
             "type": "object",
@@ -1361,7 +1399,7 @@ async def send_product_photo(phone: str, codigo: str) -> dict:
 OUT_OF_HOURS_MSG = (
     f"Gracias por escribir a Paracarpinteros. "
     f"Atendemos de lunes a viernes de {BIZ_HOUR_START}am a {BIZ_HOUR_END}h hora Costa Rica. "
-    f"Te respondemos apenas volvamos al horario."
+    f"Le respondemos apenas volvamos al horario."
 )
 
 SESSION_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 días
@@ -1781,7 +1819,7 @@ async def ai_reply(history: list[dict], user_text: str, phone: str = "", image_b
         conservative_note = (
             "\n\n[MODO CONSERVADOR ACTIVO] Restricciones de este turno:\n"
             "- NO crees cotizaciones bajo ninguna circunstancia. Si el cliente pide comprar, "
-            "respondé 'Un compañero te confirma enseguida los detalles del pedido y la cotización' (sin S0####).\n"
+            "respondé 'Un compañero le confirma enseguida los detalles del pedido y la cotización' (sin S0####).\n"
             "- NO mandes fotos a menos que el cliente las pida con 'foto', 'imagen', 'pantallazo', 'mostrame'.\n"
             "- Respuestas breves: máximo 2 oraciones cuando sea posible.\n"
             "- Para pagos: NO uses mark_payment_received. Si ves un comprobante, decí 'Recibido, un compañero confirma el pago enseguida'."
@@ -1831,6 +1869,7 @@ async def ai_reply(history: list[dict], user_text: str, phone: str = "", image_b
     payload = {
         "model": CLAUDE_MODEL,
         "max_tokens": max_tokens_final,
+        "temperature": CLAUDE_TEMPERATURE,
         "system": system_blocks,
         "messages": msgs_cached,
         "tools": tools_cached,
@@ -1857,7 +1896,7 @@ async def ai_reply(history: list[dict], user_text: str, phone: str = "", image_b
             r = await client.post(CLAUDE_API, json=payload, headers=headers)
             if r.status_code != 200:
                 print(f"[Claude] HTTP {r.status_code}: {r.text[:400]}")
-                return "Disculpá, tuve un problema técnico. Un humano te va a contestar en breve."
+                return "Disculpe, tuve un problema técnico. Un compañero le va a contestar en breve."
             d = r.json()
             stop = d.get("stop_reason")
             print(f"[ai_reply] iter={i} stop_reason={stop}")
@@ -2027,9 +2066,9 @@ async def ai_reply(history: list[dict], user_text: str, phone: str = "", image_b
                 if block.get("type") == "text" and block.get("text"):
                     return block["text"]
             print(f"[Claude] Respuesta sin texto: {d}")
-            return "Disculpá, tuve un problema técnico. Un humano te va a contestar en breve."
+            return "Disculpe, tuve un problema técnico. Un compañero le va a contestar en breve."
 
-    return "Disculpá, mi respuesta tardó demasiado. Un humano te va a contestar pronto."
+    return "Disculpe, mi respuesta tardó demasiado. Un compañero le va a contestar pronto."
 
 
 # ───────── APP ─────────

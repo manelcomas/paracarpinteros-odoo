@@ -173,6 +173,22 @@ CARRIER_TRACKING_PREFIX = {
 }
 COURIER_HUMAN = {'pymex': 'Pymexpress', 'tavo': 'Encomiendas Tavo', 'dual': 'Dual Global'}
 
+
+def _slug_from_tracking(tracking_ref) -> Optional[str]:
+    """Courier real a partir del prefijo del tracking ya generado (TV/DG/PY).
+    Es la única señal que PERSISTE el cambio de courier hecho desde el panel
+    (el botón '🔄 Cambiar' reescribe carrier_tracking_ref pero NO carrier_id),
+    así que tiene prioridad sobre la inferencia por líneas del pedido.
+    Devuelve None para MANO-* o trackings sin prefijo conocido."""
+    ref = (tracking_ref or '').strip().upper()
+    if ref.startswith('TV'):
+        return 'tavo'
+    if ref.startswith('DG'):
+        return 'dual'
+    if ref.startswith('PY'):
+        return 'pymex'
+    return None
+
 def _detect_carriers() -> dict:
     """
     Devuelve {'pymex': id, 'tavo': id, 'dual': id} matcheando delivery.carrier por nombre.
@@ -1210,8 +1226,14 @@ def agenda(fecha: str):
     items = {'pymex': [], 'tavo': [], 'dual': [], 'unassigned': []}
     counts = {'pymex': 0, 'tavo': 0, 'dual': 0, 'unassigned': 0}
     for pk in pks:
-        cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
-        slug = inv.get(cid) if cid else None
+        # 1) Prioridad: prefijo del tracking ya generado (TV/DG/PY). Refleja el
+        #    courier REAL con que se hizo la guía, incluso tras "🔄 Cambiar".
+        slug = _slug_from_tracking(pk.get('carrier_tracking_ref'))
+        # 2) carrier_id en el picking
+        if not slug:
+            cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
+            slug = inv.get(cid) if cid else None
+        # 3) Inferencia por líneas del pedido (fallback)
         if not slug and pk.get('sale_id'):
             slug = sale_courier.get(pk['sale_id'][0])
         bucket = slug if slug in ('pymex', 'tavo', 'dual') else 'unassigned'
@@ -1322,8 +1344,11 @@ def agenda_semana(desde: str):
         sched = pk.get('scheduled_date') or ''
         day_key = sched[:10] if sched else None
         if day_key not in days: continue
-        cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
-        slug = inv.get(cid) if cid else None
+        # Prioridad al prefijo del tracking ya generado (ver /agenda).
+        slug = _slug_from_tracking(pk.get('carrier_tracking_ref'))
+        if not slug:
+            cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
+            slug = inv.get(cid) if cid else None
         if not slug and pk.get('sale_id'):
             slug = sale_courier.get(pk['sale_id'][0])
         bucket = slug if slug in ('pymex','tavo','dual') else 'unassigned'
@@ -1383,8 +1408,10 @@ def calendario(mes: str, courier: str = 'all'):
         ('write_date', '>=', desde + ' 00:00:00'),
         ('write_date', '<', hasta + ' 00:00:00'),
     ]
-    if courier != 'all' and multi.get(courier):
-        domain.append(('carrier_id', 'in', multi[courier]))
+    # OJO: no filtramos por carrier_id en el domain. Las guías Tavo/Dual no
+    # escriben carrier_id (solo el tracking TV/DG), así que un filtro por
+    # carrier_id las dejaría fuera. El filtro por courier se aplica en Python
+    # más abajo usando el prefijo del tracking (igual que /agenda).
     ids = odoo.execute_kw('stock.picking', 'search', [domain],
         {'limit': 500, 'order': 'date_done asc'})
 
@@ -1397,8 +1424,11 @@ def calendario(mes: str, courier: str = 'all'):
     for pk in pks:
         d = (pk.get('write_date') or pk.get('date_done') or '')[:10]
         if not d: continue
-        cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
-        slug = inv.get(cid, 'unknown')
+        # Prioridad al prefijo del tracking (TV/DG/PY); carrier_id como fallback.
+        slug = _slug_from_tracking(pk.get('carrier_tracking_ref'))
+        if not slug:
+            cid = (pk.get('carrier_id') or [None])[0] if pk.get('carrier_id') else None
+            slug = inv.get(cid, 'unknown')
         if courier != 'all' and slug != courier:
             continue
         days.setdefault(d, []).append({

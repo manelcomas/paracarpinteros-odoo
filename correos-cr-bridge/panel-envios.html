@@ -1978,6 +1978,9 @@ async function generarTavoDual(){
   closeTDModal();
   showPdfResult(finalTracking, pdfB64, MODAL_COURIER);
   await loadPendientes();
+  // Si el cambio se hizo desde la Agenda (botón 🔄 Cambiar), refrescar para que
+  // la fila salte al bloque del nuevo courier sin recarga manual.
+  if(typeof loadAgenda === 'function') await loadAgenda();
 }
 
 // Construir PDF etiqueta Tavo / Dual con jsPDF + JsBarcode
@@ -2311,6 +2314,7 @@ async function confirmGenerar(){
     closeModal();
     showPdfResult(r.tracking, r.pdf_b64, 'pymex');
     await loadPendientes();
+    if(typeof loadAgenda === 'function') await loadAgenda();
   } catch(e){
     alert('Error generando guía: ' + e.message);
   }

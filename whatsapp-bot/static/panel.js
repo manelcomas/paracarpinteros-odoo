@@ -611,6 +611,45 @@ async function sendBalanceReq(amountDue){
   }catch(e){ alert('Error: '+e.message); }
 }
 
+// ───── Enseñar al bot (guardar dato en bot_knowledge, categoría "aprendido") ─────
+function openLearnModal(){
+  if(!CURRENT_PHONE){ alert('Abrí una conversación primero.'); return; }
+  const draft = (document.getElementById('replyText')?.value || '').trim();
+  const cliente = escapeHtml(CURRENT_INFO?.name || ('+' + CURRENT_PHONE));
+  genModalShow(`
+    <div class="gen-modal-box" style="max-width:560px">
+      <h3>🎓 ENSEÑAR AL BOT</h3>
+      <p style="margin-bottom:12px">Guardá este dato en el conocimiento del bot. Lo usará en <b>todas las conversaciones futuras</b>, no solo con ${cliente}. Escribilo como un hecho general (ej. precio de una pieza, política), no como una respuesta personal.</p>
+      <label style="display:block;font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:700">Título corto</label>
+      <input id="learnTitle" class="gen-modal-input" type="text" placeholder="Ej: Precio bisagra pivotante 360°" style="margin-bottom:12px">
+      <label style="display:block;font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:700">Dato a recordar</label>
+      <textarea id="learnContent" class="gen-modal-input" rows="4" placeholder="Ej: La bisagra pivotante de 360° (cód. A075) cuesta ₡1.500, se vende por encargo.">${escapeHtml(draft)}</textarea>
+      <div class="gen-modal-actions">
+        <button class="banner-btn" onclick="genModalClose()">Cancelar</button>
+        <button class="banner-btn prim" onclick="saveLearning()">🎓 Guardar aprendizaje</button>
+      </div>
+    </div>`);
+  setTimeout(() => document.getElementById('learnTitle')?.focus(), 50);
+}
+
+async function saveLearning(){
+  const title = (document.getElementById('learnTitle')?.value || '').trim();
+  const content = (document.getElementById('learnContent')?.value || '').trim();
+  if(!title || !content){ alert('Poné un título corto y el dato a recordar.'); return; }
+  try{
+    const r = await api('/api/knowledge', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({category:'aprendido', title, content})
+    });
+    if(r?.ok){
+      genModalClose();
+      alert('✓ Aprendido. El bot lo usará con los clientes a partir de ahora. Podés editarlo o borrarlo en el editor de conocimiento.');
+    } else {
+      alert('Error: ' + (r?.error||'desconocido'));
+    }
+  }catch(e){ alert('Error: '+e.message); }
+}
+
 async function openCarrierPicker(){
   // Cache carriers
   if(!CARRIERS_CACHE){

@@ -190,7 +190,13 @@ Tono: amable, profesional, cordial sin ser efusivo. Tratá de "usted" por defect
 
 Sitio web: www.paracarpinteros.com
 Email: info@paracarpinteros.com
-Teléfono: +506 8606-9717"""
+
+NÚMEROS DE WHATSAPP (importante, no te confundas):
+- Paracarpinteros tiene DOS números de WhatsApp, los dos oficiales y válidos. NO son el mismo.
+- 8606-9717: número PRINCIPAL de contacto. Es también el de SINPE Móvil (a nombre de Gabriela Brenes Solano).
+- 6104-3421: ESTA línea, desde la que vos (el bot) escribís. Es la línea de WhatsApp de ventas/consultas.
+- NUNCA digas que este chat es el 8606-9717 ni que "es el mismo número": estás escribiendo desde el 6104-3421.
+- Si el cliente pregunta si hay otro número de WhatsApp, confirmá que SÍ y dale directamente el otro (si te escribe por esta línea, el otro es el 8606-9717). Nunca niegues que existe un segundo número."""
 
 
 # ───────── ODOO TOOL ─────────
@@ -1417,7 +1423,9 @@ def init_db():
                  "Base de operaciones: Turrialba, Cartago."),
                 ("ubicacion", "Ubicación y contacto",
                  "Base operativa: Alto Cruz A22, Santa Cruz, Turrialba, Cartago. CP 30504. "
-                 "Tel/WhatsApp: 8606-9717. Email: info@paracarpinteros.com. Web: www.paracarpinteros.com. "
+                 "Tenemos DOS números de WhatsApp, ambos oficiales (no son el mismo): el 8606-9717 es el número principal de contacto (y el de SINPE Móvil, a nombre de Gabriela Brenes Solano); el 6104-3421 es esta línea de WhatsApp de ventas/consultas por la que escribe el bot. "
+                 "Si el cliente pregunta si hay otro número, confirmá que sí y dale directamente el otro. "
+                 "Email: info@paracarpinteros.com. Web: www.paracarpinteros.com. "
                  "NO atendemos público presencial — los envíos se preparan y se despachan desde nuestra base, sin atención de visita."),
                 ("horarios", "Horarios de atención",
                  "Atendemos consultas por WhatsApp y web de Lunes a Viernes de 8am a 6pm hora Costa Rica. "

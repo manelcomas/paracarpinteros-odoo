@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquitectura — Paracarpinteros Odoo</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 24px 32px 64px;
+      background: #0f1115; color: #e6e8eb;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: #9aa3ad; font-size: 13px; margin: 0 0 24px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 24px; font-size: 12.5px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .card { background: #161a20; border: 1px solid #232a33; border-radius: 12px; padding: 18px; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    footer { color: #6b7480; font-size: 12px; margin-top: 20px; }
+    code { background: #232a33; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Paracarpinteros — Arquitectura del monorepo</h1>
+  <p class="sub">1 módulo Odoo + 4 microservicios · 2 targets de deploy (Odoo.sh · VPS Contabo 66.94.99.220) · generado 2026-06-03</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#7c3aed"></span> Odoo / Odoo.sh</span>
+    <span><span class="dot" style="background:#2563eb"></span> VPS Contabo (Docker)</span>
+    <span><span class="dot" style="background:#0d9488"></span> Local del usuario</span>
+    <span><span class="dot" style="background:#b45309"></span> Servicio externo</span>
+    <span><span class="dot" style="background:#475569"></span> Estado / almacenamiento</span>
+  </div>
+
+  <div class="card">
+    <pre class="mermaid">
+flowchart TB
+
+%% ============ USUARIO / ENTRADAS ============
+manel(["👤 Manel<br/>sesión local WSL + SSH VPS"])
+cliente(["📱 Cliente WhatsApp"])
+hacienda(["🏛️ Hacienda CR<br/>(FE / recepción)"])
+correosWS(["📦 Correos CR<br/>SOAP Pymexpress"]):::ext
+meta(["🟢 Meta WhatsApp<br/>Cloud API"]):::ext
+gmail(["📧 Gmail API<br/>OAuth"]):::ext
+
+%% ============ ODOO ============
+subgraph ODOO["☁️ Odoo.sh — paracarpinteros.odoo.com"]
+  direction TB
+  odooCore["Odoo Online<br/>(partners = Studio fields geo CR)"]:::odoo
+  feconv["fe-converter<br/>ir.attachment 37459 (HTML/JS)<br/>website /fe-converter"]:::odoo
+  mod["delivery_correos_cr<br/>(addon, NO instalado en prod)"]:::odoo
+end
+
+%% ============ VPS ============
+subgraph VPS["🖥️ VPS Contabo 66.94.99.220 — nginx host + Docker"]
+  direction TB
+
+  subgraph BR["correos-cr-bridge (FastAPI)"]
+    direction TB
+    brapi["api_panel.py / main.py<br/>POST /api/picking/:id/generar"]:::vps
+    brproc["processor.py<br/>(WORKER_AUTO=0)"]:::vps
+    brodoo["odoo_client.py"]:::vps
+    brcorr["correos_client.py"]:::vps
+  end
+  panel["panel-envios.html<br/>symlink → repo<br/>panel.paracarpinteros.com"]:::vps
+  sqlite[("panel.sqlite<br/>line_prepared · envio_manual<br/>entrega_mano")]:::store
+
+  subgraph FE["fe-signer (PHP/Apache + CRLibre)"]
+    direction TB
+    sign["sign.php /sign<br/>(solo firma XML)"]:::vps
+    buzon["buzon-rx<br/>recepción FE Hacienda"]:::vps
+    alibaba["alibaba-rx<br/>pedidos Alibaba"]:::vps
+    buzondb[("buzon.db<br/>oauth_tokens (AES-GCM)")]:::store
+  end
+
+  subgraph WA["whatsapp-bot (FastAPI) — /opt/whatsapp-bot/ (fuera del clon)"]
+    direction TB
+    wabot["webhook + panel admin<br/>wa.paracarpinteros.com"]:::vps
+    wadb[("conversations.db<br/>+ data/media/")]:::store
+  end
+end
+
+%% ============ LOCAL ============
+subgraph LOCAL["💻 Local del usuario"]
+  calc["calculadora<br/>HTTP + HTML SPA :8001"]:::local
+  calcdb[("pedidos.db")]:::store
+  scripts["scripts/ (.env baúl)<br/>XML-RPC a Odoo"]:::local
+end
+
+%% ============ FLUJOS ============
+manel -->|git push| ODOO
+manel -->|git pull + docker compose| VPS
+manel -->|docker compose| LOCAL
+manel -->|XML-RPC write datas| feconv
+
+cliente <-->|mensajes| meta
+meta <-->|/webhook| wabot
+wabot -->|XML-RPC| odooCore
+wabot --- wadb
+
+panel -->|iframe| brapi
+panel -->|iframe| feconv
+brapi --> brproc --> brcorr
+brcorr <-->|SOAP guías| correosWS
+brproc --> brodoo
+brodoo <-->|XML-RPC<br/>Studio fields| odooCore
+brapi --- sqlite
+
+feconv -->|XML sin firmar| sign
+sign -->|XML firmado| feconv
+feconv -->|envío FE| hacienda
+buzon <-->|polling| gmail
+alibaba <-->|polling| gmail
+buzon -->|Mensaje Receptor MR| hacienda
+buzon --- buzondb
+alibaba --- buzondb
+
+scripts <-->|XML-RPC| odooCore
+calc --- calcdb
+
+classDef odoo fill:#2a1d4d,stroke:#7c3aed,color:#e6e8eb;
+classDef vps  fill:#152544,stroke:#2563eb,color:#e6e8eb;
+classDef local fill:#0c2e2b,stroke:#0d9488,color:#e6e8eb;
+classDef ext  fill:#3a2a0c,stroke:#b45309,color:#e6e8eb;
+classDef store fill:#1c222b,stroke:#475569,color:#cbd2da,stroke-dasharray:4 3;
+    </pre>
+  </div>
+
+  <footer>
+    Deploy: <code>delivery_correos_cr</code> → push a main (Odoo.sh auto, luego Apps→Update list) ·
+    <code>correos-cr-bridge</code>/<code>fe-signer</code> → SSH <code>git pull &amp;&amp; docker compose up -d --build</code> ·
+    <code>whatsapp-bot</code> → <code>rsync</code> + docker compose ·
+    <code>calculadora</code> → docker compose local ·
+    <code>fe-converter</code> → XML-RPC write al attachment 37459.
+  </footer>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', flowchart: { curve: 'basis' } });
+  </script>
+</body>
+</html>

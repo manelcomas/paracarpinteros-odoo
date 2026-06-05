@@ -29,6 +29,7 @@
   --pastel-blue-bg:   #E1F3FE; --pastel-blue-fg:   #1F6C9F;
   --pastel-yellow-bg: #FBF3DB; --pastel-yellow-fg: #956400;
   --pastel-red-bg:    #FDEBEC; --pastel-red-fg:    #9F2F2D;
+  --pastel-orange-bg: #FBECDD; --pastel-orange-fg: #B45309;
   --pastel-purple-bg: #F4ECFF; --pastel-purple-fg: #5B2A86;
   --pastel-gray-bg:   #F1F1EF; --pastel-gray-fg:   #6F6F6E;
 
@@ -317,6 +318,7 @@ body{
 .stat-val.yellow{color:var(--pastel-yellow-fg)}
 .stat-val.red   {color:var(--pastel-red-fg)}
 .stat-val.blue  {color:var(--pastel-blue-fg)}
+.stat-val.orange{color:var(--pastel-orange-fg)}
 
 /* Status tabs (pill OK por ser tag-style) */
 .status-tabs{
@@ -412,6 +414,19 @@ body{
   display:inline-flex;align-items:center;
 }
 .conv .esc-icon svg{width:14px;height:14px}
+/* Marca suave "necesita atención": el bot pasó la conversación a un humano */
+.conv.needs-attention{
+  background:var(--pastel-orange-bg);
+  border-left-color:var(--pastel-orange-fg);
+}
+.conv.needs-attention:hover{background:#F7E2CC}
+.conv.needs-attention.active{border-left-color:var(--pastel-orange-fg)}
+.conv .att-icon{
+  font-size:.9rem;
+  display:inline-flex;align-items:center;
+  animation:attPulse 1.8s ease-in-out infinite;
+}
+@keyframes attPulse{0%,100%{opacity:1}50%{opacity:.45}}
 
 /* ───────── Main / Chat ───────── */
 .main{

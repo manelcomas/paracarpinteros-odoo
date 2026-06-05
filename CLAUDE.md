@@ -216,6 +216,23 @@ El `POST /webhook` **no responde inline**: persiste el mensaje y devuelve `200` 
 
 Env nuevas (opcionales, con default): `WA_DEBOUNCE_SECONDS`, `OOH_THROTTLE_SECONDS`. El buffer de debounce es **en memoria**: un restart del container pierde mensajes encolados aún no respondidos (ventana de pocos segundos).
 
+### wa-bot: dos flags distintos en `conversations` — `escalated` vs `needs_attention`
+
+No confundirlos (ambos cuelgan de la tabla `conversations`):
+
+- **`escalated`** = bot APAGADO. Se activa al "Tomar conversación" en el panel (`/api/conversation/{phone}/escalate`) o por el modo global `escalate_all`. Mientras esté en 1, `_respond_to_buffered` hace `return` temprano y el bot no auto-responde.
+- **`needs_attention`** (+ `attention_reason`) = **marca suave**, el bot SIGUE respondiendo. La pone el propio bot vía la tool **`pasar_a_humano`** (en `CLAUDE_TOOLS`) cuando hay un handoff real (sin info, asesoría técnica, reclamo, cliente pide humano). NO se pone con la frase de rutina "un compañero le confirma" (envíos/pagos), por eso es tool explícita y no detección por texto. En el panel resalta la fila en naranja + 🙋 + filtro/stat "Atención". Se limpia sola al **abrir** la conversación (`get_conversation` hace `needs_attention=0` junto a `unread=0`). El handler de la tool guarda un marcador interno `🙋 Necesita atención: …` con `_save_outbound` (no se envía al cliente, igual que `💰 PAGO`/`👤 Cliente`).
+
+### wa-bot: respuestas por voz (TTS)
+
+El bot contesta por **nota de voz** cuando el cliente le escribe **por audio** (espejo de modalidad). Piezas (en `main.py`):
+
+- `tts_speak(text)` — POST a OpenAI `/v1/audio/speech`, modelo `gpt-4o-mini-tts`, `response_format="opus"`. **Clave:** WhatsApp solo muestra una respuesta como nota de voz (onda + play) si es **OGG/Opus**; otro formato sale como adjunto. OpenAI devuelve ogg/opus nativo.
+- Trigger en `_respond_to_buffered`: `client_sent_voice = any(it["is_voice"] …)` (el flag `is_voice` se setea en el item encolado cuando `mtype=="audio"`) **Y** `_reply_is_voice_safe(reply)`. Esto último cae a texto si la respuesta lleva **₡, links, códigos (`SM-5007`, `S0####`), listas (≥2 saltos) o >600 chars**, porque eso suena mal hablado. Si TTS o la subida fallan, cae a texto.
+- Reusa `upload_media_to_meta(..., mime="audio/ogg")` (ahora acepta mime) + `send_wa_audio_by_id` (type `audio`). El audio se guarda en `data/media/out_audio_*.ogg` y en la DB con `media_path`; el panel **ya** lo reproduce (`<audio>` para cualquier `media_path` de audio, in/out).
+- Costo: `gpt-4o-mini-tts` ≈ **$0.015/min** (~$0.007 por respuesta corta), reusa la cuenta OpenAI del Whisper (`OPENAI_API_KEY`).
+- Env (opcionales): `WA_VOICE_REPLIES` (default `1`; `0` lo apaga), `TTS_MODEL` (default `gpt-4o-mini-tts`), `TTS_VOICE` (default `shimmer`). El audio **entrante** ya se transcribía con Whisper (`transcribe_audio`).
+
 ### wa-bot: la "verdad" de cara al cliente vive en SQLite, no en el código
 
 Los datos oficiales que el bot da a clientes (números de WhatsApp, horarios, ubicación, métodos de pago, envíos) **NO** están en el `SYSTEM_PROMPT` de `main.py` sino en la tabla **`bot_knowledge`** de `data/conversations.db` (volumen Docker). `_knowledge_block()` la lee **fresca en cada mensaje** y la concatena al system prompt como bloque "INFORMACIÓN OFICIAL DE LA EMPRESA". El bloque está marcado como verdad absoluta en el prompt.

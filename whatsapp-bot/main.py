@@ -53,6 +53,13 @@ OOH_THROTTLE_SECONDS = int(os.environ.get("OOH_THROTTLE_SECONDS", str(6 * 3600))
 OPENAI_API_KEY      = os.environ.get("OPENAI_API_KEY", "")
 WHISPER_API         = "https://api.openai.com/v1/audio/transcriptions"
 
+# TTS (texto→voz) — el bot contesta por nota de voz cuando el cliente escribe por voz.
+# WA_VOICE_REPLIES=0 lo desactiva. Requiere OPENAI_API_KEY. Salida OGG/Opus (nota de voz WA).
+WA_VOICE_REPLIES    = os.environ.get("WA_VOICE_REPLIES", "1") not in ("0", "false", "no", "")
+TTS_API             = "https://api.openai.com/v1/audio/speech"
+TTS_MODEL           = os.environ.get("TTS_MODEL", "gpt-4o-mini-tts")
+TTS_VOICE           = os.environ.get("TTS_VOICE", "shimmer")
+
 # Odoo (opcional — si está, el bot consulta catálogo real)
 ODOO_URL      = os.environ.get("ODOO_URL", "")
 ODOO_DB       = os.environ.get("ODOO_DB", "")
@@ -177,6 +184,8 @@ I. **TONO**: amable, claro y profesional. No "compa", no robot.
 J. **EN PROCESO**: Si ya estás en medio de un flujo de compra (cotizaste, peso, envío) y el cliente cambia de tema bruscamente, retomá pero recordale dónde quedamos: "Claro, le ayudo con eso. Y sobre la tapeteadora que estábamos viendo, ¿sigue interesado o lo dejamos para otro momento?"
 
 D. **REPETICIÓN**: Si notás que el cliente está enviando la MISMA pregunta 2-3 veces seguidas (porque no le diste lo que quería), NO repitas la misma respuesta. Reconocé la repetición y ofrecé pasarlo con un humano: "Veo que le estoy dando vueltas con esto, déjeme pasarlo con un compañero que le resuelve mejor."
+
+N. **MARCAR PARA UN HUMANO (tool `pasar_a_humano`)**: Cuando de verdad haga falta que un compañero del equipo intervenga, llamá la tool `pasar_a_humano` con un `motivo` corto. Así la conversación queda RESALTADA en el panel para que alguien la atienda rápido. Llamala cuando: el cliente pide algo que no podés resolver con catálogo/información oficial; pide asesoría técnica que no podés confirmar; está molesto o reclama; repite porque no lo resolviste; o pide hablar con una persona/Gabriela. Llamala UNA sola vez por handoff y seguí atendiendo con normalidad (no apaga el bot). NO la llames para cotizaciones de envío normales ni para confirmar pagos de rutina: ahí decir "un compañero le confirma" es parte del flujo y NO requiere marca.
 
 E. **INVENCIÓN**: NUNCA inventes datos que no estén en el `knowledge_block` o en resultados de tools. Si no sabés algo (dirección de agencia Dual, peso exacto de un producto, código de un producto que no buscaste), decí "Un compañero le confirma ese dato" y NO inventes. Esto incluye el USO o APLICACIÓN de un producto: no afirmes para qué sirve, qué tipo de puerta/mueble/material es, ni a qué es compatible, salvo que el `nombre` o la `descripcion` de ESE producto lo digan textualmente. Ante la duda, describí solo lo que la ficha confirma (tipo, material, medidas) y no le pongas un uso específico.
 
@@ -858,6 +867,32 @@ CLAUDE_TOOLS = [
             "required": ["weight_kg"],
         },
     },
+    {
+        "name": "pasar_a_humano",
+        "description": (
+            "Marca esta conversación como 'necesita atención' para que un compañero del equipo "
+            "intervenga pronto. Llamá esta tool SOLO en handoffs reales, no de rutina:\n"
+            "- El cliente pide algo que NO está en el catálogo ni en la información oficial y no podés resolver.\n"
+            "- Pide asesoría técnica/de uso que no podés confirmar con la ficha del producto.\n"
+            "- Está molesto, reclama, o repite la misma pregunta porque no le resolviste.\n"
+            "- Pide hablar con una persona, con Gabriela, o con el dueño.\n"
+            "- Cualquier caso donde le dijiste que 'un compañero le confirma/asesora' y de verdad "
+            "hace falta que un humano siga.\n"
+            "NO la llames para cotizaciones de envío normales ni para confirmar pagos rutinarios: "
+            "ahí decir 'un compañero le confirma' es parte del flujo y NO requiere intervención. "
+            "Después de llamarla, seguí atendiendo normalmente; solo deja la marca para el equipo."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string",
+                    "description": "Resumen corto (1 frase) de por qué hace falta un humano. Ej: 'pide factura electrónica con datos de empresa', 'reclama por pedido atrasado', 'quiere asesoría para elegir sierra'.",
+                },
+            },
+            "required": ["motivo"],
+        },
+    },
 ]
 
 
@@ -873,6 +908,27 @@ async def send_wa_image_by_id(to: str, media_id: str, caption: str = "") -> dict
         "to": to,
         "type": "image",
         "image": {"id": media_id, "caption": caption[:1024]} if caption else {"id": media_id},
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.post(url, json=payload, headers=headers)
+        try:
+            return r.json()
+        except Exception:
+            return {"status_code": r.status_code, "text": r.text[:500]}
+
+
+async def send_wa_audio_by_id(to: str, media_id: str) -> dict:
+    """Envía una nota de voz (type audio) usando un media_id de Meta (audio OGG/Opus)."""
+    url = f"{WA_API_BASE}/{WA_PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {WA_ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "audio",
+        "audio": {"id": media_id},
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.post(url, json=payload, headers=headers)
@@ -950,6 +1006,64 @@ async def transcribe_audio(audio_bytes: bytes, mime: str = "audio/ogg", filename
         return None
 
 
+# Detecta respuestas que NO conviene leer en voz alta: precios, códigos de producto,
+# números de cotización, links o listas. En esos casos el bot cae a texto.
+_VOICE_UNSAFE_RE = re.compile(r"₡|https?://|www\.|\b[Ss]0\d{4,}\b|\b[A-Z]{2,}-?\d{3,}\b")
+
+
+def _reply_is_voice_safe(text: str) -> bool:
+    """True si la respuesta es conversacional y suena bien hablada (sin precios/códigos/links/listas)."""
+    if not text or not text.strip():
+        return False
+    if _VOICE_UNSAFE_RE.search(text):
+        return False
+    # Listas (varias líneas con viñeta o salto) → mejor texto
+    if text.count("\n") >= 2:
+        return False
+    if len(text) > 600:  # demasiado largo para una nota de voz cómoda
+        return False
+    return True
+
+
+def _strip_for_voice(text: str) -> str:
+    """Limpia marcas de WhatsApp/emojis que suenan raro al leerse en voz."""
+    t = re.sub(r"[*_~`]", "", text)        # negrita/cursiva/mono de WhatsApp
+    t = re.sub(r"\s*\n+\s*", ". ", t).strip()
+    return t
+
+
+async def tts_speak(text: str) -> Optional[bytes]:
+    """Texto → audio OGG/Opus (nota de voz WhatsApp) vía OpenAI TTS. None si falla o sin key.
+    Costo aprox gpt-4o-mini-tts: ~$0.015/min (~$0.007 por respuesta corta)."""
+    if not OPENAI_API_KEY or not WA_VOICE_REPLIES:
+        return None
+    clean = _strip_for_voice(text)
+    if not clean:
+        return None
+    try:
+        payload = {
+            "model": TTS_MODEL,
+            "voice": TTS_VOICE,
+            "input": clean[:4000],
+            "response_format": "opus",   # OGG/Opus = nota de voz nativa en WhatsApp
+        }
+        if TTS_MODEL == "gpt-4o-mini-tts":
+            payload["instructions"] = (
+                "Hablá en español de Costa Rica, tono cálido y cercano de tienda de barrio, "
+                "natural y sin prisa, como una persona del equipo atendiendo por WhatsApp."
+            )
+        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.post(TTS_API, json=payload, headers=headers)
+            if r.status_code != 200:
+                print(f"[tts] HTTP {r.status_code}: {r.text[:300]}")
+                return None
+            return r.content
+    except Exception as e:
+        print(f"[tts err] {e}")
+        return None
+
+
 async def download_meta_media(media_id: str) -> Optional[bytes]:
     """Descarga binario de un mensaje multimedia (imagen/audio/etc) de Meta. 2 pasos: GET URL → GET binario."""
     if not media_id:
@@ -976,14 +1090,14 @@ async def download_meta_media(media_id: str) -> Optional[bytes]:
         return None
 
 
-async def upload_media_to_meta(image_bytes: bytes, filename: str = "product.jpg") -> Optional[str]:
-    """Sube binario a /PHONE_ID/media y devuelve el media_id."""
+async def upload_media_to_meta(image_bytes: bytes, filename: str = "product.jpg", mime: str = "image/jpeg") -> Optional[str]:
+    """Sube binario a /PHONE_ID/media y devuelve el media_id. mime: image/jpeg, audio/ogg, etc."""
     url = f"{WA_API_BASE}/{WA_PHONE_NUMBER_ID}/media"
     headers = {"Authorization": f"Bearer {WA_ACCESS_TOKEN}"}
     files = {
-        "file": (filename, image_bytes, "image/jpeg"),
+        "file": (filename, image_bytes, mime),
     }
-    data = {"messaging_product": "whatsapp", "type": "image/jpeg"}
+    data = {"messaging_product": "whatsapp", "type": mime}
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.post(url, headers=headers, data=data, files=files)
         if r.status_code != 200:
@@ -1461,6 +1575,12 @@ def init_db():
             conn.execute("ALTER TABLE conversations ADD COLUMN odoo_sale_order_id INTEGER")
         if "odoo_sale_order_name" not in cols:
             conn.execute("ALTER TABLE conversations ADD COLUMN odoo_sale_order_name TEXT")
+        # Marca suave "necesita atención": el bot avisó que pasa con un humano (tool
+        # pasar_a_humano) pero sigue respondiendo. Distinta de escalated (que apaga el bot).
+        if "needs_attention" not in cols:
+            conn.execute("ALTER TABLE conversations ADD COLUMN needs_attention INTEGER DEFAULT 0")
+        if "attention_reason" not in cols:
+            conn.execute("ALTER TABLE conversations ADD COLUMN attention_reason TEXT")
         mcols = [r[1] for r in conn.execute("PRAGMA table_info(messages)").fetchall()]
         if "media_path" not in mcols:
             conn.execute("ALTER TABLE messages ADD COLUMN media_path TEXT")
@@ -2097,6 +2217,19 @@ async def ai_reply(history: list[dict], user_text: str, phone: str = "", image_b
                                 fields = ", ".join(result.get("updated_fields", []))
                                 _save_outbound(phone, f"👤 Cliente actualizado en Odoo · {fields}", bot=True)
                                 print(f"[update_partner] phone={phone} → {fields}")
+                    elif tool_name == "pasar_a_humano":
+                        motivo = (tool_input.get("motivo") or "").strip()
+                        try:
+                            with db() as conn:
+                                conn.execute(
+                                    "UPDATE conversations SET needs_attention=1, attention_reason=? WHERE phone=?",
+                                    (motivo[:300] or None, phone),
+                                )
+                            _save_outbound(phone, f"🙋 Necesita atención: {motivo}" if motivo else "🙋 Necesita atención de un humano", bot=True)
+                            print(f"[needs_attention] phone={phone} motivo={motivo!r}")
+                        except Exception as e:
+                            print(f"[pasar_a_humano err] {e}")
+                        result_text = json.dumps({"ok": True, "marcado": True, "motivo": motivo}, ensure_ascii=False)
                     else:
                         result_text = json.dumps({"error": f"Tool {tool_name} no reconocida"})
                     tool_results.append({
@@ -2286,11 +2419,35 @@ async def _respond_to_buffered(phone: str, items: list) -> None:
                 (phone,),
             )][::-1]
         reply = await ai_reply(history, combined_text, phone=phone, image_b64=image_b64, bot_mode=bot_mode)
-        _res = await send_wa_message(phone, reply)
-        _wid = None
-        if isinstance(_res, dict) and _res.get("messages"):
-            _wid = (_res["messages"][0] or {}).get("id")
-        _save_outbound(phone, reply, bot=True, wa_msg_id=_wid)
+        # Espejo de modalidad: si el cliente escribió por voz y la respuesta no lleva
+        # precios/códigos/links/listas, contestamos por nota de voz. Si TTS o subida falla,
+        # caemos a texto. Las herramientas (foto/pago/etc.) ya enviaron sus propios mensajes.
+        client_sent_voice = any(it.get("is_voice") for it in items)
+        sent_voice = False
+        if client_sent_voice and _reply_is_voice_safe(reply):
+            audio_bytes = await tts_speak(reply)
+            if audio_bytes:
+                fname = f"out_audio_{phone}_{now_ts()}.ogg"
+                try:
+                    with open(f"/opt/whatsapp-bot/data/media/{fname}", "wb") as f:
+                        f.write(audio_bytes)
+                except Exception as e:
+                    print(f"[tts save err] {e}")
+                media_id = await upload_media_to_meta(audio_bytes, filename=fname, mime="audio/ogg")
+                if media_id:
+                    _res = await send_wa_audio_by_id(phone, media_id)
+                    _wid = None
+                    if isinstance(_res, dict) and _res.get("messages"):
+                        _wid = (_res["messages"][0] or {}).get("id")
+                    _save_outbound(phone, reply, bot=True, media_path=fname, wa_msg_id=_wid)
+                    sent_voice = True
+                    print(f"[voice reply] phone={phone} chars={len(reply)} → nota de voz enviada")
+        if not sent_voice:
+            _res = await send_wa_message(phone, reply)
+            _wid = None
+            if isinstance(_res, dict) and _res.get("messages"):
+                _wid = (_res["messages"][0] or {}).get("id")
+            _save_outbound(phone, reply, bot=True, wa_msg_id=_wid)
         _set_status(phone, "en_conversacion")
     except Exception as e:
         print(f"[AI reply error] {e}")
@@ -2489,6 +2646,7 @@ async def webhook_receive(request: Request):
                             "image_b64": image_b64,
                             "wa_msg_id": wa_msg_id,
                             "contact_name": contact_name,
+                            "is_voice": (mtype == "audio"),
                         })
                     except Exception as e:
                         print(f"[enqueue inbound error] {e}")
@@ -2568,6 +2726,7 @@ async def stats(_: str = Depends(require_auth)):
         total = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
         unread = conn.execute("SELECT COUNT(*) FROM conversations WHERE unread > 0").fetchone()[0]
         escalated = conn.execute("SELECT COUNT(*) FROM conversations WHERE escalated = 1").fetchone()[0]
+        needs_attention = conn.execute("SELECT COUNT(*) FROM conversations WHERE needs_attention = 1").fetchone()[0]
         # Mensajes del día (CR)
         day_start_cr = (dt.datetime.utcnow() - dt.timedelta(hours=6)).replace(hour=0, minute=0, second=0, microsecond=0)
         ts_day_start = int((day_start_cr + dt.timedelta(hours=6)).timestamp())
@@ -2581,6 +2740,7 @@ async def stats(_: str = Depends(require_auth)):
         "total": total,
         "unread": unread,
         "escalated": escalated,
+        "needs_attention": needs_attention,
         "msgs_today": msgs_today,
         "business_hours": is_business_hours(),
         "by_status": {s: by_status.get(s, 0) for s in STATUS_ORDER},
@@ -2597,6 +2757,7 @@ async def list_conversations(status: Optional[str] = None, _: str = Depends(requ
     with db() as conn:
         rows = conn.execute(f"""
             SELECT phone, name, last_seen, last_message_preview, escalated, unread,
+                   needs_attention, attention_reason,
                    odoo_partner_id, COALESCE(status,'nuevo') AS status,
                    odoo_sale_order_name, payment_meta
             FROM conversations
@@ -2813,8 +2974,8 @@ async def get_conversation(phone: str, _: str = Depends(require_auth)):
             FROM messages WHERE phone=?
             ORDER BY ts ASC
         """, (phone,)).fetchall()
-        # marcar como leído
-        conn.execute("UPDATE conversations SET unread=0 WHERE phone=?", (phone,))
+        # marcar como leído y limpiar la marca de "necesita atención" (un humano ya la está viendo)
+        conn.execute("UPDATE conversations SET unread=0, needs_attention=0 WHERE phone=?", (phone,))
     info = dict(info_row) if info_row else None
     if info and not info.get("status"):
         info["status"] = "nuevo"
@@ -4017,6 +4178,7 @@ async def health():
         "odoo": odoo_status,
         "meta_token": meta_status,
         "whisper": "configured" if OPENAI_API_KEY else "missing_key",
+        "tts": (f"on ({TTS_MODEL}/{TTS_VOICE})" if (WA_VOICE_REPLIES and OPENAI_API_KEY) else "off"),
     }
 
 

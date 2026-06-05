@@ -52,6 +52,7 @@ async function loadStats(){
     document.getElementById('stats').innerHTML = `
       <div class="stat ${f===''?'active':''}" onclick="setQuickFilter('')" title="Mostrar todas las conversaciones"><div class="stat-label">Total</div><div class="stat-val">${s.total}</div></div>
       <div class="stat ${f==='unread'?'active':''}" onclick="setQuickFilter('unread')" title="Solo conversaciones sin leer"><div class="stat-label">Sin leer</div><div class="stat-val yellow">${s.unread}</div></div>
+      <div class="stat ${f==='attention'?'active':''}" onclick="setQuickFilter('attention')" title="El bot pasó la conversación a un humano: necesita atención"><div class="stat-label">Atención</div><div class="stat-val orange">${s.needs_attention || 0}</div></div>
       <div class="stat ${f==='escalated'?'active':''}" onclick="setQuickFilter('escalated')" title="Solo conversaciones escaladas a humano"><div class="stat-label">Escaladas</div><div class="stat-val red">${s.escalated}</div></div>
       <div class="stat ${f==='today'?'active':''}" onclick="setQuickFilter('today')" title="Solo conversaciones con actividad hoy"><div class="stat-label">Hoy</div><div class="stat-val blue">${s.msgs_today}</div></div>
     `;
@@ -131,7 +132,7 @@ function setQuickFilter(name){
   CURRENT_QUICK_FILTER = name;
   // Repintar inmediatamente
   document.querySelectorAll('.stats .stat').forEach((el, idx) => {
-    const map = ['', 'unread', 'escalated', 'today'];
+    const map = ['', 'unread', 'attention', 'escalated', 'today'];
     el.classList.toggle('active', map[idx] === name);
   });
   renderConvs();
@@ -140,6 +141,7 @@ function setQuickFilter(name){
 function _matchQuickFilter(c){
   switch(CURRENT_QUICK_FILTER){
     case 'unread':    return (c.unread || 0) > 0;
+    case 'attention': return !!c.needs_attention;
     case 'escalated': return !!c.escalated;
     case 'today': {
       if(!c.last_seen) return false;
@@ -161,7 +163,7 @@ function renderConvs(){
   const list = document.getElementById('convList');
   if(!filtered.length){
     const emptyMsg = CURRENT_QUICK_FILTER
-      ? `Sin conversaciones para el filtro <strong>${CURRENT_QUICK_FILTER==='unread'?'Sin leer':CURRENT_QUICK_FILTER==='escalated'?'Escaladas':'Hoy'}</strong><br><button class="status-tab" style="margin-top:10px" onclick="setQuickFilter('')">Quitar filtro</button>`
+      ? `Sin conversaciones para el filtro <strong>${CURRENT_QUICK_FILTER==='unread'?'Sin leer':CURRENT_QUICK_FILTER==='attention'?'Atención':CURRENT_QUICK_FILTER==='escalated'?'Escaladas':'Hoy'}</strong><br><button class="status-tab" style="margin-top:10px" onclick="setQuickFilter('')">Quitar filtro</button>`
       : 'Sin conversaciones';
     list.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text3);font-size:.78rem">${emptyMsg}</div>`;
     return;
@@ -169,7 +171,7 @@ function renderConvs(){
   list.innerHTML = filtered.map(c => {
     const st = c.status || 'nuevo';
     return `
-    <div class="conv ${c.phone === CURRENT_PHONE ? 'active' : ''} ${c.unread>0?'has-unread':''}" onclick="openConv('${c.phone}')">
+    <div class="conv ${c.phone === CURRENT_PHONE ? 'active' : ''} ${c.unread>0?'has-unread':''} ${c.needs_attention?'needs-attention':''}" onclick="openConv('${c.phone}')">
       <div class="conv-avatar">${initials(c.name, c.phone)}</div>
       <div class="conv-info">
         <div class="conv-name">${escapeHtml(c.name || '+' + c.phone)}</div>
@@ -182,6 +184,7 @@ function renderConvs(){
       <div class="conv-meta">
         <div class="conv-time">${fmtTime(c.last_seen)}</div>
         ${c.unread > 0 ? `<div class="conv-unread">${c.unread}</div>` : ''}
+        ${c.needs_attention ? `<span class="att-icon" title="Necesita atención${c.attention_reason ? ': ' + escapeHtml(c.attention_reason) : ''}">🙋</span>` : ''}
         ${c.escalated ? '<span class="esc-icon" title="Escalada">⚠</span>' : ''}
       </div>
     </div>`;

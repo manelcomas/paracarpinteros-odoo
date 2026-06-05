@@ -321,18 +321,24 @@ def escribir_resumenes(out_dir, prefijo, etiqueta, col_contraparte, filas):
             w = csv.writer(fh, delimiter=";")
             w.writerow(cabecera)
             for f in fs:
-                w.writerow([
-                    f["Fecha"], f["Tipo"], f["Consecutivo"], f["Contraparte"], f["Cédula"],
-                    f["Condición"], f["Medio de pago"], f["Moneda"],
-                    _money_csv(f["Gravado"]), _money_csv(f["Exento"]), _money_csv(f["Descuento"]),
-                    _money_csv(f["IVA"]), _money_csv(f["Total"]), f["Estado"], f["Clave"],
-                ])
+                # Las notas de crédito (NC) reversan: importes en negativo, así el TOTAL
+                # de la columna ya queda neteado. ND/FE/TE/etc. en positivo.
+                signo = -1.0 if f["Tipo"] == "NC" else 1.0
+                montos = []
                 acc = tot.setdefault(f["Moneda"], [0.0, 0.0, 0.0, 0.0, 0.0])
                 for i, k in enumerate(("Gravado", "Exento", "Descuento", "IVA", "Total")):
                     try:
-                        acc[i] += float(f[k])
+                        v = float(f[k]) * signo
                     except (TypeError, ValueError):
-                        pass
+                        montos.append("")
+                        continue
+                    montos.append(_money_csv(v))
+                    acc[i] += v
+                w.writerow([
+                    f["Fecha"], f["Tipo"], f["Consecutivo"], f["Contraparte"], f["Cédula"],
+                    f["Condición"], f["Medio de pago"], f["Moneda"],
+                    montos[0], montos[1], montos[2], montos[3], montos[4], f["Estado"], f["Clave"],
+                ])
             for moneda, acc in sorted(tot.items()):
                 w.writerow([])
                 w.writerow(["TOTAL (%s)" % moneda, "", "", "", "", "", "", moneda,

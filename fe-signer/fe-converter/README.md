@@ -48,6 +48,27 @@ Tras subir: en el navegador **Ctrl+Shift+R** (el iframe cachea `/web/content/374
   que las líneas. Hardcodearlo a `08` rompe las facturas con tarifa reducida
   (p.ej. UCR 2% → tarifa 03) con rechazo Hacienda **-488**.
 
+## Botón "Anular" en el Historial (v32, 2026-06-06)
+
+En el Historial, cada factura **Aceptada** (tipoDoc 01/04) tiene un botón **🚫**
+(`anularFE()`) que emite en **1 clic** una Nota de Crédito que la anula:
+
+- **NC espejo**: transforma el XML **firmado** de la factura original (`row.datas`)
+  cambiando solo cabecera (root → `NotaCreditoElectronica`, nueva Clave/Consecutivo
+  NC serie 003, nueva `FechaEmision`), quitando la `<ds:Signature>` y añadiendo
+  `<InformacionReferencia>` (TipoDocIR original, Numero = clave original, Código 01
+  "Anula"). **`DetalleServicio` y `ResumenFactura` quedan idénticos** → cero rechazos
+  -509 (CABYS) / -488 (tarifa).
+- **Doble confirmación**: casilla "Confirmo…" + **contraseña**. La contraseña se
+  valida por **hash SHA-256** guardado en Odoo (`ir.config_parameter`
+  `fe.anulacion_confirm_hash`), nunca en claro (el HTML del conversor es público).
+  **Primer uso**: el modal pide definirla 2 veces (poné la misma de entrar).
+- Reutiliza `sign.php` (tipoDoc 03), el Worker (`/token` `/submit` `/status`),
+  `saveConsecAfterSuccess('003', …)` para subir el consecutivo, y sube a Odoo
+  `FE_<clave>.xml` + `_respuesta_hacienda.xml` (aparece en el propio Historial).
+- El `.p12` y el PIN se piden en el modal (caen a los del Paso de firma si ya
+  estaban cargados).
+
 ## Historial de fixes (2026-06-02)
 
 - **Resumen con tarifa real:** `TotalDesgloseImpuesto` ya no hardcodea `08`;

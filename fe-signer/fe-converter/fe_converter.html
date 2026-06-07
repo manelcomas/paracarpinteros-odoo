@@ -3064,6 +3064,12 @@ function renderHistorial() {
     const badgeCliente = r.enviadoCliente
       ? '<span style="background:#10B981;color:#fff;padding:2px 6px;border-radius:4px;font-size:.68rem;font-weight:600;white-space:nowrap;display:inline-block;margin-top:3px;">✓ Enviado cliente</span>'
       : '<span style="color:var(--muted);font-size:.7rem;display:inline-block;margin-top:3px;">— sin enviar</span>';
+    // v32: botón Anular — solo en documentos ACEPTADOS que sean Factura (01) o Tiquete (04).
+    // El tipoDoc va en la clave (posiciones 30-31 → slice 29,31).
+    const _tipoDoc = (r.clave && r.clave.length >= 31) ? r.clave.slice(29,31) : '';
+    const btnAnular = (r.estado === 'aceptado' && (_tipoDoc === '01' || _tipoDoc === '04'))
+      ? '<button class="btn-copy" title="Anular esta factura (emite Nota de Crédito)" onclick="anularFE(' + r.attId + ', \'' + r.clave + '\', this)" style="color:#DC2626;">🚫</button> '
+      : '';
     return '<tr style="border-bottom:1px solid var(--border);">'
       + '<td style="padding:6px 10px;white-space:nowrap;">' + xmlEscape(dt) + '</td>'
       + '<td style="padding:6px 10px;font-family:monospace;font-size:.72rem;" title="' + xmlEscape(r.clave) + '">' + xmlEscape(claveTrunc) + '</td>'
@@ -3071,6 +3077,7 @@ function renderHistorial() {
       + '<td style="padding:6px 10px;text-align:right;white-space:nowrap;">' + monto + '</td>'
       + '<td style="padding:6px 10px;text-align:center;">' + badgeHacienda + '<br>' + badgeCliente + '</td>'
       + '<td style="padding:6px 10px;text-align:center;white-space:nowrap;">'
+        + btnAnular
         + '<button class="btn-copy" title="Consultar estado en Hacienda" onclick="consultarFE(\'' + r.clave + '\', this)">🔍</button> '
         + '<button class="btn-copy" title="Reenviar a Hacienda (sin re-firmar)" onclick="reenviarFE(' + r.attId + ', \'' + r.clave + '\', this)">📤</button> '
         + '<button class="btn-copy" title="Reenviar email al cliente (PDF + XMLs)" onclick="v31_modalReenvio(\'' + r.clave + '\')">📧</button> '
@@ -3257,6 +3264,238 @@ async function enviarFEACliente(attId, clave, btn) {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = originalText || '📧'; }
   }
+}
+
+// ═════════════════════ v32: ANULACIÓN EN 1 CLIC (NC espejo) ═════════════════════
+// Construye una Nota de Crédito ESPEJO del XML firmado de la factura original
+// (mismas líneas/montos/CABYS/tarifa → cero rechazos -509/-488), la firma y la
+// envía a Hacienda. Doble confirmación: casilla + contraseña (hash SHA-256 en Odoo,
+// nunca en claro). Reutiliza sign.php, el Worker y el patrón de subida a Odoo.
+const ANUL_SIGNER_URL = 'https://panel.paracarpinteros.com/sign.php';
+const ANUL_SIGNER_KEY = '5244633db0219316428f0cfc747a55f863d4f0d319fda5ecab9ba9a625cbc6d4';
+const ANUL_HASH_KEY = 'fe.anulacion_confirm_hash';
+
+async function _anulSha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function _anulNowCR() {
+  // ISO con offset fijo -06:00 (Costa Rica, sin horario de verano).
+  const d = new Date(Date.now() - 6 * 3600 * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate())
+       + 'T' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':' + p(d.getUTCSeconds()) + '-06:00';
+}
+
+function _anulCloseModal() { const m = document.getElementById('anul-modal'); if (m) m.remove(); }
+
+async function anularFE(attId, clave, btn) {
+  const row = __histRows.find(r => r.attId === attId);
+  if (!row || !row.datas) { if (typeof showToast === 'function') showToast('XML no disponible'); return; }
+  if (row.estado !== 'aceptado') { if (typeof showToast === 'function') showToast('Solo se pueden anular facturas Aceptadas'); return; }
+  let storedHash = '';
+  try { storedHash = await RPC.call('ir.config_parameter.get_param', [ANUL_HASH_KEY]) || ''; } catch(e){}
+  _anulOpenModal(row, !storedHash);
+}
+
+function _anulOpenModal(row, setMode) {
+  _anulCloseModal();
+  const montoTxt = '₡' + (row.monto || 0).toLocaleString('es-CR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const passBlock = setMode
+    ? '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:8px 10px;font-size:.76rem;color:#92400E;margin-bottom:8px;">Primera vez: definí la contraseña de confirmación (poné la misma que usás para entrar).</div>'
+      + '<label style="display:block;font-weight:600;margin-bottom:4px;">Contraseña de confirmación</label>'
+      + '<input id="anul-pass" type="password" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:6px;margin-bottom:8px;box-sizing:border-box;" />'
+      + '<label style="display:block;font-weight:600;margin-bottom:4px;">Repetí la contraseña</label>'
+      + '<input id="anul-pass2" type="password" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:6px;margin-bottom:14px;box-sizing:border-box;" />'
+    : '<label style="display:block;font-weight:600;margin-bottom:4px;">Contraseña de confirmación</label>'
+      + '<input id="anul-pass" type="password" placeholder="La que usás para entrar" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:6px;margin-bottom:14px;box-sizing:border-box;" />';
+  const wrap = document.createElement('div');
+  wrap.id = 'anul-modal';
+  wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  wrap.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;max-height:92vh;overflow-y:auto;">'
+    + '<div style="background:#FEF2F2;border-bottom:2px solid #FCA5A5;padding:16px 20px;">'
+      + '<div style="font-size:1.05rem;font-weight:700;color:#991B1B;">🚫 Anular factura electrónica</div>'
+      + '<div style="font-size:.78rem;color:#B91C1C;margin-top:4px;">Se emitirá una Nota de Crédito que la deja SIN EFECTO en Hacienda. No se puede deshacer.</div>'
+    + '</div>'
+    + '<div style="padding:18px 20px;font-size:.85rem;color:#374151;">'
+      + '<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.5;">'
+        + '<div><b>Receptor:</b> ' + xmlEscape(row.receptor || '') + '</div>'
+        + '<div><b>Monto:</b> ' + montoTxt + '</div>'
+        + '<div style="font-family:monospace;font-size:.7rem;word-break:break-all;color:#6B7280;margin-top:4px;">' + xmlEscape(row.clave) + '</div>'
+      + '</div>'
+      + '<label style="display:block;font-weight:600;margin-bottom:4px;">Razón de la anulación</label>'
+      + '<input id="anul-razon" type="text" maxlength="180" value="Anulación de documento" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:6px;margin-bottom:14px;box-sizing:border-box;" />'
+      + '<label style="display:block;font-weight:600;margin-bottom:4px;">Certificado (.p12)</label>'
+      + '<input id="anul-cert" type="file" accept=".p12,.pfx" style="width:100%;margin-bottom:10px;font-size:.78rem;" />'
+      + '<label style="display:block;font-weight:600;margin-bottom:4px;">PIN del certificado</label>'
+      + '<input id="anul-pin" type="password" placeholder="PIN del .p12" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:6px;margin-bottom:14px;box-sizing:border-box;" />'
+      + passBlock
+      + '<label style="display:flex;gap:8px;align-items:flex-start;font-size:.8rem;cursor:pointer;margin-bottom:6px;">'
+        + '<input id="anul-chk" type="checkbox" style="margin-top:2px;" />'
+        + '<span>Confirmo que quiero <b>anular</b> esta factura por ' + montoTxt + ' a ' + xmlEscape(row.receptor || '') + '.</span>'
+      + '</label>'
+      + '<div id="anul-msg" style="font-size:.78rem;color:#B91C1C;min-height:16px;margin-bottom:8px;"></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;padding:14px 20px;border-top:1px solid #E5E7EB;justify-content:flex-end;">'
+      + '<button id="anul-cancel" style="padding:8px 16px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;">Cancelar</button>'
+      + '<button id="anul-go" style="padding:8px 16px;border:none;background:#DC2626;color:#fff;border-radius:8px;cursor:pointer;font-weight:600;">Anular factura</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(wrap);
+  document.getElementById('anul-cancel').onclick = _anulCloseModal;
+  document.getElementById('anul-go').onclick = () => _anulConfirm(row, setMode);
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) _anulCloseModal(); });
+}
+
+async function _anulConfirm(row, setMode) {
+  const msg = document.getElementById('anul-msg');
+  const setMsg = (t) => { if (msg) msg.textContent = t; };
+  const goBtn = document.getElementById('anul-go');
+  if (!document.getElementById('anul-chk').checked) { setMsg('Marcá la casilla de confirmación.'); return; }
+  const razon = (document.getElementById('anul-razon').value || '').trim() || 'Anulación de documento';
+  const pass = document.getElementById('anul-pass').value || '';
+  if (!pass) { setMsg('Escribí la contraseña de confirmación.'); return; }
+  // Verificación de contraseña por hash (anti-accidente; el HTML es público).
+  if (setMode) {
+    const pass2 = document.getElementById('anul-pass2').value || '';
+    if (pass !== pass2) { setMsg('Las contraseñas no coinciden.'); return; }
+    if (pass.length < 4) { setMsg('La contraseña es muy corta.'); return; }
+    try { await RPC.call('ir.config_parameter.set_param', [ANUL_HASH_KEY, await _anulSha256Hex(pass)]); }
+    catch(e) { setMsg('No se pudo guardar la contraseña: ' + (e.message || e)); return; }
+  } else {
+    let storedHash = '';
+    try { storedHash = await RPC.call('ir.config_parameter.get_param', [ANUL_HASH_KEY]) || ''; } catch(e){}
+    if (await _anulSha256Hex(pass) !== storedHash) { setMsg('Contraseña incorrecta.'); return; }
+  }
+  // Certificado + PIN (del modal, o de la pestaña de firma si ya estaban cargados).
+  const certInput = document.getElementById('anul-cert');
+  let certFile = (certInput && certInput.files && certInput.files[0]) || null;
+  if (!certFile) { const m = document.getElementById('cert-file'); certFile = (m && m.files && m.files[0]) || null; }
+  let pin = document.getElementById('anul-pin').value || '';
+  if (!pin) pin = (document.getElementById('cert-pin') || {value:''}).value || '';
+  if (!certFile) { setMsg('Seleccioná el certificado .p12.'); return; }
+  if (!pin) { setMsg('Escribí el PIN del certificado.'); return; }
+
+  goBtn.disabled = true; goBtn.textContent = 'Anulando…';
+  try {
+    const certArrayBuf = await certFile.arrayBuffer();
+    const estado = await _anulEmitNC(row, razon, certArrayBuf, pin, setMsg);
+    _anulCloseModal();
+    if (typeof showToast === 'function') {
+      showToast(estado === 'aceptado'
+        ? '✅ Nota de Crédito aceptada — factura anulada'
+        : '📨 Nota de Crédito enviada (Hacienda procesando). Revisá el estado en unos segundos.');
+    }
+    loadHistorialFE();
+  } catch(e) {
+    setMsg('❌ ' + (e.message || e));
+    goBtn.disabled = false; goBtn.textContent = 'Anular factura';
+  }
+}
+
+async function _anulEmitNC(row, razon, certArrayBuf, pin, setMsg) {
+  setMsg('Construyendo la Nota de Crédito…');
+  // XML firmado original (UTF-8).
+  let origXml = '';
+  try { origXml = decodeURIComponent(escape(atob(row.datas))); } catch(e) { origXml = atob(row.datas); }
+  const mFecha = origXml.match(/<FechaEmision>([^<]+)<\/FechaEmision>/);
+  const fechaIR = mFecha ? mFecha[1] : (row.fecha || '');
+  const tipoDocOrig = (row.clave && row.clave.length >= 31) ? row.clave.slice(29,31) : '01';
+
+  // Próximo consecutivo NC (serie 003) desde Odoo.
+  let lastNc = '';
+  try { lastNc = await RPC.call('ir.config_parameter.get_param', [fe_consec_key_odoo('003')]); } catch(e){}
+  if (!lastNc || !/^\d+$/.test(String(lastNc))) throw new Error('No se pudo leer el consecutivo NC (PROD.003).');
+  const con = String(parseInt(lastNc, 10) + 1).padStart(10, '0');
+  const consec = '001' + '00001' + '03' + con; // Sucursal(3)+Terminal(5)+TipoDoc(2)+Consec(10)
+
+  // Clave de 50 dígitos de la NC.
+  const fechaNC = _anulNowCR();
+  const ddmmaa = fechaNC.slice(8,10) + fechaNC.slice(5,7) + fechaNC.slice(2,4);
+  let ced = (typeof EMISOR !== 'undefined' && EMISOR.cedulaPad) ? EMISOR.cedulaPad : '';
+  if (!ced) { const me = origXml.match(/<Emisor>[\s\S]*?<Numero>([^<]+)<\/Numero>/); ced = (me ? me[1].trim() : '').padStart(12,'0'); }
+  const claveNC = '506' + ddmmaa + ced + consec + '1' + '44100000';
+
+  // Transformar la factura firmada en NC espejo (líneas/resumen intactos).
+  let nc = origXml;
+  nc = nc.replace(/<ds:Signature[\s\S]*?<\/ds:Signature>/, '');
+  nc = nc.replace(/<FacturaElectronica\b/, '<NotaCreditoElectronica');
+  nc = nc.replace(/<\/FacturaElectronica>/, '</NotaCreditoElectronica>');
+  nc = nc.replace(/xml-schemas\/v4\.4\/facturaElectronica/g, 'xml-schemas/v4.4/notaCreditoElectronica');
+  nc = nc.replace(/<Clave>[^<]*<\/Clave>/, '<Clave>' + claveNC + '</Clave>');
+  nc = nc.replace(/<NumeroConsecutivo>[^<]*<\/NumeroConsecutivo>/, '<NumeroConsecutivo>' + consec + '</NumeroConsecutivo>');
+  nc = nc.replace(/<FechaEmision>[^<]*<\/FechaEmision>/, '<FechaEmision>' + fechaNC + '</FechaEmision>');
+  const irXml = '\n  <InformacionReferencia>\n    <TipoDocIR>' + tipoDocOrig + '</TipoDocIR>\n    <Numero>' + row.clave + '</Numero>\n    <FechaEmisionIR>' + fechaIR + '</FechaEmisionIR>\n    <Codigo>01</Codigo>\n    <Razon>' + xmlEscape(razon) + '</Razon>\n  </InformacionReferencia>\n';
+  nc = nc.replace('</NotaCreditoElectronica>', irXml + '</NotaCreditoElectronica>');
+
+  // Firmar (tipoDoc 03).
+  setMsg('Firmando…');
+  const certBytes = new Uint8Array(certArrayBuf);
+  let cbin = ''; const CK = 32768;
+  for (let i = 0; i < certBytes.length; i += CK) cbin += String.fromCharCode.apply(null, certBytes.subarray(i, i + CK));
+  const p12b64 = btoa(cbin);
+  const xmlb64 = btoa(unescape(encodeURIComponent(nc)));
+  const sresp = await fetch(ANUL_SIGNER_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-API-Key': ANUL_SIGNER_KEY},
+    body: JSON.stringify({ xmlBase64: xmlb64, p12Base64: p12b64, pin: pin, tipoDoc: '03' })
+  });
+  const stext = await sresp.text();
+  if (!sresp.ok) throw new Error('Firma HTTP ' + sresp.status + ': ' + stext.slice(0,300));
+  let sres; try { sres = JSON.parse(stext); } catch(e) { throw new Error('Firma: respuesta no-JSON'); }
+  if (!sres.signedXmlBase64) throw new Error('Firma sin XML (¿PIN incorrecto?)');
+  const signedRawB64 = sres.signedXmlBase64;
+
+  // Enviar a Hacienda.
+  setMsg('Enviando a Hacienda…');
+  const workerUrl = (typeof v21_getActiveWorkerUrl === 'function') ? v21_getActiveWorkerUrl() : '';
+  if (!workerUrl) throw new Error('Worker URL no configurada.');
+  const tresp = await fetch(workerUrl + '/token', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({client_id:'api-prod'})});
+  const tdata = await tresp.json();
+  if (!tdata.access_token) throw new Error('Sin token de Hacienda.');
+  const emiTipo = (origXml.match(/<Emisor>[\s\S]*?<Tipo>([^<]+)<\/Tipo>/) || [])[1] || '01';
+  const emiNum  = (origXml.match(/<Emisor>[\s\S]*?<Numero>([^<]+)<\/Numero>/) || [])[1] || '';
+  const recTipo = (origXml.match(/<Receptor>[\s\S]*?<Tipo>([^<]+)<\/Tipo>/) || [])[1];
+  const recNum  = (origXml.match(/<Receptor>[\s\S]*?<Numero>([^<]+)<\/Numero>/) || [])[1];
+  const subBody = { token: tdata.access_token, clave: claveNC, fecha: fechaNC,
+    emisor: {tipoIdentificacion: emiTipo.trim(), numeroIdentificacion: emiNum.trim()}, comprobanteXml: signedRawB64 };
+  if (recTipo && recNum) subBody.receptor = {tipoIdentificacion: recTipo.trim(), numeroIdentificacion: recNum.trim()};
+  const subResp = await fetch(workerUrl + '/submit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(subBody)});
+  let subJson = {}; try { subJson = await subResp.json(); } catch(e){}
+  const subStatus = subJson.status || subResp.status;
+  if (!(subStatus === 200 || subStatus === 202)) throw new Error('Hacienda no aceptó el envío (HTTP ' + subStatus + ').');
+
+  // Consecutivo consumido en cuanto Hacienda recibe (202): subirlo ya.
+  try { await saveConsecAfterSuccess('003', con); } catch(e) { console.warn('[v32] bump 003:', e); }
+  // Subir el XML firmado de la NC a Odoo (ligado a la misma venta).
+  try {
+    await RPC.call('ir.attachment.create', [{ name:'FE_'+claveNC+'.xml', type:'binary', datas: signedRawB64,
+      mimetype:'application/xml', res_model:'account.move', res_id: row.resId || 0 }]);
+  } catch(e) { console.warn('[v32] subir NC xml:', e); }
+
+  // Esperar el estado y subir la respuesta de Hacienda.
+  setMsg('Confirmando aceptación…');
+  let estado = 'pendiente', respB64 = '';
+  for (let i = 0; i < 6; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const r2 = await fetch(workerUrl + '/status/' + claveNC, {headers:{'Authorization':'Bearer ' + tdata.access_token}});
+      const d2 = await r2.json();
+      const ind = String(d2['ind-estado'] || '').toLowerCase();
+      if (ind === 'aceptado') { estado = 'aceptado'; respB64 = d2['respuesta-xml'] || ''; break; }
+      if (ind === 'rechazado') { estado = 'rechazado'; respB64 = d2['respuesta-xml'] || ''; break; }
+    } catch(e){}
+  }
+  if (respB64) {
+    try {
+      await RPC.call('ir.attachment.create', [{ name:'FE_'+claveNC+'_respuesta_hacienda.xml', type:'binary', datas: respB64,
+        mimetype:'application/xml', res_model:'account.move', res_id: row.resId || 0 }]);
+    } catch(e) { console.warn('[v32] subir respuesta NC:', e); }
+  }
+  if (estado === 'rechazado') throw new Error('Hacienda RECHAZÓ la Nota de Crédito — la factura NO quedó anulada. Revisá el detalle en el Historial.');
+  return estado;
 }
 // ═════════════════════ /v27 HISTORIAL ═════════════════════
 

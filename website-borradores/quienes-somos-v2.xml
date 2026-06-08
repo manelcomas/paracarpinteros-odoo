@@ -1,0 +1,297 @@
+<t t-name="website.pc_quienes_v2" name="Quiénes Somos v2 (borrador)">
+  <t t-call="website.layout">
+    <div id="pcq">
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
+      <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500;1,9..144,600&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+      <style>
+        /* ===== Paracarpinteros — Quiénes Somos v2 (crónica editorial) ===== */
+        #wrapwrap > header, #wrapwrap > footer { display:none !important; }
+        #pcq *{ box-sizing:border-box; margin:0; padding:0; }
+        #pcq{
+          --paper:#F4ECDD; --paper-2:#EFE3CE; --card:#FBF6EC;
+          --ink:#241A10; --ink-2:#4E3D29; --muted:#7A6849;
+          --accent:#CF531C; --accent-2:#9C3C10; --line:#DBC9A8; --espresso:#1C140C;
+          font-family:'Hanken Grotesk',sans-serif; color:var(--ink); background:var(--paper);
+          line-height:1.62; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+        }
+        #pcq img{ max-width:100%; display:block; }
+        #pcq a{ color:inherit; text-decoration:none; }
+        #pcq .serif{ font-family:'Fraunces',serif; }
+        #pcq .wrap{ width:min(1140px,92vw); margin-inline:auto; }
+        #pcq .read{ width:min(720px,92vw); margin-inline:auto; }
+        #pcq .grain{ position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.5; mix-blend-mode:multiply;
+          background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.16'/%3E%3C/svg%3E"); }
+        #pcq .reveal{ opacity:0; transform:translateY(20px); animation:pcqrise .9s cubic-bezier(.2,.7,.2,1) forwards; }
+        @keyframes pcqrise{ to{ opacity:1; transform:none; } }
+        @media (prefers-reduced-motion:reduce){ #pcq .reveal{ animation:none; opacity:1; transform:none; } }
+
+        /* Nav */
+        #pcq .nav{ position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
+          background:color-mix(in srgb, var(--paper) 82%, transparent); border-bottom:1px solid var(--line); }
+        #pcq .nav .row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; gap:18px; }
+        #pcq .nav img{ height:54px; width:auto; }
+        #pcq .nav .links{ display:flex; gap:26px; font-weight:600; font-size:.92rem; }
+        #pcq .nav .links a{ color:var(--ink-2); } #pcq .nav .links a:hover{ color:var(--accent); }
+        #pcq .btn{ display:inline-flex; align-items:center; gap:8px; font-weight:700; border-radius:999px;
+          padding:11px 20px; font-size:.92rem; transition:transform .2s, box-shadow .2s, background .2s, color .2s; }
+        #pcq .btn-primary{ background:var(--accent); color:#FFF6EE; box-shadow:0 8px 22px -10px var(--accent); }
+        #pcq .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 14px 30px -10px var(--accent); }
+        #pcq .btn-ghost{ border:1.5px solid var(--ink); color:var(--ink); }
+        #pcq .btn-ghost:hover{ background:var(--ink); color:var(--paper); }
+        @media(max-width:820px){ #pcq .nav .links{ display:none; } }
+
+        /* Hero */
+        #pcq .hero{ position:relative; z-index:2; padding:58px 0 16px; }
+        #pcq .hero .grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:46px; align-items:center; }
+        #pcq .eyebrow{ display:inline-flex; align-items:center; gap:9px; font-weight:700; letter-spacing:.14em;
+          text-transform:uppercase; font-size:.72rem; color:var(--accent-2); background:var(--paper-2);
+          border:1px solid var(--line); padding:7px 14px; border-radius:999px; }
+        #pcq .hero h1{ font-weight:900; font-size:clamp(2.6rem,5.6vw,4.6rem); line-height:.98; letter-spacing:-.02em; margin:20px 0 16px; }
+        #pcq .hero h1 em{ font-style:italic; font-weight:500; color:var(--accent); }
+        #pcq .hero p{ font-size:1.16rem; color:var(--ink-2); max-width:30em; }
+        #pcq .hero .photo{ position:relative; }
+        #pcq .hero .photo .disc{ position:absolute; inset:-7% -7% auto auto; width:50%; aspect-ratio:1; border-radius:50%;
+          background:radial-gradient(circle at 35% 30%, #E9A66B, var(--accent) 62%, var(--accent-2)); z-index:0; filter:blur(2px); opacity:.9; }
+        #pcq .hero .photo .card{ position:relative; z-index:1; border-radius:26px; overflow:hidden; border:1px solid var(--line);
+          box-shadow:0 44px 84px -42px rgba(40,25,10,.62); }
+        #pcq .hero .photo img{ width:100%; aspect-ratio:1; object-fit:cover; }
+        #pcq .hero .photo .cap{ position:absolute; left:16px; bottom:16px; z-index:2; background:rgba(28,20,12,.8); color:var(--paper);
+          -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); padding:9px 15px; border-radius:999px; font-weight:700; font-size:.82rem; }
+        @media(max-width:820px){ #pcq .hero .grid{ grid-template-columns:1fr; gap:34px; } }
+
+        /* Cómic resumen */
+        #pcq .comic{ position:relative; z-index:2; padding:30px 0 6px; }
+        #pcq .comic .sh{ text-align:center; margin-bottom:20px; }
+        #pcq .comic .sh .k{ font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; color:var(--accent-2); }
+        #pcq .comic .sh h2{ font-family:'Fraunces',serif; font-weight:900; font-size:clamp(1.7rem,3.6vw,2.6rem); letter-spacing:-.02em; margin-top:8px; }
+        #pcq .comic .frame{ display:block; border-radius:22px; overflow:hidden; border:1px solid var(--line);
+          box-shadow:0 44px 84px -46px rgba(40,25,10,.62); transition:transform .25s ease; }
+        #pcq .comic .frame:hover{ transform:translateY(-4px); }
+        #pcq .comic .frame img{ width:100%; height:auto; display:block; }
+        #pcq .comic .cc{ text-align:center; font-size:.84rem; color:var(--muted); margin-top:14px; }
+
+        /* Story */
+        #pcq .story{ position:relative; z-index:2; padding:48px 0 20px; }
+        #pcq .chap{ font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; color:var(--accent-2);
+          margin:54px 0 14px; display:flex; align-items:center; gap:12px; }
+        #pcq .chap::before{ content:""; width:26px; height:2px; background:var(--accent); }
+        #pcq .lead{ font-size:1.32rem; color:var(--ink); font-weight:500; }
+        #pcq .story p{ font-size:1.075rem; color:var(--ink-2); margin:16px 0; }
+        #pcq .story p.first::first-letter{ font-family:'Fraunces',serif; font-weight:900; float:left; font-size:3.6rem;
+          line-height:.82; padding:6px 12px 0 0; color:var(--accent); }
+        #pcq .pull{ font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:clamp(1.5rem,3.2vw,2.2rem);
+          line-height:1.2; color:var(--ink); border-left:4px solid var(--accent); padding:6px 0 6px 22px; margin:34px 0; }
+
+        /* Diálogo tipo chat */
+        #pcq .chat{ background:var(--card); border:1px solid var(--line); border-radius:20px; padding:24px; margin:26px 0;
+          box-shadow:0 30px 60px -44px rgba(40,25,10,.5); }
+        #pcq .chat .ttl{ font-weight:800; font-size:.74rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:16px; }
+        #pcq .bub{ max-width:80%; padding:10px 15px; border-radius:16px; margin:8px 0; font-size:1rem; line-height:1.4; }
+        #pcq .bub.q{ background:var(--accent); color:#FFF6EE; border-bottom-left-radius:5px; }
+        #pcq .bub.a{ background:var(--paper-2); color:var(--ink); border:1px solid var(--line); margin-left:auto; border-bottom-right-radius:5px; }
+        #pcq .chat .note{ font-size:.92rem; color:var(--muted); font-style:italic; margin-top:14px; }
+
+        /* Moraleja (banda oscura) */
+        #pcq .moral{ background:var(--espresso); color:var(--paper); margin-top:40px; }
+        #pcq .moral .read{ padding:74px 0; text-align:center; }
+        #pcq .moral .qm{ font-family:'Fraunces',serif; font-size:4rem; line-height:0; color:var(--accent); }
+        #pcq .moral h2{ font-family:'Fraunces',serif; font-weight:600; font-style:italic; font-size:clamp(1.7rem,3.6vw,2.6rem);
+          line-height:1.25; margin:26px 0 0; }
+
+        /* Por eso nació */
+        #pcq .born{ padding:74px 0; text-align:center; }
+        #pcq .born .k{ font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; color:var(--accent-2); }
+        #pcq .born h2{ font-family:'Fraunces',serif; font-weight:900; font-size:clamp(2rem,4.6vw,3.2rem); letter-spacing:-.02em;
+          line-height:1.04; margin:12px auto 16px; max-width:16ch; }
+        #pcq .born p{ font-size:1.12rem; color:var(--ink-2); max-width:36ch; margin:0 auto; }
+
+        /* Valores */
+        #pcq .vals{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:46px; }
+        #pcq .val{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:24px; text-align:left; }
+        #pcq .val .ic{ width:46px; height:46px; border-radius:12px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:1.4rem; }
+        #pcq .val h3{ font-family:'Fraunces',serif; font-weight:600; font-size:1.2rem; margin:14px 0 7px; }
+        #pcq .val p{ font-size:.92rem; color:var(--muted); }
+        @media(max-width:820px){ #pcq .vals{ grid-template-columns:1fr 1fr; } }
+
+        /* Strip de productos */
+        #pcq .strip{ padding:10px 0 80px; }
+        #pcq .strip .sh{ text-align:center; margin-bottom:30px; }
+        #pcq .strip .sh .k{ font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; color:var(--accent-2); }
+        #pcq .strip .sh h2{ font-family:'Fraunces',serif; font-weight:900; font-size:clamp(1.7rem,3.4vw,2.5rem); letter-spacing:-.02em; margin-top:8px; }
+        #pcq .prods{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+        #pcq .prod{ background:var(--card); border:1px solid var(--line); border-radius:18px; overflow:hidden; transition:transform .25s, box-shadow .25s; }
+        #pcq .prod:hover{ transform:translateY(-5px); box-shadow:0 30px 60px -34px rgba(40,25,10,.5); }
+        #pcq .prod .ph{ background:#fff; aspect-ratio:1; padding:16px; }
+        #pcq .prod .ph img{ width:100%; height:100%; object-fit:contain; }
+        #pcq .prod .nm{ padding:14px 16px 18px; font-weight:600; font-size:.92rem; }
+        @media(max-width:820px){ #pcq .prods{ grid-template-columns:1fr 1fr; } }
+
+        /* CTA + footer */
+        #pcq .cta-band{ padding:18px 0 80px; text-align:center; }
+        #pcq .cta-band .cta{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+        #pcq .ft-wrap{ background:var(--paper-2); border-top:1px solid var(--line); padding:54px 0 28px; }
+        #pcq .ft-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:36px; }
+        #pcq .ft-wrap img{ height:40px; margin-bottom:16px; }
+        #pcq .ft-wrap h4{ font-weight:800; font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+        #pcq .ft-wrap a, #pcq .ft-wrap p{ color:var(--ink-2); font-size:.95rem; margin-bottom:9px; display:block; }
+        #pcq .ft-wrap a:hover{ color:var(--accent); }
+        #pcq .ft-bot{ margin-top:34px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; font-size:.82rem; color:var(--muted); }
+        @media(max-width:820px){ #pcq .ft-grid{ grid-template-columns:1fr; gap:24px; } }
+      </style>
+
+      <div class="grain"></div>
+
+      <!-- NAV -->
+      <nav class="nav">
+        <div class="wrap row">
+          <a href="/" aria-label="Paracarpinteros"><img src="/web/image/website/3/logo" alt="Paracarpinteros"/></a>
+          <div class="links">
+            <a href="/shop/category/1884">Fresas</a>
+            <a href="/shop">Catálogo</a>
+            <a href="/quienes-somos-v2">Quiénes somos</a>
+            <a href="/como-comprar">Cómo comprar</a>
+          </div>
+          <a class="btn btn-primary" href="https://wa.me/50686069717">WhatsApp</a>
+        </div>
+      </nav>
+
+      <!-- HERO -->
+      <header class="hero">
+        <div class="wrap grid">
+          <div>
+            <span class="eyebrow reveal">Quiénes somos · nuestra historia</span>
+            <h1 class="serif reveal" style="animation-delay:.08s">Crónicas de un <em>carpintero tico.</em></h1>
+            <p class="reveal" style="animation-delay:.16s">Nos encantaría tomarnos un café y contarte cómo surgió nuestra tienda… pero como no se puede, lo contamos acá.</p>
+          </div>
+          <div class="photo reveal" style="animation-delay:.2s">
+            <div class="disc"></div>
+            <div class="card"><img src="/web/image/40452" alt="Banco de taller con fresas y herramientas de carpintería"/></div>
+            <div class="cap">🪵 Del taller, para el taller</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CÓMIC RESUMEN -->
+      <section class="comic">
+        <div class="wrap">
+          <div class="sh">
+            <div class="k reveal">La crónica en viñetas</div>
+            <h2 class="serif reveal">La historia, en un vistazo.</h2>
+          </div>
+          <a class="frame reveal" href="/web/image/40469" target="_blank" rel="noopener" title="Ampliar la historieta">
+            <img src="/web/image/40469" alt="Historieta La Juguetería de Paracarpinteros: el enamoramiento, la búsqueda, el viacrucis y la tienda de la esquina"/>
+          </a>
+          <div class="cc">Tocá la viñeta para verla en grande — y abajo, la historia completa ✍️</div>
+        </div>
+      </section>
+
+      <!-- STORY -->
+      <article class="story">
+        <div class="read">
+          <p class="lead reveal">Ya seas carpintero de primera, aficionado o un humilde aspirante al oficio, sin duda tenemos mil anécdotas que compartir…</p>
+
+          <div class="chap">Capítulo 1 · El enamoramiento</div>
+          <p class="first">Como buenos aficionados a la carpintería, constantemente estamos buscando en internet videos, tutoriales, consejos y cualquier truquillo que nos haga la vida más fácil y placentera en el taller.</p>
+          <p>Normalmente empezamos a explorar los tutoriales con toda la ilusión del mundo… hasta que aparece en escena un artefacto divino que nos resuelve algún problema en el taller. Inmediatamente se nos acelera el corazón, nos brillan los ojos y aquello es amor a primera vista. No obstante, salta una alarma en nuestro cerebro que nos recuerda que estamos en Costa Rica y que muy probablemente ese artefacto, objeto de nuestras pasiones, no esté ni cerca de cruzar nuestras fronteras.</p>
+          <div class="pull serif">Pero ya es muy tarde: nos hemos enamorado y toca empezar la faena.</div>
+
+          <div class="chap">Capítulo 2 · La búsqueda</div>
+          <p>Lo siguiente que hacemos es buscar rápidamente en Google: «comprar xxxxx en Costa Rica» (entiéndanse las equis como el nombre de la herramienta que nos roba el sueño).</p>
+          <p>El resultado es desalentador. Después de revisar exhaustivamente las 4 ferreterías con tienda online en Costa Rica —y entrar a muchos enlaces que ni siquiera corresponden a nuestro país— nos empieza a invadir la desesperanza. Pero ¡claro!, como buenos carpinteros somos cabezones y no perdemos la fe.</p>
+
+          <div class="chap">Capítulo 3 · El viacrucis</div>
+          <p>Nos alistamos, nos ajustamos la mascarilla y emprendemos el viacrucis por las ferreterías cercanas. Lo siguiente ya es como repetir una película una y otra vez.</p>
+          <div class="chat reveal">
+            <div class="ttl">En la ferretería</div>
+            <div class="bub q">Hola, ¿hay plantillas para agujeros oblicuos?</div>
+            <div class="bub a">¿Perdón?</div>
+            <div class="bub q">¿Si tienen plantillas para agujeros oblicuos o de bolsillo?… ¿agujeros tipo kreg?</div>
+            <div class="bub a">Ahh no, amigo.</div>
+            <div class="bub q">¿Sabe de qué le hablo?</div>
+            <div class="bub a">La verdad no, ¿eso qué es?</div>
+            <div class="bub q">Es una herramienta para hacer uniones. Sí, sí, es para carpintería.</div>
+            <div class="bub a">Mmm no, amigo, aquí eso no hay. Seguro está usted confundido.</div>
+            <div class="note">(Esta respuesta venía con una cara de asombro del dependiente, que nos miraba como si estuviéramos locos, hablando en chino o fuéramos de otro planeta.)</div>
+          </div>
+
+          <div class="chap">Capítulo 4 · La tienda humilde</div>
+          <p>Después de esa respuesta poco amable, decidimos irnos. Mientras caminábamos hacia la salida no podíamos evitar sentirnos un poco decepcionados… hasta que uno de nosotros recordó haber visto una tienda similar en una calle cercana. Decidimos ir a ver si tenían lo que buscábamos.</p>
+          <p>Al llegar, la decoración era mucho más modesta que en la primera tienda, pero la actitud de los empleados era totalmente diferente: nos recibieron con una sonrisa y nos preguntaron si necesitábamos ayuda.</p>
+          <p>Les explicamos lo que buscábamos y, para nuestra sorpresa, tenían exactamente lo que necesitábamos. Además, los precios eran mucho más razonables. Salimos de esa tienda con una gran sonrisa en el rostro y la satisfacción de haber encontrado lo que andábamos buscando.</p>
+        </div>
+      </article>
+
+      <!-- MORALEJA -->
+      <section class="moral">
+        <div class="read">
+          <div class="qm serif">“</div>
+          <h2>No siempre lo más grande y lujoso es lo mejor. A veces, la humildad y la amabilidad marcan la diferencia.</h2>
+        </div>
+      </section>
+
+      <!-- POR ESO ESTAMOS ACÁ -->
+      <section class="born">
+        <div class="wrap">
+          <div class="k reveal">Más que una tienda</div>
+          <h2 class="serif reveal">No sos un cliente. Somos el mismo equipo.</h2>
+          <p class="reveal">Lo nuestro no es ser grandes ni ser pequeños: es el servicio, la cercanía y un interés común —que tu taller avance—. No te vemos como cliente y a nosotros como proveedor; trabajamos en la misma empresa, remando hacia la misma meta.</p>
+          <div class="vals">
+            <div class="val reveal"><div class="ic">🤝</div><h3>El mismo equipo</h3><p>No sos cliente y nosotros proveedor: estamos del mismo lado, trabajando por lo mismo.</p></div>
+            <div class="val reveal" style="animation-delay:.06s"><div class="ic">🎯</div><h3>El servicio primero</h3><p>No importa el tamaño de la tienda, sino cómo te atendemos y te resolvemos.</p></div>
+            <div class="val reveal" style="animation-delay:.12s"><div class="ic">📍</div><h3>Cercanía</h3><p>Te escuchamos, sabemos de qué hablás y te acompañamos en cada proyecto.</p></div>
+            <div class="val reveal" style="animation-delay:.18s"><div class="ic">🌱</div><h3>Avanzar juntos</h3><p>Si a tu taller le va bien, a nosotros también. Crecemos con vos.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STRIP DE PRODUCTOS -->
+      <section class="strip">
+        <div class="wrap">
+          <div class="sh">
+            <div class="k">Y esto sí lo tenemos</div>
+            <h2 class="serif">Lo que en otras partes “no hay”.</h2>
+          </div>
+          <div class="prods">
+            <a class="prod reveal" href="/shop/a2204-fresa-cnc-espiral-down-cut-2-filos-recubrimiento-dlc-42245-acabado-sin-astillas-en-madera-y-aglomerado-ref-v40-6871"><div class="ph"><img src="/web/image/product.template/6871/image_1024" alt="Fresa espiral down cut"/></div><div class="nm">Fresa Espiral Down Cut DLC</div></a>
+            <a class="prod reveal" style="animation-delay:.06s" href="/shop/a2132-fresa-cnc-de-compresion-up-down-para-acrilico-y-madera-2-filos-31752245-ref-v29-6777"><div class="ph"><img src="/web/image/product.template/6777/image_1024" alt="Fresa de compresión"/></div><div class="nm">Fresa de Compresión Up &amp; Down</div></a>
+            <a class="prod reveal" style="animation-delay:.12s" href="/shop/a2136-fresa-cnc-para-aluminio-end-mill-acabado-1-filos-31753175838-ref-v31-6781"><div class="ph"><img src="/web/image/product.template/6781/image_1024" alt="Fresa para aluminio"/></div><div class="nm">Fresa para Aluminio End Mill</div></a>
+            <a class="prod reveal" style="animation-delay:.18s" href="/shop/ext-emf9030-extractor-de-polvo-industrial-emf9030-3-kw-6904"><div class="ph"><img src="/web/image/product.template/6904/image_1024" alt="Extractor de polvo industrial"/></div><div class="nm">Extractor de Polvo Industrial</div></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta-band">
+        <div class="wrap cta">
+          <a class="btn btn-primary" href="/shop">Ver el catálogo →</a>
+          <a class="btn btn-ghost" href="https://wa.me/50686069717">Tomate ese café con nosotros por WhatsApp</a>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="ft-wrap">
+        <div class="wrap">
+          <div class="ft-grid">
+            <div>
+              <img src="/web/image/website/3/logo" alt="Paracarpinteros"/>
+              <p style="max-width:34ch">La juguetería para carpinteros. La tienda que nos hubiera gustado encontrar, en Costa Rica.</p>
+            </div>
+            <div>
+              <h4>Tienda</h4>
+              <a href="/shop/category/1884">Fresas</a><a href="/shop">Catálogo</a><a href="/como-comprar">Cómo comprar</a><a href="/">Inicio</a>
+            </div>
+            <div>
+              <h4>Contacto</h4>
+              <a href="https://wa.me/50686069717">WhatsApp 8606-9717</a>
+              <a href="https://wa.me/50661043421">WhatsApp 6104-3421</a>
+              <a href="mailto:admin@paracarpinteros.com">admin@paracarpinteros.com</a>
+              <p>Santa Cruz de Turrialba, Costa Rica</p>
+            </div>
+          </div>
+          <div class="ft-bot"><span>© Paracarpinteros · Hecho con cariño en Costa Rica 🇨🇷</span><span>Quiénes somos</span></div>
+        </div>
+      </footer>
+    </div>
+  </t>
+</t>

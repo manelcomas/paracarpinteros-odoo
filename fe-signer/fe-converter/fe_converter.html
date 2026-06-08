@@ -836,7 +836,7 @@ table.lt td.r { text-align: right; font-family: 'Courier New', monospace; }
         <div style="padding:16px;">
           <h3 style="margin:0 0 8px;">🗂️ Historial de facturas electrónicas</h3>
           <p style="color:var(--muted);font-size:.85rem;margin:0 0 14px;">
-            Últimas 50 FE emitidas (sin filtrar). 🔍 consulta estado en Hacienda · 📤 reenvía sin re-firmar · 💾 descarga el XML firmado.
+            Últimas 50 FE emitidas (sin filtrar). 🔍 consulta estado en Hacienda · 📤 reenvía sin re-firmar · 📄 descarga el PDF (para WhatsApp) · 💾 descarga el XML firmado.
           </p>
 
           <div style="display:grid;grid-template-columns:1fr 1fr 1.5fr 1fr auto;gap:8px;margin-bottom:12px;">
@@ -3088,6 +3088,10 @@ function renderHistorial() {
     const btnAnular = (r.estado === 'aceptado' && (_tipoDoc === '01' || _tipoDoc === '04'))
       ? '<button class="btn-copy" title="Anular esta factura (emite Nota de Crédito)" onclick="anularFE(' + r.attId + ', \'' + r.clave + '\', this)" style="color:#DC2626;">🚫</button> '
       : '';
+    // v33: descargar el PDF de la factura (para compartir por WhatsApp/etc). Solo en aceptadas.
+    const btnPDF = (r.estado === 'aceptado')
+      ? '<button class="btn-copy" title="Descargar PDF de la factura (para compartir)" onclick="descargarFacturaPDF(\'' + r.clave + '\', this)">📄</button> '
+      : '';
     return '<tr style="border-bottom:1px solid var(--border);">'
       + '<td style="padding:6px 10px;white-space:nowrap;">' + xmlEscape(dt) + '</td>'
       + '<td style="padding:6px 10px;font-family:monospace;font-size:.72rem;" title="' + xmlEscape(r.clave) + '">' + xmlEscape(claveTrunc) + '</td>'
@@ -3099,10 +3103,43 @@ function renderHistorial() {
         + '<button class="btn-copy" title="Consultar estado en Hacienda" onclick="consultarFE(\'' + r.clave + '\', this)">🔍</button> '
         + '<button class="btn-copy" title="Reenviar a Hacienda (sin re-firmar)" onclick="reenviarFE(' + r.attId + ', \'' + r.clave + '\', this)">📤</button> '
         + '<button class="btn-copy" title="Reenviar email al cliente (PDF + XMLs)" onclick="v31_modalReenvio(\'' + r.clave + '\')">📧</button> '
+        + btnPDF
         + '<button class="btn-copy" title="Descargar XML firmado" onclick="descargarFE(' + r.attId + ')">💾</button>'
       + '</td>'
       + '</tr>';
   }).join('');
+}
+
+// v33: genera y descarga el PDF de una factura aceptada (a partir del XML
+// firmado guardado en Odoo), con nombre legible para compartir por WhatsApp/etc.
+async function descargarFacturaPDF(clave, btn) {
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const feIds = await RPC.call('ir.attachment.search', [[['name','=','FE_'+clave+'.xml']]], {limit:1});
+    if (!feIds || !feIds.length) throw new Error('XML firmado no encontrado');
+    const feRec = (await RPC.call('ir.attachment.read', [feIds, ['datas']]))[0];
+    let xml = ''; try { xml = decodeURIComponent(escape(atob(feRec.datas))); } catch(e){ xml = atob(feRec.datas); }
+    const d = v31_parseXmlFE(xml);
+    const pdf = v31_generarPDF(d);
+    if (!pdf || !pdf.ok || !pdf.b64) throw new Error('No se pudo generar el PDF');
+    const bin = atob(pdf.b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const urlBlob = URL.createObjectURL(blob);
+    const nombre = ('Factura_' + (d.consecutivo || clave) + (d.receptorNombre ? '_' + d.receptorNombre : ''))
+      .replace(/[^\w\-]+/g, '_').slice(0, 80) + '.pdf';
+    const a = document.createElement('a');
+    a.href = urlBlob; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(urlBlob), 2000);
+    if (typeof showToast === 'function') showToast('PDF descargado: ' + nombre);
+  } catch(e) {
+    if (typeof showToast === 'function') showToast('Error generando PDF: ' + (e.message || e));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig || '📄'; }
+  }
 }
 
 function __initHistListeners() {

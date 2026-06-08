@@ -1,0 +1,339 @@
+<t t-name="website.pc_home_v3" name="Inicio v3 — Fresas (borrador)">
+  <t t-call="website.layout">
+    <div id="pcf">
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
+      <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+      <style>
+        /* ===== Paracarpinteros — Inicio v3 (Fresas protagonistas) ===== */
+        #wrapwrap > header, #wrapwrap > footer { display:none !important; }
+        #pcf *{ box-sizing:border-box; margin:0; padding:0; }
+        #pcf{
+          --paper:#F4ECDD; --paper-2:#EFE3CE; --card:#FBF6EC;
+          --ink:#241A10; --ink-2:#4E3D29; --muted:#7A6849;
+          --accent:#CF531C; --accent-2:#9C3C10; --steel:#2B3A45;
+          --line:#DBC9A8; --espresso:#1C140C;
+          font-family:'Hanken Grotesk',sans-serif; color:var(--ink);
+          background:var(--paper); line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+        }
+        #pcf img{ max-width:100%; display:block; }
+        #pcf a{ color:inherit; text-decoration:none; }
+        #pcf .serif{ font-family:'Fraunces',serif; }
+        #pcf .wrap{ width:min(1180px,92vw); margin-inline:auto; }
+        #pcf .grain{ position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.5; mix-blend-mode:multiply;
+          background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.16'/%3E%3C/svg%3E"); }
+        #pcf .reveal{ opacity:0; transform:translateY(20px); animation:pcfrise .9s cubic-bezier(.2,.7,.2,1) forwards; }
+        @keyframes pcfrise{ to{ opacity:1; transform:none; } }
+        @media (prefers-reduced-motion:reduce){ #pcf .reveal{ animation:none; opacity:1; transform:none; } }
+
+        /* Nav */
+        #pcf .nav{ position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
+          background:color-mix(in srgb, var(--paper) 82%, transparent); border-bottom:1px solid var(--line); }
+        #pcf .nav .row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; gap:18px; }
+        #pcf .nav img{ height:54px; width:auto; }
+        #pcf .nav .links{ display:flex; gap:26px; font-weight:600; font-size:.92rem; }
+        #pcf .nav .links a{ color:var(--ink-2); } #pcf .nav .links a:hover{ color:var(--accent); }
+        #pcf .btn{ display:inline-flex; align-items:center; gap:8px; font-weight:700; border-radius:999px;
+          padding:11px 20px; font-size:.92rem; transition:transform .2s, box-shadow .2s, background .2s, color .2s; }
+        #pcf .btn-primary{ background:var(--accent); color:#FFF6EE; box-shadow:0 8px 22px -10px var(--accent); }
+        #pcf .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 14px 30px -10px var(--accent); }
+        #pcf .btn-ghost{ border:1.5px solid var(--ink); color:var(--ink); }
+        #pcf .btn-ghost:hover{ background:var(--ink); color:var(--paper); }
+        #pcf .btn-light{ background:#FFF6EE; color:var(--ink); }
+        @media(max-width:820px){ #pcf .nav .links{ display:none; } }
+
+        /* Hero — fresas */
+        #pcf .hero{ position:relative; z-index:2; padding:60px 0 30px; }
+        #pcf .hero .grid{ display:grid; grid-template-columns:1.02fr .98fr; gap:46px; align-items:center; }
+        #pcf .eyebrow{ display:inline-flex; align-items:center; gap:9px; font-weight:700; letter-spacing:.14em;
+          text-transform:uppercase; font-size:.72rem; color:var(--accent-2); background:var(--paper-2);
+          border:1px solid var(--line); padding:7px 14px; border-radius:999px; }
+        #pcf .hero h1{ font-weight:900; font-size:clamp(2.7rem,6vw,5rem); line-height:.96; letter-spacing:-.02em; margin:22px 0 18px; }
+        #pcf .hero h1 em{ font-style:italic; font-weight:500; color:var(--accent); }
+        #pcf .hero p.lead{ font-size:1.12rem; color:var(--ink-2); max-width:33em; }
+        #pcf .hero .cta{ display:flex; flex-wrap:wrap; gap:14px; margin-top:28px; }
+        #pcf .hero .tags{ display:flex; flex-wrap:wrap; gap:8px; margin-top:26px; }
+        #pcf .hero .tags a{ font-size:.8rem; font-weight:700; color:var(--ink-2); background:var(--card);
+          border:1px solid var(--line); padding:7px 13px; border-radius:999px; transition:.2s; }
+        #pcf .hero .tags a:hover{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+        /* Buscador directo */
+        #pcf .search{ display:flex; gap:8px; margin-top:24px; max-width:31em; background:var(--card);
+          border:1.5px solid var(--line); border-radius:999px; padding:6px 6px 6px 18px;
+          box-shadow:0 14px 32px -22px rgba(40,25,10,.6); transition:border-color .2s, box-shadow .2s; }
+        #pcf .search:focus-within{ border-color:var(--accent); box-shadow:0 14px 32px -16px var(--accent); }
+        #pcf .search input{ flex:1; min-width:0; border:none; background:transparent; font:inherit; font-size:1rem; color:var(--ink); outline:none; }
+        #pcf .search input::placeholder{ color:var(--muted); }
+        #pcf .search button{ border:none; cursor:pointer; background:var(--accent); color:#FFF6EE; font-weight:700;
+          border-radius:999px; padding:11px 22px; white-space:nowrap; display:inline-flex; align-items:center; gap:8px; transition:transform .2s; }
+        #pcf .search button:hover{ transform:translateY(-1px); }
+        /* hero visual: fresa principal + mini cards */
+        #pcf .shot{ position:relative; }
+        #pcf .shot .disc{ position:absolute; inset:-7% -7% auto auto; width:52%; aspect-ratio:1; border-radius:50%;
+          background:radial-gradient(circle at 35% 30%, #E9A66B, var(--accent) 62%, var(--accent-2)); z-index:0; filter:blur(2px); opacity:.9; }
+        #pcf .shot .photo-card{ position:relative; z-index:1; border-radius:26px; overflow:hidden;
+          border:1px solid var(--line); box-shadow:0 44px 84px -42px rgba(40,25,10,.62); }
+        #pcf .shot .photo-card img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; }
+        #pcf .shot .ph-chip{ position:absolute; left:16px; bottom:16px; z-index:2; background:rgba(28,20,12,.8);
+          color:var(--paper); -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); padding:9px 15px;
+          border-radius:999px; font-weight:700; font-size:.85rem; display:inline-flex; align-items:center; gap:8px; }
+        #pcf .shot .ph-chip span{ color:#E9A66B; }
+        @media(max-width:820px){ #pcf .hero .grid{ grid-template-columns:1fr; gap:38px; } #pcf .shot .mini{ left:0; } }
+
+        /* Marquee */
+        #pcf .marquee{ position:relative; z-index:2; background:var(--espresso); color:var(--paper);
+          padding:15px 0; overflow:hidden; border-block:1px solid #000; }
+        #pcf .marquee .track{ display:flex; width:max-content; animation:pcfscroll 24s linear infinite; }
+        #pcf .marquee span{ font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:1.12rem;
+          padding:0 26px; white-space:nowrap; display:inline-flex; align-items:center; gap:26px; }
+        #pcf .marquee span::after{ content:"✦"; color:var(--accent); font-style:normal; }
+        @keyframes pcfscroll{ to{ transform:translateX(-50%); } }
+
+        /* Sections */
+        #pcf section{ position:relative; z-index:2; }
+        #pcf .sec{ padding:72px 0; }
+        #pcf .sec-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:34px; }
+        #pcf .sec-head h2{ font-family:'Fraunces',serif; font-weight:900; font-size:clamp(1.9rem,3.8vw,3rem); letter-spacing:-.02em; line-height:1; }
+        #pcf .sec-head .k{ font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; color:var(--accent-2); margin-bottom:6px; }
+        #pcf .sec-head a.more{ font-weight:700; color:var(--accent); white-space:nowrap; }
+        #pcf .sec-head a.more:hover{ text-decoration:underline; }
+
+        /* Fresas grid */
+        #pcf .fresas{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+        #pcf .fr{ background:var(--card); border:1px solid var(--line); border-radius:18px; overflow:hidden;
+          display:flex; flex-direction:column; transition:transform .25s, box-shadow .25s; position:relative; }
+        #pcf .fr:hover{ transform:translateY(-5px); box-shadow:0 30px 60px -34px rgba(40,25,10,.5); }
+        #pcf .fr .ph{ background:#fff; aspect-ratio:1; padding:16px; position:relative; }
+        #pcf .fr .ph img{ width:100%; height:100%; object-fit:contain; }
+        #pcf .fr .stk{ position:absolute; top:10px; left:10px; background:var(--paper-2); color:var(--ink-2);
+          border:1px solid var(--line); font-size:.66rem; font-weight:800; letter-spacing:.04em; padding:4px 9px; border-radius:999px; }
+        #pcf .fr .stk.nuevo{ background:var(--accent); color:#FFF6EE; border-color:var(--accent); }
+        #pcf .fr .bd{ padding:14px 14px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+        #pcf .fr .nm{ font-weight:600; font-size:.92rem; line-height:1.3; }
+        #pcf .fr .ft{ display:flex; align-items:center; justify-content:space-between; margin-top:auto; }
+        #pcf .fr .pr{ font-family:'Fraunces',serif; font-weight:900; font-size:1.18rem; }
+        #pcf .fr .go{ font-size:.74rem; font-weight:800; color:var(--accent); }
+        @media(max-width:980px){ #pcf .fresas{ grid-template-columns:repeat(3,1fr); } }
+        @media(max-width:720px){ #pcf .fresas{ grid-template-columns:1fr 1fr; } }
+
+        /* Aceites — sección dedicada */
+        #pcf .oils{ background:var(--espresso); color:var(--paper); overflow:hidden; }
+        #pcf .oils .intro{ max-width:46ch; }
+        #pcf .oils .intro h2{ font-family:'Fraunces',serif; font-weight:900; font-size:clamp(2rem,4.2vw,3.2rem); line-height:1; letter-spacing:-.02em; }
+        #pcf .oils .intro h2 em{ color:#E9A66B; font-style:italic; font-weight:500; }
+        #pcf .oils .intro p{ color:#C9B79A; font-size:1.05rem; margin-top:14px; }
+        #pcf .oils .k{ font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; color:#E9A66B; margin-bottom:8px; }
+        #pcf .oilgrid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:40px; }
+        #pcf .oil{ background:#241A10; border:1px solid #3A2C1B; border-radius:22px; padding:24px; display:grid;
+          grid-template-columns:150px 1fr; gap:22px; align-items:center; transition:transform .25s, border-color .25s; }
+        #pcf .oil:hover{ transform:translateY(-4px); border-color:var(--accent); }
+        #pcf .oil .pic{ background:#FBF6EC; border-radius:16px; padding:12px; aspect-ratio:.86; }
+        #pcf .oil .pic img{ width:100%; height:100%; object-fit:contain; }
+        #pcf .oil h3{ font-family:'Fraunces',serif; font-weight:600; font-size:1.5rem; }
+        #pcf .oil .desc{ color:#C9B79A; font-size:.92rem; margin:8px 0 14px; }
+        #pcf .oil .sizes{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+        #pcf .oil .sz{ display:flex; align-items:center; justify-content:space-between; font-size:.86rem;
+          padding:7px 12px; background:#1C140C; border:1px solid #3A2C1B; border-radius:10px; }
+        #pcf .oil .sz b{ font-family:'Fraunces',serif; color:#F4ECDD; }
+        @media(max-width:880px){ #pcf .oilgrid{ grid-template-columns:1fr; } }
+        @media(max-width:480px){ #pcf .oil{ grid-template-columns:1fr; text-align:center; } #pcf .oil .pic{ max-width:170px; margin-inline:auto; } }
+
+        /* Why mini */
+        #pcf .why{ display:grid; grid-template-columns:repeat(4,1fr); gap:24px; }
+        #pcf .why .it{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; }
+        #pcf .why .ic{ width:44px; height:44px; border-radius:12px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:1.3rem; }
+        #pcf .why .it h3{ font-family:'Fraunces',serif; font-weight:600; font-size:1.12rem; margin:13px 0 6px; }
+        #pcf .why .it p{ color:var(--muted); font-size:.88rem; }
+        @media(max-width:820px){ #pcf .why{ grid-template-columns:1fr 1fr; } }
+
+        /* CTA + footer */
+        #pcf .cta-band{ padding:76px 0; text-align:center; }
+        #pcf .cta-band h2{ font-family:'Fraunces',serif; font-weight:900; font-size:clamp(2rem,5vw,3.2rem); letter-spacing:-.02em; line-height:1.04; max-width:16ch; margin:0 auto 14px; }
+        #pcf .cta-band p{ color:var(--ink-2); font-size:1.08rem; margin-bottom:26px; }
+        #pcf .cta-band .cta{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+        #pcf .ft-wrap{ background:var(--paper-2); border-top:1px solid var(--line); padding:54px 0 28px; }
+        #pcf .ft-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:36px; }
+        #pcf .ft-wrap img{ height:40px; margin-bottom:16px; }
+        #pcf .ft-wrap h4{ font-weight:800; font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+        #pcf .ft-wrap a, #pcf .ft-wrap p{ color:var(--ink-2); font-size:.95rem; margin-bottom:9px; display:block; }
+        #pcf .ft-wrap a:hover{ color:var(--accent); }
+        #pcf .ft-bot{ margin-top:34px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; font-size:.82rem; color:var(--muted); }
+        @media(max-width:820px){ #pcf .ft-grid{ grid-template-columns:1fr; gap:24px; } }
+      </style>
+
+      <div class="grain"></div>
+
+      <!-- NAV -->
+      <nav class="nav">
+        <div class="wrap row">
+          <a href="/inicio-v3" aria-label="Paracarpinteros"><img src="/web/image/website/3/logo" alt="Paracarpinteros"/></a>
+          <div class="links">
+            <a href="/shop/category/1884">Fresas</a>
+            <a href="#aceites">Acabados</a>
+            <a href="/shop">Catálogo</a>
+            <a href="/quienes-somos">Quiénes somos</a>
+          </div>
+          <a class="btn btn-primary" href="https://wa.me/50686069717">WhatsApp</a>
+        </div>
+      </nav>
+
+      <!-- HERO -->
+      <header class="hero">
+        <div class="wrap grid">
+          <div>
+            <span class="eyebrow reveal">Tienda 100% costarricense · envíos a todo el país 🇨🇷</span>
+            <h1 class="serif reveal" style="animation-delay:.08s">Fresas que <em>cortan limpio,</em> proyecto tras proyecto.</h1>
+            <p class="lead reveal" style="animation-delay:.16s">Carburo de tungsteno, espiral up/down cut, compresión, punta bola y especiales CNC. Las que más usás, con envío a todo Costa Rica.</p>
+            <form class="search reveal" style="animation-delay:.2s" action="/shop" method="get" role="search">
+              <input type="text" name="search" placeholder="Buscá una fresa, broca, herraje, aceite…" aria-label="Buscar productos"/>
+              <button type="submit">🔍 Buscar</button>
+            </form>
+            <div class="cta reveal" style="animation-delay:.26s">
+              <a class="btn btn-primary" href="/shop/category/1884">Ver todas las fresas →</a>
+              <a class="btn btn-ghost" href="https://wa.me/50686069717">Te asesoramos por WhatsApp</a>
+            </div>
+            <div class="tags reveal" style="animation-delay:.32s">
+              <a href="/shop?search=ranura">Rectas / Ranura</a><a href="/shop?search=compresion">Compresión</a><a href="/shop?search=espiral">Espiral DLC</a>
+              <a href="/shop?search=punta%20bola">Punta bola</a><a href="/shop?search=fresa%20aluminio">Para aluminio</a><a href="/shop/category/1884">Vástago 1/4" y 1/2"</a>
+            </div>
+          </div>
+          <div class="shot reveal" style="animation-delay:.2s">
+            <div class="disc"></div>
+            <div class="photo-card">
+              <img src="/web/image/40452" alt="Kit de fresas para router sobre el banco de taller"/>
+              <div class="ph-chip">🪵 Kit de fresas <span>· router y CNC</span></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- MARQUEE -->
+      <div class="marquee">
+        <div class="track">
+          <span>Tienda 100% costarricense 🇨🇷</span><span>Envíos a todo Costa Rica</span><span>Carburo de tungsteno</span><span>Compresión Up &amp; Down</span><span>Recubrimiento DLC</span><span>Punta bola y grabado en V</span>
+          <span>Tienda 100% costarricense 🇨🇷</span><span>Envíos a todo Costa Rica</span><span>Carburo de tungsteno</span><span>Compresión Up &amp; Down</span><span>Recubrimiento DLC</span><span>Punta bola y grabado en V</span>
+        </div>
+      </div>
+
+      <!-- FRESAS GRID -->
+      <section class="sec">
+        <div class="wrap">
+          <div class="sec-head">
+            <div><div class="k">Lo que más sale</div><h2 class="reveal">Las fresas más buscadas.</h2></div>
+            <a class="more" href="/shop">Ver catálogo completo →</a>
+          </div>
+          <div class="fresas">
+            <a class="fr reveal" href="/shop/a2156-fresa-cnc-carburo-tungsteno-18-3175mm2245l3f-upcut-3-filos-pulidos-para-acabado-espejo-ref-v38-6807"><div class="ph"><span class="stk">Carburo</span><img src="/web/image/product.template/6807/image_1024" alt="Fresa CNC carburo tungsteno 1/8"/></div><div class="bd"><div class="nm">Fresa CNC Carburo Tungsteno 1/8" Upcut</div><div class="ft"><div class="pr">₡4.000</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.05s" href="/shop/a2204-fresa-cnc-espiral-down-cut-2-filos-recubrimiento-dlc-42245-acabado-sin-astillas-en-madera-y-aglomerado-ref-v40-6871"><div class="ph"><span class="stk">Espiral DLC</span><img src="/web/image/product.template/6871/image_1024" alt="Fresa espiral down cut DLC"/></div><div class="bd"><div class="nm">Espiral Down Cut 2 Filos DLC 4×22×45</div><div class="ft"><div class="pr">₡11.500</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.1s" href="/shop/a2132-fresa-cnc-de-compresion-up-down-para-acrilico-y-madera-2-filos-31752245-ref-v29-6777"><div class="ph"><span class="stk">Compresión</span><img src="/web/image/product.template/6777/image_1024" alt="Fresa compresión acrílico y madera"/></div><div class="bd"><div class="nm">Compresión Up &amp; Down — acrílico y madera</div><div class="ft"><div class="pr">₡8.000</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.15s" href="/shop/a2136-fresa-cnc-para-aluminio-end-mill-acabado-1-filos-31753175838-ref-v31-6781"><div class="ph"><span class="stk">Aluminio</span><img src="/web/image/product.template/6781/image_1024" alt="Fresa para aluminio end mill"/></div><div class="bd"><div class="nm">Para Aluminio End Mill acabado (1 filo)</div><div class="ft"><div class="pr">₡4.500</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" href="/shop/a2134-fresa-cnc-de-ranura-recta-para-mdf-madera-y-eva-recubrimiento-nano2-filos-31752245-ref-v35-6779"><div class="ph"><span class="stk">MDF / EVA</span><img src="/web/image/product.template/6779/image_1024" alt="Fresa de ranura recta MDF"/></div><div class="bd"><div class="nm">Ranura Recta MDF, madera y EVA (DLC)</div><div class="ft"><div class="pr">₡5.500</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.05s" href="/shop/fresa-cnc-plana-6-mm-carburo-de-titanio-60752f-refv14-2641"><div class="ph"><span class="stk">Carburo Ti</span><img src="/web/image/product.template/2641/image_1024" alt="Fresa plana 6mm carburo titanio"/></div><div class="bd"><div class="nm">Plana 6 mm Carburo de Titanio — Ref. V14</div><div class="ft"><div class="pr">₡10.000</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.1s" href="/shop/a2054-fresa-cnc-tipo-corn-3175-mm-17-mm-38-mm-corte-limpio-en-mdf-y-plasticos-v22-6651"><div class="ph"><span class="stk">Corte limpio</span><img src="/web/image/product.template/6651/image_1024" alt="Fresa tipo corn"/></div><div class="bd"><div class="nm">Tipo Corn 3.175 mm — corte limpio</div><div class="ft"><div class="pr">₡5.000</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.15s" href="/shop/a2055-fresa-cnc-punta-bola-nose-r05015d450-refv23-6653"><div class="ph"><span class="stk">Punta bola</span><img src="/web/image/product.template/6653/image_1024" alt="Fresa punta bola"/></div><div class="bd"><div class="nm">Punta Bola R0,50×15 — Ref. V23</div><div class="ft"><div class="pr">₡8.000</div><div class="go">Ver →</div></div></div></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECIÉN INGRESADO -->
+      <section class="sec" style="padding-top:0;">
+        <div class="wrap">
+          <div class="sec-head">
+            <div><div class="k">Recién ingresado</div><h2 class="reveal">Lo último que llegó a la tienda.</h2></div>
+            <a class="more" href="/shop">Ver novedades →</a>
+          </div>
+          <div class="fresas">
+            <a class="fr reveal" href="/shop/ext-emf9030-extractor-de-polvo-industrial-emf9030-3-kw-6904"><div class="ph"><span class="stk nuevo">Nuevo</span><img src="/web/image/product.template/6904/image_1024" alt="Extractor de polvo industrial"/></div><div class="bd"><div class="nm">Extractor de Polvo Industrial EMF9030 — 3 kW</div><div class="ft"><div class="pr">₡525.000</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.05s" href="/shop/perfil-de-aluminio-4040-100-cm-tipo-t-6903"><div class="ph"><span class="stk nuevo">Nuevo</span><img src="/web/image/product.template/6903/image_1024" alt="Perfil de aluminio 4040"/></div><div class="bd"><div class="nm">Perfil de aluminio 4040 — 250 cm, tipo T, plata</div><div class="ft"><div class="pr">₡32.000</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.1s" href="/shop/fresa-para-cantear-vastago-12-12-1-ref-g141-6898"><div class="ph"><span class="stk nuevo">Nuevo</span><img src="/web/image/product.template/6898/image_1024" alt="Fresa para cantear G141"/></div><div class="bd"><div class="nm">Fresa para Cantear Vástago 1/2" — Ref. G141</div><div class="ft"><div class="pr">₡12.300</div><div class="go">Ver →</div></div></div></a>
+            <a class="fr reveal" style="animation-delay:.15s" href="/shop/fresa-recta-cnc-corte-12-127mm-profundidad-30-mm-vastago-14-refp140-6896"><div class="ph"><span class="stk nuevo">Nuevo</span><img src="/web/image/product.template/6896/image_1024" alt="Fresa recta CNC P140"/></div><div class="bd"><div class="nm">Fresa recta CNC — corte 1/2", prof. 30 mm — Ref. P140</div><div class="ft"><div class="pr">₡6.000</div><div class="go">Ver →</div></div></div></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACEITES — sección dedicada -->
+      <section class="oils sec" id="aceites">
+        <div class="wrap">
+          <div class="intro reveal">
+            <div class="k">Acabados naturales</div>
+            <h2 class="serif">Aceite de <em>Tung</em> y de <em>linaza</em>.</h2>
+            <p>El último paso del buen trabajo: aceites que penetran, nutren y resaltan la veta de la madera. Acabado natural, al tacto cálido, sin películas plásticas.</p>
+          </div>
+          <div class="oilgrid">
+            <div class="oil reveal" style="animation-delay:.08s">
+              <div class="pic"><img src="/web/image/product.template/6444/image_1024" alt="Aceite de Tung"/></div>
+              <div>
+                <h3 class="serif">Aceite de Tung</h3>
+                <div class="desc">Penetra y protege resaltando la veta, con buena resistencia al agua. Ideal para tablas, muebles, utensilios y maderas finas.</div>
+                <div class="sizes">
+                  <div class="sz"><span>250 ml</span><b>₡4.500</b></div>
+                  <div class="sz"><span>1 Litro</span><b>₡15.500</b></div>
+                  <div class="sz"><span>1 Galón</span><b>₡56.000</b></div>
+                </div>
+                <a class="btn btn-primary" href="/shop?search=aceite%20de%20tung">Comprar aceite de Tung →</a>
+              </div>
+            </div>
+            <div class="oil reveal" style="animation-delay:.16s">
+              <div class="pic"><img src="/web/image/product.template/1086/image_1024" alt="Aceite de Linaza doble cocido"/></div>
+              <div>
+                <h3 class="serif">Aceite de Linaza</h3>
+                <div class="desc">El clásico de toda la vida, doble cocido para secar más rápido. Nutre la madera, realza el color y le da calidez. Rinde y es económico.</div>
+                <div class="sizes">
+                  <div class="sz"><span>250 ml</span><b>₡2.700</b></div>
+                  <div class="sz"><span>1 Litro</span><b>₡8.900</b></div>
+                  <div class="sz"><span>1 Galón</span><b>₡27.000</b></div>
+                </div>
+                <a class="btn btn-light" href="/shop?search=aceite%20de%20linaza">Comprar aceite de linaza →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WHY mini -->
+      <section class="sec" style="padding-top:64px;">
+        <div class="wrap why">
+          <div class="it reveal"><div class="ic">🇨🇷</div><h3>Tienda tica</h3><p>Negocio 100% costarricense, pensado para el carpintero de aquí. Enviamos a todo el país.</p></div>
+          <div class="it reveal" style="animation-delay:.06s"><div class="ic">💬</div><h3>Asesoría CNC</h3><p>¿Dudás cuál fresa para tu material? Te decimos exacto por WhatsApp.</p></div>
+          <div class="it reveal" style="animation-delay:.12s"><div class="ic">🚚</div><h3>Envío nacional</h3><p>A cualquier rincón de Costa Rica, rápido y rastreable.</p></div>
+          <div class="it reveal" style="animation-delay:.18s"><div class="ic">🧾</div><h3>Factura electrónica</h3><p>Comprobante de Hacienda al instante, para tu empresa o proyecto.</p></div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta-band">
+        <div class="wrap">
+          <h2 class="serif">¿Buscás una fresa en especial?</h2>
+          <p>Tenemos vástago 1/4" y 1/2", para madera, MDF, acrílico y aluminio. Escribinos y te la encontramos.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="/shop/category/1884">Ver todas las fresas →</a>
+            <a class="btn btn-ghost" href="https://wa.me/50686069717">WhatsApp 8606-9717</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="ft-wrap">
+        <div class="wrap">
+          <div class="ft-grid">
+            <div>
+              <img src="/web/image/website/3/logo" alt="Paracarpinteros"/>
+              <p style="max-width:34ch">La juguetería para carpinteros. Fresas, herramientas y acabados para el oficio, en Costa Rica.</p>
+            </div>
+            <div>
+              <h4>Tienda</h4>
+              <a href="/shop/category/1884">Fresas</a><a href="#aceites">Aceites y acabados</a><a href="/shop">Catálogo</a><a href="/como-comprar">Cómo comprar</a>
+            </div>
+            <div>
+              <h4>Contacto</h4>
+              <a href="https://wa.me/50686069717">WhatsApp 8606-9717</a>
+              <a href="https://wa.me/50661043421">WhatsApp 6104-3421</a>
+              <a href="mailto:admin@paracarpinteros.com">admin@paracarpinteros.com</a>
+              <p>Santa Cruz de Turrialba, Costa Rica</p>
+            </div>
+          </div>
+          <div class="ft-bot"><span>© Paracarpinteros · Borrador de diseño (Inicio v3 — Fresas)</span><span>Hecho en Costa Rica 🇨🇷</span></div>
+        </div>
+      </footer>
+    </div>
+  </t>
+</t>

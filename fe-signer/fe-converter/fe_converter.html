@@ -1378,7 +1378,11 @@ async function searchInvoices() {
   list.innerHTML = '<div class="loading-msg">⏳ Buscando...</div>';
 
   const invs = await RPC.searchRead('account.move', domain, ['name','invoice_date','partner_id','amount_total','ref']);
-  if (!invs || invs.length === 0) { list.innerHTML = '<div class="loading-msg">❌ Sin resultados</div>'; return; }
+  // v33 (Bug B): distinguir error de conexión (RPC devuelve null) de "0 resultados".
+  // Antes ambos mostraban "Sin resultados", ocultando un fallo que sólo se
+  // resolvía recargando; ahora un error queda visible y el botón Buscar reintenta.
+  if (invs === null) { list.innerHTML = '<div class="loading-msg">⚠️ Error de conexión con Odoo. Reintentá con el botón Buscar.</div>'; return; }
+  if (invs.length === 0) { list.innerHTML = '<div class="loading-msg">❌ Sin resultados</div>'; return; }
 
   // v32: cross-ref con FE ya emitidas para evitar reenvíos por error.
   // - FE_<clave>.xml → ya se firmó.
@@ -1449,8 +1453,12 @@ async function searchInvoices() {
 
 async function loadInvoice(id) {
   // Guard anti doble-click: si ya se está cargando una factura, ignorar el 2º click.
-  if (window._loadInvoiceBusy) return;
+  // v33 (Bug B): guard auto-sanable. Si por un await colgado el flag quedara en
+  // true, tras 10s se ignora, para no bloquear la carga de otras facturas (antes
+  // obligaba a recargar la página entera para poder cargar otra).
+  if (window._loadInvoiceBusy && (Date.now() - (window._loadInvoiceBusyAt || 0) < 10000)) return;
   window._loadInvoiceBusy = true;
+  window._loadInvoiceBusyAt = Date.now();
   try {
   const invs = await RPC.searchRead('account.move', [['id','=',id]], ['id','name','invoice_date','partner_id','currency_id','amount_untaxed','amount_tax','amount_total','invoice_line_ids','invoice_payment_term_id','ref']);
   if (!invs || invs.length === 0) return;
@@ -1483,6 +1491,11 @@ async function loadInvoice(id) {
   document.querySelectorAll('.inv-item').forEach(el => el.classList.remove('active'));
   const clickedItem = document.querySelector('.inv-item[onclick*="'+id+'"]');
   if (clickedItem) clickedItem.classList.add('active');
+
+  // v33 (Bug A): refrescar el consecutivo al cargar CADA factura. Antes solo se
+  // leía en init(), así que al cargar otra factura sin recargar la página se
+  // reusaba el consecutivo de la anterior → clave duplicada → HTTP 400.
+  try { await loadConsecForTipo(document.getElementById('n-tipo').value); } catch(e){ console.warn('v33 refresco consec:', e); }
 
   updateClave();
   renderEmisor();
@@ -4719,6 +4732,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ago30 = new Date(today.getTime() - 30*24*60*60*1000);
   document.getElementById('f-d2').value = today.toISOString().slice(0,10);
   document.getElementById('f-d1').value = ago30.toISOString().slice(0,10);
+  // v33 (Bug B): Enter en los campos de búsqueda dispara Buscar (antes sólo el botón).
+  ['f-num','f-cli'].forEach(idf => {
+    const el = document.getElementById(idf);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchInvoices(); } });
+  });
   try {
     const tipoInicial = document.getElementById('n-tipo').value;
     toggleIrBlock(tipoInicial);

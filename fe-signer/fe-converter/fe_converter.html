@@ -1509,6 +1509,11 @@ async function loadInvoice(id) {
 
   // Auto-suggest CAByS in background for lines missing a code
   autoSuggestCabysForLines().then(n => { if (n > 0) renderLineas(); });
+  // v33: si la factura ya se firmó/envió pero le falta el acuse de Hacienda
+  // (se cerró el conversor antes de que el auto-sondeo lo guardara), consultarlo
+  // y persistirlo en background → la pestaña Emitir deja de mostrar "pendiente"
+  // fantasma. No bloquea la carga.
+  v33_backfillAcuse(id);
   } finally { window._loadInvoiceBusy = false; }
 }
 
@@ -4712,6 +4717,52 @@ async function v31_autoPoll(intento) {
   v31_autoPoll(intento + 1);
 }
 // ═════════════════════ /v31 ═════════════════════
+
+// ═════════════════════ v33: backfill del acuse de Hacienda ═════════════════════
+// El acuse (FE_<clave>_respuesta_hacienda.xml) solo se guardaba si el operador
+// dejaba el conversor abierto hasta que el auto-sondeo veía "Aceptado". Si enviaba
+// y se iba, la factura quedaba firmada pero SIN acuse → Emitir la mostraba
+// "pendiente" para siempre aunque Hacienda ya la hubiera aceptado. Esto consulta
+// Hacienda al abrir la factura y guarda el acuse si el estado ya es final.
+// Corre en el navegador porque el Worker está tras Cloudflare (rechaza server-side).
+let _v33Token = null, _v33TokenAt = 0;
+async function v33_getHaciendaToken(workerUrl) {
+  if (_v33Token && (Date.now() - _v33TokenAt) < 240000) return _v33Token;
+  const tr = await fetch(workerUrl + '/token', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ client_id: 'api-prod' }) });
+  const td = await tr.json();
+  if (td && td.access_token) { _v33Token = td.access_token; _v33TokenAt = Date.now(); return _v33Token; }
+  return null;
+}
+async function v33_backfillAcuse(moveId) {
+  try {
+    const atts = await RPC.searchRead('ir.attachment',
+      [['res_model','=','account.move'],['res_id','=',moveId],['name','=like','FE_%.xml']], ['name']);
+    if (!atts || !atts.length) return;
+    const firmada = atts.find(a => /^FE_\d{50}\.xml$/.test(a.name));
+    if (!firmada) return;                                  // no hay comprobante firmado
+    if (atts.some(a => a.name.includes('respuesta_hacienda'))) return;  // ya tiene acuse
+    const clave = firmada.name.slice(3, 53);               // FE_<50 dígitos>.xml
+    const workerUrl = v21_getActiveWorkerUrl();
+    if (!workerUrl) return;
+    const token = await v33_getHaciendaToken(workerUrl);
+    if (!token) return;
+    const r = await fetch(workerUrl + '/status/' + clave, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!r.ok) return;                                     // no consultable (p.ej. clave staging en prod)
+    const data = await r.json();
+    const ind = data['ind-estado'] || data.indEstado || '';
+    const esFinal = (ind === 'aceptado' || ind === '1' || ind === 'rechazado' || ind === '2');
+    if (esFinal && data['respuesta-xml']) {
+      await RPC.call('ir.attachment.create', [{
+        name: 'FE_' + clave + '_respuesta_hacienda.xml',
+        type: 'binary', datas: data['respuesta-xml'], mimetype: 'application/xml',
+        res_model: 'account.move', res_id: moveId,
+      }]);
+      const aceptada = (ind === 'aceptado' || ind === '1');
+      if (typeof showToast === 'function') showToast('Acuse recuperado: ' + (aceptada ? 'ACEPTADA ✓' : 'RECHAZADA ✗'));
+    }
+  } catch(e) { console.warn('v33 backfill acuse:', e); }
+}
+// ═════════════════════ /v33 backfill ═════════════════════
 
 function toggleCardCollapse(card) {
   card.classList.toggle('collapsed');

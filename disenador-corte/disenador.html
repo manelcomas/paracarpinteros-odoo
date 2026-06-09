@@ -246,6 +246,11 @@ function render2d(){
     else{const a=(el.ang||0)*D2R;sp=[el.x+el.r*Math.cos(a),el.y+el.r*Math.sin(a)];dir=[Math.cos(a),Math.sin(a)];prop='r';factor=1;}
     window._szHandle={dir,prop,factor};
     overlay+=`<rect id="esz" x="${rnd(sp[0]+r.dx-hs/2)}" y="${rnd(sp[1]+r.dy-hs/2)}" width="${rnd(hs)}" height="${rnd(hs)}" rx="${rnd(hs*0.2)}" fill="#1763d6" stroke="#fff" stroke-width="0.4" style="cursor:nwse-resize"/>`;}
+  // guías inteligentes (línea imán al centrar/alinear)
+  if(window._guides){const G=window._guides;let gs='';
+    if(G.x!=null){const X=G.x+r.dx;gs+=`<line x1="${rnd(X)}" y1="0" x2="${rnd(X)}" y2="${rnd(r.H)}" stroke="#e0319b" stroke-width="0.6" stroke-dasharray="4 3"/>`;}
+    if(G.y!=null){const Y=G.y+r.dy;gs+=`<line x1="0" y1="${rnd(Y)}" x2="${rnd(r.W)}" y2="${rnd(Y)}" stroke="#e0319b" stroke-width="0.6" stroke-dasharray="4 3"/>`;}
+    overlay=gs+overlay;}
   document.getElementById('stageWrap').innerHTML=buildSVG(r.ents,r.cotas,r.W,r.H,{preview:true,imgStr:imgToSvg(r,true),overlay,axes:axesSvg(r)});
   document.getElementById('sizeChip').textContent=`${rnd(r.pieza.w)} × ${rnd(r.pieza.h)} mm`;
   document.getElementById('zChip').textContent='Z (grosor) '+grosor+' mm';
@@ -294,6 +299,8 @@ function arregloCircular(){const el=elementos[selEl];if(!el)return;const n=Math.
   for(let k=1;k<n;k++){const a=k*360/n,ca=Math.cos(a*D2R),sa=Math.sin(a*D2R),dx=el.x-cx,dy=el.y-cy;
     const c={...el,x:cx+dx*ca-dy*sa,y:cy+dx*sa+dy*ca};if(el.tipo!=='a')c.ang=(el.ang||0)+a;elementos.push(c);}
   render();}
+function arregloLineal(){const el=elementos[selEl];if(!el)return;const n=Math.max(2,Math.min(60,parseInt(document.getElementById('lN').value)||3));const paso=parseFloat(document.getElementById('lPaso').value)||30;const ang=parseFloat(document.getElementById('lAng').value)||0,ux=Math.cos(ang*D2R),uy=Math.sin(ang*D2R);
+  for(let k=1;k<n;k++)elementos.push({...el,x:el.x+ux*paso*k,y:el.y+uy*paso*k});render();}
 function setElProp(prop,v){v=parseFloat(v);if(!isNaN(v)&&selEl>=0){elementos[selEl][prop]=v;render();}}
 function fEl(label,prop,val,step){return`<div class="field" style="margin:0;flex:1"><label>${label}</label><div class="row"><input id="el_${prop}" type="number" step="${step||1}" value="${rnd(val)}" oninput="setElProp('${prop}',this.value)"></div></div>`;}
 function pintarElSel(){
@@ -304,7 +311,10 @@ function pintarElSel(){
   else if(el.tipo==='r')campos+=`<div class="three" style="margin-top:6px">${fEl('Largo','len',el.len)}${fEl('Ancho','w',el.w)}${fEl('Áng°','ang',el.ang,5)}</div>`;
   else campos+=`<div class="three" style="margin-top:6px">${fEl('Radio','r',el.r)}${fEl('Barrido°','sweep',el.sweep,5)}${fEl('Ancho','w',el.w)}</div>`+`<div class="two" style="margin-top:6px">${fEl('Orientación°','ang',el.ang||0,5)}<div style="flex:1"></div></div>`;
   const nom=el.tipo==='a'?'Agujero':(el.tipo==='r'?'Ranura recta':'Ranura curva');
-  const sim=`<div style="border-top:1px dashed #d8cde6;margin-top:8px;padding-top:7px"><div style="font-size:.72rem;font-weight:700;color:var(--pc-burgundy);margin-bottom:5px">Simetrías</div><div class="three"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="espejar('y')">⇋ Espejo</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="espejar('x')">⇵ Espejo</button></div><div class="two" style="margin-top:6px;align-items:center"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="arregloCircular()">⟳ Repetir en círculo</button><input id="aN" type="number" min="2" max="48" value="4" style="width:54px;padding:6px;border:1px solid var(--border);border-radius:6px"></div></div>`;
+  const sim=`<div style="border-top:1px dashed #d8cde6;margin-top:8px;padding-top:7px"><div style="font-size:.72rem;font-weight:700;color:var(--pc-burgundy);margin-bottom:5px">Simetrías y arreglos</div>
+    <div class="three"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="espejar('y')">⇋ Espejo</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="espejar('x')">⇵ Espejo</button></div>
+    <div class="two" style="margin-top:6px;align-items:center"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="arregloCircular()">⟳ En círculo</button><span style="font-size:.7rem;color:var(--muted)">N</span><input id="aN" type="number" min="2" max="48" value="4" style="width:48px;padding:6px;border:1px solid var(--border);border-radius:6px"></div>
+    <div style="display:flex;gap:6px;margin-top:6px;align-items:center"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="arregloLineal()">⋯ En línea</button><span style="font-size:.7rem;color:var(--muted)">N</span><input id="lN" type="number" min="2" max="60" value="3" style="width:44px;padding:6px;border:1px solid var(--border);border-radius:6px"><span style="font-size:.7rem;color:var(--muted)">paso</span><input id="lPaso" type="number" min="1" value="30" style="width:52px;padding:6px;border:1px solid var(--border);border-radius:6px"><input id="lAng" type="number" value="0" title="ángulo°" style="width:44px;padding:6px;border:1px solid var(--border);border-radius:6px"></div></div>`;
   box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:.78rem;color:#2a8a2a">▸ ${nom} seleccionado</b><button class="btn btn-ghost btn-sm" style="color:#c0392b;padding:4px 8px" onclick="borrarEl()">🗑</button></div>${campos}${sim}`;
 }
 function syncElValues(){ // actualiza valores sin reconstruir (no roba el foco al escribir)
@@ -316,12 +326,18 @@ function syncElValues(){ // actualiza valores sin reconstruir (no roba el foco a
 }
 function snapVal(v){return snap>0?Math.round(v/snap)*snap:v;}
 function scaleOf(r){const svg=document.querySelector('#stageWrap svg');if(!svg)return 1;const rect=svg.getBoundingClientRect();return Math.min(rect.width/r.W,rect.height/r.H);}
+function imanta(val,cands,tol){for(const c of cands)if(Math.abs(val-c)<tol)return c;return null;}
 function attachHitDrag(r){
   elementos.forEach((el,i)=>{const h=document.getElementById('hit_'+i);if(!h)return;
     h.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();window._drag=true;const cambio=selEl!==i;selEl=i;if(cambio)pintarElSel();
       const scale=scaleOf(r),sx=e.clientX,sy=e.clientY,x0=el.x,y0=el.y;
-      function mv(ev){el.x=snapVal(x0+(ev.clientX-sx)/scale);el.y=snapVal(y0-(ev.clientY-sy)/scale);render();}
-      function up(){window._drag=false;document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}
+      const bb=templateBB(),cx=(bb.minX+bb.maxX)/2,cy=(bb.minY+bb.maxY)/2;
+      const xs=[0,cx,bb.minX,bb.maxX].concat(elementos.filter((_,k)=>k!==i).map(e=>e.x));
+      const ys=[0,cy,bb.minY,bb.maxY].concat(elementos.filter((_,k)=>k!==i).map(e=>e.y));
+      function mv(ev){let nx=snapVal(x0+(ev.clientX-sx)/scale),ny=snapVal(y0-(ev.clientY-sy)/scale);
+        const tol=7/scale,gx=imanta(nx,xs,tol),gy=imanta(ny,ys,tol);
+        if(gx!=null)nx=gx;if(gy!=null)ny=gy;el.x=nx;el.y=ny;window._guides={x:gx,y:gy};render();}
+      function up(){window._drag=false;window._guides=null;render();document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}
       document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});});}
 function attachHandleDrag(r,handles){
   handles.forEach((hd,i)=>{const el=document.getElementById('handle_'+i);if(!el)return;

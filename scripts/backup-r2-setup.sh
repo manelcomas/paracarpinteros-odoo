@@ -5,7 +5,7 @@
 # Qué respalda (copia CONSISTENTE de los SQLite con `sqlite3 .backup`, no `cp`):
 #   - Bridge:   /opt/paracarpinteros-odoo/correos-cr-bridge/data/panel.sqlite
 #   - WA bot:   /opt/whatsapp-bot/data/conversations.db
-#   - Buzón FE: /opt/paracarpinteros-odoo/fe-signer/buzon-rx/storage/buzon.db (si existe)
+#   - Buzón FE: /opt/paracarpinteros-odoo/fe-signer/storage/buzon.db (si existe)
 #   - Código + panel: tar del repo monorepo + del wa-bot (sin data/, .git, venvs)
 #
 # Destino: r2://backups-paracarpinteros/<host>/YYYY-MM-DD/
@@ -86,7 +86,7 @@ trap 'rm -rf "$WORK"' EXIT
 
 BRIDGE_DB="/opt/paracarpinteros-odoo/correos-cr-bridge/data/panel.sqlite"
 WABOT_DB="/opt/whatsapp-bot/data/conversations.db"
-BUZON_DB="/opt/paracarpinteros-odoo/fe-signer/buzon-rx/storage/buzon.db"
+BUZON_DB="/opt/paracarpinteros-odoo/fe-signer/storage/buzon.db"
 
 # ── 1. Copia consistente de los SQLite (.backup respeta WAL/locks) ──────────
 backup_sqlite() {  # $1=ruta origen  $2=nombre destino

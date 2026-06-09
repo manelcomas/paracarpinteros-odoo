@@ -348,6 +348,24 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
   .card.list-wrap tbody tr.row-has-guide td{background:transparent}
 }
 </style>
+<style id="pc-panel-topnav">
+/* Escritorio: la barra lateral pasa a barra SUPERIOR (recupera los 240px de ancho).
+   Solo >=1024px; tablet/movil conservan su drawer. Sin tocar JS ni nav-items. */
+@media (min-width:1024px){
+  .app{display:flex !important; flex-direction:column !important; grid-template-columns:none !important;}
+  .sidebar{flex-direction:row !important; align-items:center; gap:6px; padding:8px 18px !important;
+    border-right:none !important; border-bottom:1px solid var(--border) !important; overflow-x:auto; overflow-y:hidden;
+    position:sticky; top:0; z-index:45; background:var(--surface);}
+  .sidebar::-webkit-scrollbar{height:6px;}
+  .sidebar .brand{border-bottom:none !important; margin:0 6px 0 0 !important; padding:0 14px 0 0 !important;
+    border-right:1px solid var(--border); white-space:nowrap; flex:none;}
+  .sidebar .brand .sub{display:none;}
+  .nav-item{white-space:nowrap; flex:none;}
+  .nav-item .badge{margin-left:6px;}
+  .sidebar-foot{display:none !important;}
+  .main{width:100%; max-width:100%;}
+}
+</style>
 </head>
 <body>
 

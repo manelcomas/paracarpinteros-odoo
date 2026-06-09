@@ -371,6 +371,26 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
   .main{width:100%; max-width:100%;}
 }
 </style>
+<style id="pc-panel-colors">
+/* Unificar paleta con la web (crema/espresso/naranja) — remapea las variables del panel. */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+:root{
+  --bg:#F4ECDD; --surface:#FBF6EC; --card:#EFE3CE; --card2:#E7D8BD;
+  --border:#DBC9A8; --border2:#C9B79A;
+  --text:#241A10; --text2:#4E3D29; --text3:#7A6849;
+  --green:#CF531C; --yellow:#B8791A; --yellow-lt:#E8A33A;
+}
+body{font-family:'Hanken Grotesk','Segoe UI',sans-serif !important;}
+.page-title,.kpi-value,.brand .logo{font-family:'Fraunces',serif !important;}
+.nav-item.active{background:#F6E3D5 !important; color:#9C3C10 !important;}
+.nav-item.active .badge{background:#CF531C !important; color:#fff !important;}
+.tab.active{color:#CF531C !important; border-color:#CF531C !important;}
+.btn-prim{background:#CF531C !important; border-color:#CF531C !important; color:#FFF6EE !important;}
+.btn-prim:hover{background:#9C3C10 !important; border-color:#9C3C10 !important;}
+.avatar{background:#CF531C !important;}
+tbody tr:hover{background:#F6EFE1 !important;}
+.nav-ext{font-size:.72rem; opacity:.55; margin-left:3px;}
+</style>
 </head>
 <body>
 
@@ -420,18 +440,18 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
     <div class="nav-item" onclick="switchTab('calendario', this)">
       <span class="nav-icon">📅</span> Calendario
     </div>
-    <div class="nav-item" onclick="switchTab('calc', this)">
-      <span class="nav-icon">💰</span> Calculadora
+    <div class="nav-item" onclick="window.open('/calculadora/','_blank','noopener')" title="Abre en ventana nueva">
+      <span class="nav-icon">💰</span> Calculadora <span class="nav-ext">↗</span>
     </div>
-    <div class="nav-item" onclick="switchTab('fe', this)">
-      <span class="nav-icon">📄</span> FE Converter
+    <div class="nav-item" onclick="window.open('https://www.paracarpinteros.com/fe-converter','_blank','noopener')" title="Abre en ventana nueva">
+      <span class="nav-icon">📄</span> FE Converter <span class="nav-ext">↗</span>
     </div>
     <div class="nav-item" onclick="switchTab('alibaba', this)">
       <span class="nav-icon">🏭</span> Alibaba
       <span class="badge" id="badgeAlibaba" style="display:none">·</span>
     </div>
-    <div class="nav-item" onclick="switchTab('wa', this)">
-      <span class="nav-icon">💬</span> WhatsApp Bot
+    <div class="nav-item" onclick="window.open('https://wa.paracarpinteros.com/','_blank','noopener')" title="Abre en ventana nueva">
+      <span class="nav-icon">💬</span> WhatsApp Bot <span class="nav-ext">↗</span>
     </div>
     <div class="nav-item" onclick="logout()">
       <span class="nav-icon">🚪</span> Cerrar sesión

@@ -349,17 +349,22 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
 }
 </style>
 <style id="pc-panel-topnav">
-/* Escritorio: la barra lateral pasa a barra SUPERIOR (recupera los 240px de ancho).
+/* Escritorio: la barra lateral pasa a CABECERA SUPERIOR en dos niveles
+   (1: logo a lo ancho · 2: menu de herramientas). Recupera los 240px de ancho.
    Solo >=1024px; tablet/movil conservan su drawer. Sin tocar JS ni nav-items. */
+.brand .brand-logo{display:none;}  /* movil usa el texto; escritorio muestra el logo */
 @media (min-width:1024px){
   .app{display:flex !important; flex-direction:column !important; grid-template-columns:none !important;}
-  .sidebar{flex-direction:row !important; align-items:center; gap:6px; padding:8px 18px !important;
-    border-right:none !important; border-bottom:1px solid var(--border) !important; overflow-x:auto; overflow-y:hidden;
+  .sidebar{flex-flow:row wrap !important; align-items:center; gap:5px; padding:6px 16px 9px !important;
+    border-right:none !important; border-bottom:1px solid var(--border) !important;
     position:sticky; top:0; z-index:45; background:var(--surface);}
-  .sidebar::-webkit-scrollbar{height:6px;}
-  .sidebar .brand{border-bottom:none !important; margin:0 6px 0 0 !important; padding:0 14px 0 0 !important;
-    border-right:1px solid var(--border); white-space:nowrap; flex:none;}
-  .sidebar .brand .sub{display:none;}
+  /* Nivel 1: logo (linea propia, a lo ancho) */
+  .sidebar .brand{flex:0 0 100% !important; display:flex; align-items:center; gap:12px;
+    margin:0 -16px 8px !important; padding:10px 22px !important;
+    border-bottom:1px solid var(--border) !important;}
+  .sidebar .brand .brand-logo{display:block; height:42px; width:auto;}
+  .sidebar .brand .logo, .sidebar .brand .sub{display:none;}
+  /* Nivel 2: menu de herramientas (fila de pestañas) */
   .nav-item{white-space:nowrap; flex:none;}
   .nav-item .badge{margin-left:6px;}
   .sidebar-foot{display:none !important;}
@@ -395,6 +400,7 @@ tr.row-has-guide:hover td{background:rgba(76,175,110,.10)}
   <!-- ╔═══ SIDEBAR ═══╗ -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
+      <img class="brand-logo" src="https://www.paracarpinteros.com/web/image/website/3/logo" alt="Paracarpinteros"/>
       <div class="logo">LA JUGUETERÍA.</div>
       <div class="sub">Para Carpinteros</div>
     </div>

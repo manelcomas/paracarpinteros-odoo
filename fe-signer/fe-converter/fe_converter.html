@@ -414,11 +414,28 @@ table.lt td.r { text-align: right; font-family: 'Courier New', monospace; }
 .cabys-result-desc { font-size: 0.84rem; color: var(--text); flex: 1; }
 .cabys-status { padding: 20px 18px; text-align: center; color: var(--muted); font-size: 0.84rem; }
 </style>
+<style id="pc-fe-unify">
+/* Unificar el conversor con la web/panel: crema/espresso/naranja + cabecera estilo web */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+:root{
+  --primary:#CF531C; --primary-dk:#9C3C10;
+  --bg:#F4ECDD; --border:#DBC9A8; --text:#241A10; --muted:#7A6849;
+}
+body{font-family:'Hanken Grotesk',-apple-system,'Segoe UI',sans-serif !important; background:#F4ECDD !important;}
+/* Cabecera estilo web: crema, texto oscuro, logo real */
+.topbar{background:#F4ECDD !important; color:#241A10 !important; border-bottom:1px solid #DBC9A8 !important;}
+.topbar .topbar-title{font-family:'Fraunces',serif !important; color:#241A10 !important;}
+.topbar .topbar-sub{color:#7A6849 !important; opacity:1 !important;}
+.topbar .logo img{height:34px; width:auto; display:block;}
+.topbar-actions a, .topbar-actions button{color:#241A10 !important;}
+.btn-primary, .btn.btn-primary{background:#CF531C !important; border-color:#CF531C !important; color:#FFF6EE !important;}
+.btn-primary:hover{background:#9C3C10 !important; border-color:#9C3C10 !important;}
+</style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="logo">📄</div>
+  <div class="logo"><img src="https://www.paracarpinteros.com/web/image/website/3/logo" alt="Paracarpinteros"/></div>
   <div>
     <div class="topbar-title">Conversor: Régimen Simplificado → Facturación Electrónica</div>
     <div class="topbar-sub">La Juguetería para Carpinteros · Portal Tribucr / Hacienda CR</div>

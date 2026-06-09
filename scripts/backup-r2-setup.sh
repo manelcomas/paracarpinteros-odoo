@@ -19,11 +19,14 @@
 set -euo pipefail
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  EDITAR ESTAS 3 VARIABLES  (R2 → Manage R2 API Tokens → Object R&W)        ║
+# ║  CREDENCIALES R2  (R2 → Manage R2 API Tokens → Object Read & Write)        ║
+# ║  Opción A: editar las 3 variables aquí abajo.                              ║
+# ║  Opción B (no deja secretos en el archivo): pasarlas por entorno, p.ej.    ║
+# ║    R2_ACCESS_KEY=... R2_SECRET_KEY=... R2_ACCOUNT_ID=... bash este_script  ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-R2_ACCESS_KEY="PEGA_AQUI_ACCESS_KEY_ID"
-R2_SECRET_KEY="PEGA_AQUI_SECRET_ACCESS_KEY"
-R2_ACCOUNT_ID="PEGA_AQUI_ACCOUNT_ID"      # el del endpoint <ACCOUNT_ID>.r2.cloudflarestorage.com
+R2_ACCESS_KEY="${R2_ACCESS_KEY:-PEGA_AQUI_ACCESS_KEY_ID}"
+R2_SECRET_KEY="${R2_SECRET_KEY:-PEGA_AQUI_SECRET_ACCESS_KEY}"
+R2_ACCOUNT_ID="${R2_ACCOUNT_ID:-PEGA_AQUI_ACCOUNT_ID}"   # el del endpoint <ACCOUNT_ID>.r2.cloudflarestorage.com
 
 # ── Constantes (no suele hacer falta tocarlas) ──────────────────────────────
 R2_BUCKET="backups-paracarpinteros"

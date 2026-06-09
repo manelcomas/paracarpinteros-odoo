@@ -15,7 +15,8 @@
   .sidebar{width:348px;min-width:320px;background:var(--card);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:15px}
   .stage{flex:1;display:flex;flex-direction:column;background:repeating-conic-gradient(#eee 0% 25%,#f6f6f6 0% 50%) 0/22px 22px;position:relative}
   .stage-bar{background:rgba(255,255,255,.92);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.76rem}
-  .stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;touch-action:none}
+  .stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;touch-action:none;position:relative}
+  #btnBack2d{position:absolute;top:18px;left:18px;z-index:6;background:var(--pc-burgundy);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,.25)}
   svg.preview{width:100%;height:100%;background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.12);border-radius:4px;will-change:transform}
   svg.preview path.geo,svg.preview line.geo,svg.preview circle.geo{vector-effect:non-scaling-stroke}
   svg.preview .cota{cursor:pointer}
@@ -77,6 +78,7 @@
           <button class="btn btn-ghost btn-sm" style="flex:1" onclick="agregar('c')">➕ Ranura curva</button>
         </div>
         <div class="field" style="margin:9px 0 0"><label>Snap a cuadrícula</label><select id="selSnap" onchange="snap=parseFloat(this.value);render()"><option value="0">Libre</option><option value="0.5">0.5 mm</option><option value="1" selected>1 mm</option><option value="5">5 mm</option><option value="10">10 mm</option></select></div>
+        <div id="elLista" style="margin-top:8px"></div>
         <div id="elSel" style="display:none;margin-top:9px"></div>
         <p class="hint" style="margin-top:8px;background:#fff;border-color:#d8cde6">Agregá, <b>arrastrá</b> y escribí su <b>X/Y exacta</b>. La ranura curva = recorrido de un eje (router).</p>
       </div>
@@ -226,7 +228,7 @@ function calcular(){
   return{ents,cotas,W:bw+pad*2,H:bh+pad*2,pad,dx,dy,bb,pieza:{w:bw,h:bh}};
 }
 function settingsRec(){const m=MATERIALES[matActual],t=grosor,f=watts/80;return{power:Math.min(100,m.cut.power),cutSpeed:Math.max(2,Math.min(140,Math.round(m.cut.baseSpeed*f*(3/Math.max(t,0.5))))),passes:Math.max(1,Math.ceil(t/(m.cut.passThk*f))),eng:m.eng};}
-function render(){vista3d?render3d():render2d();}
+function render(){pintarElLista();vista3d?render3d():render2d();}
 function render2d(){
   const r=calcular(),p=paramsActuales();
   // overlay = handles de borde (abajo) + agarres de agujeros/ranuras (arriba), SIEMPRE encima de cotas/geometría
@@ -236,10 +238,18 @@ function render2d(){
   handles.forEach((hd,i)=>{const X=hd.x+r.dx,Y=hd.y+r.dy,cur=hd.axis==='x'?'ew-resize':'ns-resize';overlay+=`<rect id="handle_${i}" x="${rnd(X-hs/2)}" y="${rnd(Y-hs/2)}" width="${rnd(hs)}" height="${rnd(hs)}" rx="${rnd(hs*0.2)}" fill="#2a8a2a" stroke="#fff" stroke-width="0.4" style="cursor:${cur}"/>`;});
   const hmin=Math.max(r.W,r.H)/55;  // agarre mínimo visible
   elementos.forEach((el,i)=>{const[hx,hy]=elHitCentro(el),hr=Math.max(elHitR(el),hmin),sel=i===selEl;overlay+=`<circle id="hit_${i}" cx="${rnd(hx+r.dx)}" cy="${rnd(hy+r.dy)}" r="${rnd(hr)}" fill="${sel?'rgba(42,138,42,0.12)':'rgba(0,0,0,0.001)'}" stroke="${sel?'#2a8a2a':'none'}" stroke-width="0.4" style="cursor:move"/>`;});
+  // handle de TAMAÑO (azul) del elemento seleccionado: Ø agujero / largo ranura / radio curva
+  window._szHandle=null;
+  if(selEl>=0&&elementos[selEl]){const el=elementos[selEl];let sp,dir,prop,factor;
+    if(el.tipo==='a'){sp=[el.x+el.d/2,el.y];dir=[1,0];prop='d';factor=2;}
+    else if(el.tipo==='r'){const a=el.ang*D2R;sp=[el.x+(el.len/2)*Math.cos(a),el.y+(el.len/2)*Math.sin(a)];dir=[Math.cos(a),Math.sin(a)];prop='len';factor=2;}
+    else{const a=(el.ang||0)*D2R;sp=[el.x+el.r*Math.cos(a),el.y+el.r*Math.sin(a)];dir=[Math.cos(a),Math.sin(a)];prop='r';factor=1;}
+    window._szHandle={dir,prop,factor};
+    overlay+=`<rect id="esz" x="${rnd(sp[0]+r.dx-hs/2)}" y="${rnd(sp[1]+r.dy-hs/2)}" width="${rnd(hs)}" height="${rnd(hs)}" rx="${rnd(hs*0.2)}" fill="#1763d6" stroke="#fff" stroke-width="0.4" style="cursor:nwse-resize"/>`;}
   document.getElementById('stageWrap').innerHTML=buildSVG(r.ents,r.cotas,r.W,r.H,{preview:true,imgStr:imgToSvg(r,true),overlay,axes:axesSvg(r)});
   document.getElementById('sizeChip').textContent=`${rnd(r.pieza.w)} × ${rnd(r.pieza.h)} mm`;
   document.getElementById('zChip').textContent='Z (grosor) '+grosor+' mm';
-  window.__ult=r;applyView();attachImgDrag(r);attachHitDrag(r);attachHandleDrag(r,handles);
+  window.__ult=r;applyView();attachImgDrag(r);attachHitDrag(r);attachHandleDrag(r,handles);attachElSizeDrag(r);
   const s=settingsRec(),m=MATERIALES[matActual];
   document.getElementById('settings').innerHTML=`<div>🔪 <b>Corte:</b> ${s.power}% · ${s.cutSpeed} mm/s · ${s.passes} pasada${s.passes>1?'s':''}</div><div class="eng">✏️ <b>Grabado:</b> ${s.eng.power}% · ${s.eng.speed} mm/s</div><div style="font-size:.68rem;color:var(--muted);margin-top:3px">Estimación de arranque para ${watts}W — probá en un recorte.</div>`;
   document.getElementById('kerfChip').textContent=`(${m.kerf} mm)`;
@@ -265,6 +275,16 @@ function agregar(tipo){const bb=templateBB(),cx=(bb.minX+bb.maxX)/2,cy=(bb.minY+
   else elementos.push({tipo:'c',x:cx,y:cy,r:Math.max(30,(bb.maxX-bb.minX)/4),sweep:90,w:8,ang:0});
   selEl=elementos.length-1;pintarElSel();render();}
 function borrarEl(){if(selEl>=0){elementos.splice(selEl,1);selEl=-1;pintarElSel();render();}}
+function selectElIdx(i){selEl=i;pintarElSel();render();}
+function borrarElIdx(i){elementos.splice(i,1);if(selEl===i)selEl=-1;else if(selEl>i)selEl--;pintarElSel();render();}
+function pintarElLista(){
+  const box=document.getElementById('elLista');if(!box)return;
+  if(!elementos.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="font-size:.72rem;font-weight:700;color:var(--pc-burgundy);margin-bottom:4px">Elementos ('+elementos.length+')</div>'+elementos.map((el,i)=>{
+    const nom=el.tipo==='a'?'Agujero Ø'+rnd(el.d):(el.tipo==='r'?'Ranura recta '+rnd(el.len):'Ranura curva r'+rnd(el.r)),sel=i===selEl;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:6px;font-size:.73rem;cursor:pointer;${sel?'background:#e8f3e2;':''}" onclick="selectElIdx(${i})"><span style="flex:1">${sel?'▸ ':''}${nom} <span style="color:var(--muted)">(${rnd(el.x)},${rnd(el.y)})</span></span><button onclick="event.stopPropagation();borrarElIdx(${i})" style="border:none;background:none;cursor:pointer;color:#c0392b;font-size:.95rem;line-height:1">🗑</button></div>`;
+  }).join('');
+}
 function centroPieza(){const bb=templateBB();return[(bb.minX+bb.maxX)/2,(bb.minY+bb.maxY)/2];}
 function espejar(eje){if(selEl<0)return;const el=elementos[selEl],[cx,cy]=centroPieza(),c={...el};
   if(eje==='x'){c.y=2*cy-el.y;if(el.tipo==='r')c.ang=-(el.ang||0);if(el.tipo==='c')c.ang=-(el.ang||0);}
@@ -310,6 +330,11 @@ function attachHandleDrag(r,handles){
       function mv(ev){const dAx=hd.axis==='x'?(ev.clientX-sx)/scale:-(ev.clientY-sy)/scale;let nv=start+hd.factor*dAx;if(snap>0)nv=Math.round(nv/snap)*snap;if(pr)nv=Math.max(pr.min,Math.min(pr.max,nv));valores[hd.key]=nv;const inp=document.getElementById('inp_'+hd.key);if(inp)inp.value=nv;render();}
       function up(){window._drag=false;document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}
       document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});});}
+function attachElSizeDrag(r){const e0=document.getElementById('esz');if(!e0||selEl<0||!window._szHandle)return;const el=elementos[selEl],hd=window._szHandle;
+  e0.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();window._drag=true;const scale=scaleOf(r),sx=ev.clientX,sy=ev.clientY,start=el[hd.prop];
+    function mv(e2){const dx=(e2.clientX-sx)/scale,dy=-(e2.clientY-sy)/scale,dproj=dx*hd.dir[0]+dy*hd.dir[1];let nv=start+hd.factor*dproj;if(snap>0)nv=Math.round(nv/snap)*snap;el[hd.prop]=Math.max(1,nv);render();}
+    function up(){window._drag=false;document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}
+    document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});}
 
 /* ===== Imagen raster + trazado ===== */
 function subirImg(input){const f=input.files&&input.files[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{const im=new Image();im.onload=()=>{imagen={src:e.target.result,aspect:(im.width/im.height)||1,wmm:0,fx:0.5,fy:0.5,rot:0};const r=calcular();imagen.wmm=Math.round(Math.min(r.pieza.w,r.pieza.h)*0.4);pintarImgCtrls();render();};im.src=e.target.result;};rd.readAsDataURL(f);}
@@ -357,9 +382,10 @@ function contornos(){
   return{outer,holes:loops.filter(l=>l!==outer)};
 }
 function render3d(){
+ try{
   const wrap=document.getElementById('stageWrap');let cv=document.getElementById('cv3d');
   const W=wrap.clientWidth||640,H=wrap.clientHeight||500;
-  if(!cv){wrap.innerHTML=`<canvas id="cv3d" style="background:#fcfaf4;border-radius:4px;box-shadow:0 6px 30px rgba(0,0,0,.12);cursor:grab"></canvas>`;cv=document.getElementById('cv3d');}
+  if(!cv){wrap.innerHTML=`<button id="btnBack2d" onclick="toggle3d()">← Volver a 2D</button><canvas id="cv3d" style="width:100%;height:100%;background:#fcfaf4;border-radius:4px;box-shadow:0 6px 30px rgba(0,0,0,.12);cursor:grab"></canvas>`;cv=document.getElementById('cv3d');}
   cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.clearRect(0,0,W,H);
   const{outer,holes}=contornos();if(!outer.length){ctx.fillStyle='#999';ctx.font='14px sans-serif';ctx.fillText('Agregá geometría de corte',20,28);return;}
   const t=Math.max(grosor,0.6);
@@ -374,13 +400,14 @@ function render3d(){
   face(0,'#b07c2c');
   walls.forEach(w=>{ctx.beginPath();ctx.moveTo(w.q[0][0],w.q[0][1]);for(let i=1;i<4;i++)ctx.lineTo(w.q[i][0],w.q[i][1]);ctx.closePath();const g=w.lit;ctx.fillStyle=`rgb(${Math.round(196*g)},${Math.round(150*g)},${Math.round(82*g)})`;ctx.fill();ctx.strokeStyle='rgba(90,55,15,.3)';ctx.lineWidth=.5;ctx.stroke();});
   face(t,'#e7b86a');
+ }catch(err){console.warn('render3d:',err);}
 }
 function initVista(){
   const wrap=document.getElementById('stageWrap');
   wrap.addEventListener('wheel',e=>{e.preventDefault();zoomBtn(e.deltaY<0?1.12:1/1.12);},{passive:false});
   wrap.addEventListener('pointerdown',e=>{
     if(window._drag)return;
-    if(!vista3d&&e.target.closest('#imgEl,[id^="hit_"],[id^="handle_"],.cota'))return;
+    if(!vista3d&&e.target.closest('#imgEl,#esz,[id^="hit_"],[id^="handle_"],.cota'))return;
     const sx=e.clientX,sy=e.clientY,px0=view.px,py0=view.py,rx0=rot.x,rz0=rot.z;
     function mv(ev){if(vista3d){rot.x=Math.max(-89,Math.min(89,rx0-(ev.clientY-sy)*0.45));rot.z=rz0+(ev.clientX-sx)*0.45;render3d();}else{view.px=px0+(ev.clientX-sx);view.py=py0+(ev.clientY-sy);applyView();}}
     function up(){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}

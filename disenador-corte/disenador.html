@@ -5,27 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diseñador de plantillas de corte · Paracarpinteros (CO2 / LightBurn)</title>
 <style>
-  :root{
-    --pc-gold:#e9a900; --pc-gold-dark:#c79100; --pc-burgundy:#840016;
-    --pc-cream:#fdf8e1; --pc-green:#495e35; --pc-dark:#252629;
-    --border:#e4dcc7; --muted:#8a8170; --cut:#e11d2a; --engrave:#1763d6;
-    --bg:#f7f3e6; --card:#ffffff;
-  }
+  :root{--pc-gold:#e9a900;--pc-gold-dark:#c79100;--pc-burgundy:#840016;--pc-cream:#fdf8e1;--pc-green:#495e35;--pc-dark:#252629;--border:#e4dcc7;--muted:#8a8170;--cut:#e11d2a;--engrave:#1763d6;--bg:#f7f3e6;--card:#fff;}
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-       background:var(--bg);color:var(--dark);font-size:14px}
-  header{background:var(--pc-gold);border-bottom:3px solid var(--pc-gold-dark);
-         padding:12px 18px;display:flex;align-items:center;gap:14px}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--dark);font-size:14px}
+  header{background:var(--pc-gold);border-bottom:3px solid var(--pc-gold-dark);padding:12px 18px}
   header h1{font-size:1.05rem;margin:0;color:var(--dark);font-weight:800;letter-spacing:.4px}
   header .sub{font-size:.72rem;color:#5e4a00;margin-top:2px}
   .layout{display:flex;height:calc(100vh - 58px);min-height:560px}
-  .sidebar{width:340px;min-width:312px;background:var(--card);border-right:1px solid var(--border);
-           overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:15px}
+  .sidebar{width:344px;min-width:316px;background:var(--card);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:15px}
   .stage{flex:1;display:flex;flex-direction:column;background:repeating-conic-gradient(#eee 0% 25%,#f6f6f6 0% 50%) 0/22px 22px;position:relative}
-  .stage-bar{background:rgba(255,255,255,.88);border-bottom:1px solid var(--border);padding:8px 14px;
-             display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:22px;overflow:auto}
-  svg.preview{max-width:100%;max-height:100%;background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.12);border-radius:4px}
+  .stage-bar{background:rgba(255,255,255,.88);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+  svg.preview{width:100%;height:100%;background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.12);border-radius:4px}
   svg.preview path.geo,svg.preview line.geo,svg.preview circle.geo{vector-effect:non-scaling-stroke}
   svg.preview .cota{cursor:pointer}
   .block-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--pc-burgundy);margin:0 0 8px}
@@ -44,6 +35,8 @@
   .btn{border:none;border-radius:9px;padding:11px 16px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;justify-content:center}
   .btn-cut{background:var(--pc-green);color:#fff;flex:1}
   .btn-dxf{background:var(--pc-burgundy);color:#fff;flex:1}
+  .btn-ghost{background:#fff;border:1px solid var(--border);color:var(--dark)}
+  .btn-sm{padding:8px 10px;font-size:.82rem}
   .exports{display:flex;gap:8px;margin-top:6px}
   .legend{display:flex;gap:14px;font-size:.74rem;align-items:center;margin-bottom:6px}
   .legend .sw{display:inline-block;width:14px;height:0;border-top:3px solid;margin-right:5px;vertical-align:middle}
@@ -52,311 +45,258 @@
   .desc{font-size:.74rem;color:var(--muted);margin:-4px 0 9px;line-height:1.4}
   .panel-mat{background:#f4f7ef;border:1px solid #d8e3cb;border-radius:10px;padding:11px}
   .settings{font-size:.78rem;line-height:1.7}
-  .settings b{color:var(--pc-green)}
-  .settings .eng b{color:var(--engrave)}
+  .settings b{color:var(--pc-green)}.settings .eng b{color:var(--engrave)}
   .chk{display:flex;align-items:center;gap:7px;font-size:.76rem;font-weight:600;margin-top:8px;cursor:pointer}
   .kerf-chip{font-size:.72rem;color:var(--muted)}
-  #cotaInput{position:fixed;display:none;z-index:60;width:96px;padding:7px 8px;border:2px solid var(--pc-green);
-             border-radius:7px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:inherit}
+  #cotaInput{position:fixed;display:none;z-index:60;width:96px;padding:7px 8px;border:2px solid var(--pc-green);border-radius:7px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:inherit}
   @media(max-width:760px){.layout{flex-direction:column;height:auto}.sidebar{width:100%}.stage{min-height:380px}}
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>✂️ DISEÑADOR DE PLANTILLAS DE CORTE</h1>
-    <div class="sub">Paracarpinteros · láser CO2 · exporta a LightBurn (SVG / DXF) · medidas en mm · clic en una cota para cambiarla</div>
-  </div>
+  <h1>✂️ DISEÑADOR DE PLANTILLAS DE CORTE</h1>
+  <div class="sub">Paracarpinteros · láser CO2 · SVG / DXF para LightBurn · mm · clic en cota = cambiar · arrastrá agujeros e imagen</div>
 </header>
 
 <div class="layout">
   <aside class="sidebar">
-    <div>
-      <p class="block-title">1 · Plantilla</p>
-      <div class="tpl-grid" id="tplGrid"></div>
-    </div>
+    <div><p class="block-title">1 · Plantilla</p><div class="tpl-grid" id="tplGrid"></div></div>
     <div>
       <p class="block-title">2 · Medidas <span style="font-weight:400;text-transform:none;color:var(--muted)">(o clic en el dibujo)</span></p>
-      <p class="desc" id="tplDesc"></p>
-      <div id="params"></div>
+      <p class="desc" id="tplDesc"></p><div id="params"></div>
     </div>
     <div>
-      <p class="block-title">3 · Material y láser</p>
+      <p class="block-title">3 · Agujeros a gusto</p>
+      <div class="panel-mat" style="background:#f3f0f7;border-color:#d8cde6">
+        <div class="two" style="align-items:flex-end">
+          <div class="field" style="flex:1;margin:0"><label>Ø nuevo agujero</label><div class="row"><input type="number" id="nuevoD" min="1" max="200" step="1" value="8" oninput="nuevoD=parseFloat(this.value)||8"><span class="unit">mm</span></div></div>
+          <button class="btn btn-ghost btn-sm" style="margin-bottom:0" onclick="agregarAgujero()">➕ Agregar</button>
+        </div>
+        <div id="aguSel" style="display:none;margin-top:9px"></div>
+        <p class="hint" style="margin-top:8px;background:#fff;border-color:#d8cde6">Agregás un agujero, lo <b>arrastrás</b> a su lugar y le ajustás el <b>Ø</b>. Clic en un agujero para seleccionarlo.</p>
+      </div>
+    </div>
+    <div>
+      <p class="block-title">4 · Material y láser</p>
       <div class="panel-mat">
         <div class="two">
-          <div class="field" style="flex:1;margin:0"><label>Material</label>
-            <select id="selMat" onchange="setMaterial(this.value)"></select></div>
-          <div class="field" style="width:110px;margin:0"><label>Grosor</label>
-            <select id="selGrosor" onchange="setGrosor(this.value)"></select></div>
+          <div class="field" style="flex:1;margin:0"><label>Material</label><select id="selMat" onchange="setMaterial(this.value)"></select></div>
+          <div class="field" style="width:110px;margin:0"><label>Grosor</label><select id="selGrosor" onchange="setGrosor(this.value)"></select></div>
         </div>
-        <div class="field" style="margin:10px 0 4px"><label>Potencia del láser (W)</label>
-          <div class="row"><input type="number" id="inpWatts" min="20" max="600" step="5" value="80" oninput="setWatts(this.value)">
-            <span class="unit">W</span></div></div>
+        <div class="field" style="margin:10px 0 4px"><label>Potencia del láser (W)</label><div class="row"><input type="number" id="inpWatts" min="20" max="600" step="5" value="80" oninput="setWatts(this.value)"><span class="unit">W</span></div></div>
         <div class="settings" id="settings"></div>
-        <label class="chk"><input type="checkbox" id="chkKerf" onchange="setCompensar(this.checked)">
-          Compensar kerf en el archivo <span class="kerf-chip" id="kerfChip"></span></label>
+        <label class="chk"><input type="checkbox" id="chkKerf" onchange="setCompensar(this.checked)"> Compensar kerf en el archivo <span class="kerf-chip" id="kerfChip"></span></label>
       </div>
     </div>
     <div>
-      <p class="block-title">4 · Descargar para LightBurn</p>
-      <div class="legend">
-        <span><span class="sw" style="border-color:var(--cut)"></span>Corte</span>
-        <span><span class="sw" style="border-color:var(--engrave)"></span>Grabado</span>
+      <p class="block-title">5 · Imagen / logo</p>
+      <div class="panel-mat" style="background:#eef3ff;border-color:#cdddff">
+        <input type="file" accept="image/*" id="fileImg" onchange="subirImg(this)" style="font-size:.78rem;width:100%">
+        <div id="imgCtrls" style="display:none;margin-top:10px"></div>
+        <p class="hint" style="margin-top:8px;background:#fff;border-color:#cdddff">Como <b>grabado</b> (raster, solo SVG) o convertila a <b>líneas</b> de plantilla (corte/grabado, SVG+DXF). <b>Arrastrala</b> en el dibujo.</p>
       </div>
-      <div class="exports">
-        <button class="btn btn-cut" onclick="exportar('svg')">⬇ SVG</button>
-        <button class="btn btn-dxf" onclick="exportar('dxf')">⬇ DXF</button>
-      </div>
-      <p class="hint" style="margin-top:10px"><b>File → Import</b> en LightBurn. Rojo = corte, azul = grabado
-        (LightBurn separa por color). Si NO compensás el kerf acá, podés hacerlo en LightBurn (Tools → Offset).
-        Las medidas van en mm 1:1.</p>
+    </div>
+    <div>
+      <p class="block-title">6 · Descargar para LightBurn</p>
+      <div class="legend"><span><span class="sw" style="border-color:var(--cut)"></span>Corte</span><span><span class="sw" style="border-color:var(--engrave)"></span>Grabado</span></div>
+      <div class="exports"><button class="btn btn-cut" onclick="exportar('svg')">⬇ SVG</button><button class="btn btn-dxf" onclick="exportar('dxf')">⬇ DXF</button></div>
+      <p class="hint" style="margin-top:10px"><b>File → Import</b> en LightBurn. Rojo = corte, azul = grabado. Medidas en mm 1:1.</p>
     </div>
   </aside>
 
   <main class="stage">
-    <div class="stage-bar">
-      <span class="size-chip" id="sizeChip">—</span>
-      <span class="hint" style="background:none;border:none;padding:0">Vista previa · clic en una cota (medida) para cambiarla</span>
-    </div>
+    <div class="stage-bar"><span class="size-chip" id="sizeChip">—</span><span class="hint" style="background:none;border:none;padding:0">Clic en cota = cambiar · arrastrá agujeros e imagen</span></div>
     <div class="stage-wrap" id="stageWrap"></div>
   </main>
 </div>
-<input id="cotaInput" type="number" step="0.5"
-       onkeydown="if(event.key==='Enter')aplicarCota();if(event.key==='Escape')ocultarCota()"
-       onblur="aplicarCota()">
+<input id="cotaInput" type="number" step="0.5" onkeydown="if(event.key==='Enter')aplicarCota();if(event.key==='Escape')ocultarCota()" onblur="aplicarCota()">
 
 <script>
-/* =========================================================================
-   Modelo de geometría NEUTRO (mm, Y-arriba estilo CAD). De aquí salen SVG y DXF.
-   Entidades: circle{cx,cy,r} · line{x1,y1,x2,y2} · arc{cx,cy,r,a1,a2(>a1, CCW)}
-   ========================================================================= */
+/* ===== Geometría neutra (mm, Y-arriba) ===== */
 const D2R=Math.PI/180;
-const P=(cx,cy,r,a)=>[cx+r*Math.cos(a*D2R), cy+r*Math.sin(a*D2R)];
+const P=(cx,cy,r,a)=>[cx+r*Math.cos(a*D2R),cy+r*Math.sin(a*D2R)];
 const circle=(cx,cy,r,layer='cut')=>({t:'circle',cx,cy,r,layer});
 const line=(x1,y1,x2,y2,layer='cut')=>({t:'line',x1,y1,x2,y2,layer});
 const arc=(cx,cy,r,a1,a2,layer='cut')=>({t:'arc',cx,cy,r,a1,a2,layer});
 function sectorAnular(cx,cy,rIn,rOut,a1,a2,layer='cut'){
-  const [x1i,y1i]=P(cx,cy,rIn,a1),[x1o,y1o]=P(cx,cy,rOut,a1);
-  const [x2i,y2i]=P(cx,cy,rIn,a2),[x2o,y2o]=P(cx,cy,rOut,a2);
-  return [line(x1i,y1i,x1o,y1o,layer),arc(cx,cy,rOut,a1,a2,layer),
-          line(x2o,y2o,x2i,y2i,layer),arc(cx,cy,rIn,a1,a2,layer)];
-}
+  const[x1i,y1i]=P(cx,cy,rIn,a1),[x1o,y1o]=P(cx,cy,rOut,a1),[x2i,y2i]=P(cx,cy,rIn,a2),[x2o,y2o]=P(cx,cy,rOut,a2);
+  return[line(x1i,y1i,x1o,y1o,layer),arc(cx,cy,rOut,a1,a2,layer),line(x2o,y2o,x2i,y2i,layer),arc(cx,cy,rIn,a1,a2,layer)];}
 function rectRedondeado(x,y,w,h,r,layer='cut'){
   r=Math.max(0,Math.min(r,Math.min(w,h)/2));const o=[];
-  o.push(line(x+r,y,x+w-r,y,layer),line(x+w,y+r,x+w,y+h-r,layer),
-         line(x+w-r,y+h,x+r,y+h,layer),line(x,y+h-r,x,y+r,layer));
-  if(r>0)o.push(arc(x+w-r,y+r,r,270,360,layer),arc(x+w-r,y+h-r,r,0,90,layer),
-                arc(x+r,y+h-r,r,90,180,layer),arc(x+r,y+r,r,180,270,layer));
-  return o;
-}
+  o.push(line(x+r,y,x+w-r,y,layer),line(x+w,y+r,x+w,y+h-r,layer),line(x+w-r,y+h,x+r,y+h,layer),line(x,y+h-r,x,y+r,layer));
+  if(r>0)o.push(arc(x+w-r,y+r,r,270,360,layer),arc(x+w-r,y+h-r,r,0,90,layer),arc(x+r,y+h-r,r,90,180,layer),arc(x+r,y+r,r,180,270,layer));
+  return o;}
 
-/* ===================== Librería de materiales ===================== */
-// kerf en mm · grosores típicos · cut/engrave de referencia @80W, 3mm
+/* ===== Materiales ===== */
 const MATERIALES={
-  acrilico:{nombre:'Acrílico', kerf:0.18, grosores:[2,3,4,5,6,8,10], cut:{baseSpeed:18,power:90,passThk:6}, eng:{speed:300,power:25}},
-  mdf:{nombre:'MDF', kerf:0.20, grosores:[3,5.5,9,12,15,18], cut:{baseSpeed:12,power:95,passThk:4}, eng:{speed:250,power:30}},
-  plywood:{nombre:'Contrachapado', kerf:0.20, grosores:[3,4,5,6,9,12,15], cut:{baseSpeed:11,power:95,passThk:4}, eng:{speed:250,power:30}},
-  cuero:{nombre:'Cuero', kerf:0.15, grosores:[1,1.5,2,3,4], cut:{baseSpeed:20,power:60,passThk:4}, eng:{speed:350,power:20}},
-  carton:{nombre:'Cartón', kerf:0.10, grosores:[1,2,3,4,5], cut:{baseSpeed:35,power:45,passThk:5}, eng:{speed:400,power:18}},
-  foam:{nombre:'Foam / cartón pluma', kerf:0.12, grosores:[3,5,10], cut:{baseSpeed:40,power:35,passThk:10}, eng:{speed:400,power:15}},
-  tela:{nombre:'Tela', kerf:0.10, grosores:[0.5,1,2], cut:{baseSpeed:50,power:30,passThk:3}, eng:{speed:450,power:12}},
+  acrilico:{nombre:'Acrílico',kerf:0.18,grosores:[2,3,4,5,6,8,10],cut:{baseSpeed:18,power:90,passThk:6},eng:{speed:300,power:25}},
+  mdf:{nombre:'MDF',kerf:0.20,grosores:[3,5.5,9,12,15,18],cut:{baseSpeed:12,power:95,passThk:4},eng:{speed:250,power:30}},
+  plywood:{nombre:'Contrachapado',kerf:0.20,grosores:[3,4,5,6,9,12,15],cut:{baseSpeed:11,power:95,passThk:4},eng:{speed:250,power:30}},
+  cuero:{nombre:'Cuero',kerf:0.15,grosores:[1,1.5,2,3,4],cut:{baseSpeed:20,power:60,passThk:4},eng:{speed:350,power:20}},
+  carton:{nombre:'Cartón',kerf:0.10,grosores:[1,2,3,4,5],cut:{baseSpeed:35,power:45,passThk:5},eng:{speed:400,power:18}},
+  foam:{nombre:'Foam / cartón pluma',kerf:0.12,grosores:[3,5,10],cut:{baseSpeed:40,power:35,passThk:10},eng:{speed:400,power:15}},
+  tela:{nombre:'Tela',kerf:0.10,grosores:[0.5,1,2],cut:{baseSpeed:50,power:30,passThk:3},eng:{speed:450,power:12}},
 };
 
-/* ===================== Plantillas ===================== */
-// build(p,k): k = medio-kerf a compensar (0 si no). cotas(p): cotas clicables (coords mm, origen del template).
+/* ===== Plantillas ===== */
 const TEMPLATES={
-  rueda:{nombre:'Rueda de carrete', icon:'⊕',
-    desc:'Brida/rueda con aro exterior, cubo central y radios (como la foto). La barra metálica va aparte (el CO2 no corta metal).',
-    params:[
-      {k:'dExt',label:'Diámetro exterior',def:300,min:50,max:900,step:1},
-      {k:'aroW',label:'Ancho del aro',def:26,min:5,max:120,step:1},
-      {k:'dHub',label:'Diámetro del cubo',def:96,min:20,max:400,step:1},
-      {k:'dBore',label:'Agujero central',def:30,min:0,max:200,step:1},
-      {k:'n',label:'Nº de radios',def:4,min:2,max:12,step:1,slider:true},
-      {k:'spokeW',label:'Ancho del radio',def:20,min:4,max:120,step:1},
-    ],
-    build(p,k){
-      const Rout=p.dExt/2+k, rRim=(p.dExt/2-p.aroW)-k, rHub=p.dHub/2+k, rBore=p.dBore/2-k;
-      const e=[circle(0,0,Rout)]; if(rBore>0.2)e.push(circle(0,0,rBore));
-      const rRimNom=p.dExt/2-p.aroW, rMid=(p.dHub/2+rRimNom)/2;
-      if(rRim>rHub+1){
-        const step=360/p.n, spokeAng=(p.spokeW/Math.max(rRimNom,1))*(180/Math.PI), angOff=(k/Math.max(rMid,1))*(180/Math.PI);
-        for(let i=0;i<p.n;i++){
-          const c=i*step, a1=c+spokeAng/2+angOff, a2=c+step-spokeAng/2-angOff;
-          if(a2-a1>0.5) sectorAnular(0,0,rHub,rRim,a1,a2).forEach(x=>e.push(x));
-        }
-      }
-      return e;
-    },
-    cotas(p){const c=[{k:'dExt',label:'Ø '+p.dExt,x:0,y:p.dExt/2},{k:'dHub',label:'cubo Ø'+p.dHub,x:0,y:-p.dHub/2}];
-      if(p.dBore>0)c.push({k:'dBore',label:'Ø'+p.dBore,x:0,y:0}); return c;}
-  },
-  anillo:{nombre:'Anillo / Junta', icon:'◎',
-    desc:'Arandela o junta circular: diámetro exterior e interior.',
-    params:[{k:'dExt',label:'Diámetro exterior',def:200,min:20,max:900,step:1},
-            {k:'dInt',label:'Diámetro interior',def:120,min:0,max:880,step:1}],
-    build(p,k){const e=[circle(0,0,p.dExt/2+k)]; if(p.dInt>0&&p.dInt<p.dExt)e.push(circle(0,0,p.dInt/2-k)); return e;},
-    cotas(p){const c=[{k:'dExt',label:'Ø '+p.dExt,x:0,y:p.dExt/2}]; if(p.dInt>0)c.push({k:'dInt',label:'Ø'+p.dInt,x:0,y:-p.dInt/2}); return c;}
-  },
-  panel:{nombre:'Panel rectangular', icon:'▭',
-    desc:'Tablero con esquinas redondeadas y grilla opcional de agujeros.',
-    params:[{k:'w',label:'Ancho',def:300,min:20,max:1000,step:1},{k:'h',label:'Alto',def:200,min:20,max:1000,step:1},
-            {k:'r',label:'Radio de esquina',def:10,min:0,max:200,step:1},{k:'holeD',label:'Ø agujeros (0=sin)',def:8,min:0,max:100,step:1},
-            {k:'nx',label:'Agujeros en X',def:2,min:1,max:20,step:1,slider:true},{k:'ny',label:'Agujeros en Y',def:2,min:1,max:20,step:1,slider:true},
-            {k:'margen',label:'Margen del borde',def:20,min:2,max:300,step:1}],
-    build(p,k){
-      const e=rectRedondeado(-k,-k,p.w+2*k,p.h+2*k,p.r+k);
-      if(p.holeD>0){
-        const mx=Math.min(p.margen,p.w/2-1),my=Math.min(p.margen,p.h/2-1);
-        const sx=p.nx>1?(p.w-2*mx)/(p.nx-1):0, sy=p.ny>1?(p.h-2*my)/(p.ny-1):0;
-        for(let i=0;i<p.nx;i++)for(let j=0;j<p.ny;j++){
-          const cx=p.nx>1?mx+i*sx:p.w/2, cy=p.ny>1?my+j*sy:p.h/2;
-          e.push(circle(cx,cy,Math.max(0.2,p.holeD/2-k)));
-        }
-      }
-      return e;
-    },
-    cotas(p){const c=[{k:'w',label:p.w+' →',x:p.w/2,y:p.h*0.93},{k:'h',label:'↑'+p.h,x:p.w*0.07,y:p.h/2}];
-      if(p.holeD>0)c.push({k:'holeD',label:'Ø'+p.holeD,x:Math.min(p.margen,p.w/2),y:Math.min(p.margen,p.h/2)}); return c;}
-  }
+  rueda:{nombre:'Rueda de carrete',icon:'⊕',desc:'Brida/rueda con aro exterior, cubo central y radios. La barra metálica va aparte (el CO2 no corta metal).',
+    params:[{k:'dExt',label:'Diámetro exterior',def:300,min:50,max:900,step:1},{k:'aroW',label:'Ancho del aro',def:26,min:5,max:120,step:1},{k:'dHub',label:'Diámetro del cubo',def:96,min:20,max:400,step:1},{k:'dBore',label:'Agujero central',def:30,min:0,max:200,step:1},{k:'n',label:'Nº de radios',def:4,min:2,max:12,step:1,slider:true},{k:'spokeW',label:'Ancho del radio',def:20,min:4,max:120,step:1}],
+    build(p,k){const Rout=p.dExt/2+k,rRim=(p.dExt/2-p.aroW)-k,rHub=p.dHub/2+k,rBore=p.dBore/2-k;const e=[circle(0,0,Rout)];if(rBore>0.2)e.push(circle(0,0,rBore));const rRimNom=p.dExt/2-p.aroW,rMid=(p.dHub/2+rRimNom)/2;if(rRim>rHub+1){const step=360/p.n,spokeAng=(p.spokeW/Math.max(rRimNom,1))*(180/Math.PI),angOff=(k/Math.max(rMid,1))*(180/Math.PI);for(let i=0;i<p.n;i++){const c=i*step,a1=c+spokeAng/2+angOff,a2=c+step-spokeAng/2-angOff;if(a2-a1>0.5)sectorAnular(0,0,rHub,rRim,a1,a2).forEach(x=>e.push(x));}}return e;},
+    cotas(p){const c=[{k:'dExt',label:'Ø '+p.dExt,x:0,y:p.dExt/2},{k:'dHub',label:'cubo Ø'+p.dHub,x:0,y:-p.dHub/2}];if(p.dBore>0)c.push({k:'dBore',label:'Ø'+p.dBore,x:0,y:0});return c;}},
+  anillo:{nombre:'Anillo / Junta',icon:'◎',desc:'Arandela o junta circular: diámetro exterior e interior.',
+    params:[{k:'dExt',label:'Diámetro exterior',def:200,min:20,max:900,step:1},{k:'dInt',label:'Diámetro interior',def:120,min:0,max:880,step:1}],
+    build(p,k){const e=[circle(0,0,p.dExt/2+k)];if(p.dInt>0&&p.dInt<p.dExt)e.push(circle(0,0,p.dInt/2-k));return e;},
+    cotas(p){const c=[{k:'dExt',label:'Ø '+p.dExt,x:0,y:p.dExt/2}];if(p.dInt>0)c.push({k:'dInt',label:'Ø'+p.dInt,x:0,y:-p.dInt/2});return c;}},
+  panel:{nombre:'Panel rectangular',icon:'▭',desc:'Tablero con esquinas redondeadas y grilla opcional de agujeros (+ agujeros a gusto arriba).',
+    params:[{k:'w',label:'Ancho',def:300,min:20,max:1000,step:1},{k:'h',label:'Alto',def:200,min:20,max:1000,step:1},{k:'r',label:'Radio de esquina',def:10,min:0,max:200,step:1},{k:'holeD',label:'Ø grilla (0=sin)',def:0,min:0,max:100,step:1},{k:'nx',label:'Grilla en X',def:2,min:1,max:20,step:1,slider:true},{k:'ny',label:'Grilla en Y',def:2,min:1,max:20,step:1,slider:true},{k:'margen',label:'Margen del borde',def:20,min:2,max:300,step:1}],
+    build(p,k){const e=rectRedondeado(-k,-k,p.w+2*k,p.h+2*k,p.r+k);if(p.holeD>0){const mx=Math.min(p.margen,p.w/2-1),my=Math.min(p.margen,p.h/2-1);const sx=p.nx>1?(p.w-2*mx)/(p.nx-1):0,sy=p.ny>1?(p.h-2*my)/(p.ny-1):0;for(let i=0;i<p.nx;i++)for(let j=0;j<p.ny;j++){const cx=p.nx>1?mx+i*sx:p.w/2,cy=p.ny>1?my+j*sy:p.h/2;e.push(circle(cx,cy,Math.max(0.2,p.holeD/2-k)));}}return e;},
+    cotas(p){const c=[{k:'w',label:p.w+' →',x:p.w/2,y:p.h*0.93},{k:'h',label:'↑'+p.h,x:p.w*0.07,y:p.h/2}];if(p.holeD>0)c.push({k:'holeD',label:'Ø'+p.holeD,x:Math.min(p.margen,p.w/2),y:Math.min(p.margen,p.h/2)});return c;}}
 };
 
-/* ===================== Estado ===================== */
-let tplActual='rueda', valores={}, matActual='acrilico', grosor=3, watts=80, compensar=false;
+/* ===== Estado ===== */
+let tplActual='rueda',valores={},matActual='acrilico',grosor=3,watts=80,compensar=false,imagen=null;
+let agujeros=[],selAgu=-1,nuevoD=8,trazos=[];
 
-/* ===================== bbox / traslado ===================== */
+/* ===== bbox / traslado ===== */
 function bbox(ents){let a=1e9,b=1e9,c=-1e9,d=-1e9;const u=(x,y)=>{a=Math.min(a,x);b=Math.min(b,y);c=Math.max(c,x);d=Math.max(d,y)};
-  for(const e of ents){
-    if(e.t==='circle'){u(e.cx-e.r,e.cy-e.r);u(e.cx+e.r,e.cy+e.r)}
-    else if(e.t==='line'){u(e.x1,e.y1);u(e.x2,e.y2)}
-    else{for(let g=e.a1;g<=e.a2;g+=3){const[x,y]=P(e.cx,e.cy,e.r,g);u(x,y)}const[xe,ye]=P(e.cx,e.cy,e.r,e.a2);u(xe,ye)}
-  } return {minX:a,minY:b,maxX:c,maxY:d};}
-function trasEnt(e,dx,dy){
-  if(e.t==='circle')return{...e,cx:e.cx+dx,cy:e.cy+dy};
-  if(e.t==='line')return{...e,x1:e.x1+dx,y1:e.y1+dy,x2:e.x2+dx,y2:e.y2+dy};
-  return{...e,cx:e.cx+dx,cy:e.cy+dy};}
+  for(const e of ents){if(e.t==='circle'){u(e.cx-e.r,e.cy-e.r);u(e.cx+e.r,e.cy+e.r)}else if(e.t==='line'){u(e.x1,e.y1);u(e.x2,e.y2)}else{for(let g=e.a1;g<=e.a2;g+=3){const[x,y]=P(e.cx,e.cy,e.r,g);u(x,y)}const[xe,ye]=P(e.cx,e.cy,e.r,e.a2);u(xe,ye)}}return{minX:a,minY:b,maxX:c,maxY:d};}
+function trasEnt(e,dx,dy){if(e.t==='circle')return{...e,cx:e.cx+dx,cy:e.cy+dy};if(e.t==='line')return{...e,x1:e.x1+dx,y1:e.y1+dy,x2:e.x2+dx,y2:e.y2+dy};return{...e,cx:e.cx+dx,cy:e.cy+dy};}
+function templateBB(){const tpl=TEMPLATES[tplActual],p={};tpl.params.forEach(pr=>p[pr.k]=valores[pr.k]);return bbox(tpl.build(p,0));}
 
-/* ===================== Render SVG ===================== */
+/* ===== SVG ===== */
 const COLOR={cut:'#e11d2a',engrave:'#1763d6'};
-function entToSvg(e){
-  const col=COLOR[e.layer]||COLOR.cut, at=`class="geo" fill="none" stroke="${col}" stroke-width="0.3"`;
-  if(e.t==='circle')return `<circle cx="${e.cx}" cy="${e.cy}" r="${e.r}" ${at}/>`;
-  if(e.t==='line')return `<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" ${at}/>`;
-  const [sx,sy]=P(e.cx,e.cy,e.r,e.a1),[ex,ey]=P(e.cx,e.cy,e.r,e.a2),laf=(e.a2-e.a1)>180?1:0;
-  return `<path d="M ${sx} ${sy} A ${e.r} ${e.r} 0 ${laf} 1 ${ex} ${ey}" ${at}/>`;
-}
 const rnd=n=>Math.round(n*1000)/1000;
-function buildSVG(ents,cotas,W,H,{preview=false}={}){
+function entToSvg(e){
+  const col=COLOR[e.layer]||COLOR.cut;
+  if(e.t==='circle'){const sel=(e.holeIdx===selAgu&&e.holeIdx!=null);const st=sel?'#2a8a2a':col,sw=sel?'0.9':'0.3';const id=e.holeIdx!=null?` id="hole_${e.holeIdx}" style="cursor:move"`:'';return`<circle cx="${e.cx}" cy="${e.cy}" r="${e.r}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"${id}/>`;}
+  if(e.t==='line')return`<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" class="geo" fill="none" stroke="${col}" stroke-width="0.3"/>`;
+  const[sx,sy]=P(e.cx,e.cy,e.r,e.a1),[ex,ey]=P(e.cx,e.cy,e.r,e.a2),laf=(e.a2-e.a1)>180?1:0;
+  return`<path d="M ${sx} ${sy} A ${e.r} ${e.r} 0 ${laf} 1 ${ex} ${ey}" class="geo" fill="none" stroke="${col}" stroke-width="0.3"/>`;}
+function imgToSvg(r,preview){
+  if(!imagen||!imagen.src)return'';
+  const cx=r.pad+imagen.fx*r.pieza.w,cy=r.pad+imagen.fy*r.pieza.h,w=imagen.wmm,h=imagen.wmm/(imagen.aspect||1);
+  const x=cx-w/2,ytop=r.H-(cy+h/2);
+  const rot=imagen.rot?` transform="rotate(${rnd(-imagen.rot)} ${rnd(cx)} ${rnd(r.H-cy)})"`:'';
+  const extra=preview?' style="cursor:move;opacity:.92" id="imgEl"':'';
+  return`<image href="${imagen.src}" xlink:href="${imagen.src}" x="${rnd(x)}" y="${rnd(ytop)}" width="${rnd(w)}" height="${rnd(h)}"${rot} preserveAspectRatio="none"${extra}/>`;}
+function buildSVG(ents,cotas,W,H,{preview=false,imgStr=''}={}){
   const body=ents.map(entToSvg).join('');
   const grid=preview?`<defs><pattern id="g" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0 L0 0 0 10" fill="none" stroke="#eee" stroke-width="0.2"/></pattern></defs><rect x="0" y="0" width="${rnd(W)}" height="${rnd(H)}" fill="url(#g)"/>`:'';
   let cotaSvg='';
-  if(preview&&cotas&&cotas.length){
-    const fs=Math.max(W,H)/30;
-    cotaSvg=cotas.map(c=>`<g class="cota" onclick="editarCota(event,'${c.k}')"><text x="${rnd(c.x)}" y="${rnd(H-c.y)}" font-size="${rnd(fs)}" text-anchor="middle" dominant-baseline="middle" fill="#840016" font-weight="700" paint-order="stroke" stroke="#fff" stroke-width="${rnd(fs*0.22)}" stroke-linejoin="round">${c.label}</text></g>`).join('');
-  }
-  const cls=preview?' class="preview"':'', dims=preview?'':` width="${rnd(W)}mm" height="${rnd(H)}mm"`;
-  return `<svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 ${rnd(W)} ${rnd(H)}"${cls}>${grid}<g transform="matrix(1,0,0,-1,0,${rnd(H)})">${body}</g>${cotaSvg}</svg>`;
-}
+  if(preview&&cotas&&cotas.length){const fs=Math.max(W,H)/30;cotaSvg=cotas.map(c=>`<g class="cota" onclick="editarCota(event,'${c.k}')"><text x="${rnd(c.x)}" y="${rnd(H-c.y)}" font-size="${rnd(fs)}" text-anchor="middle" dominant-baseline="middle" fill="#840016" font-weight="700" paint-order="stroke" stroke="#fff" stroke-width="${rnd(fs*0.22)}" stroke-linejoin="round">${c.label}</text></g>`).join('');}
+  const cls=preview?' class="preview"':'',dims=preview?'':` width="${rnd(W)}mm" height="${rnd(H)}mm"`;
+  return`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"${dims} viewBox="0 0 ${rnd(W)} ${rnd(H)}"${cls}>${grid}${imgStr}<g transform="matrix(1,0,0,-1,0,${rnd(H)})">${body}</g>${cotaSvg}</svg>`;}
 
-/* ===================== Render DXF (R12) ===================== */
-function dxfHeader(){return ['0','SECTION','2','TABLES','0','TABLE','2','LAYER','70','2',
-  '0','LAYER','2','CORTE','70','0','62','1','6','CONTINUOUS','0','LAYER','2','GRABADO','70','0','62','5','6','CONTINUOUS',
-  '0','ENDTAB','0','ENDSEC','0','SECTION','2','ENTITIES'].join('\n');}
-function entToDxf(e){const L=e.layer==='engrave'?'GRABADO':'CORTE';
-  if(e.t==='circle')return['0','CIRCLE','8',L,'10',rnd(e.cx),'20',rnd(e.cy),'40',rnd(e.r)].join('\n');
-  if(e.t==='line')return['0','LINE','8',L,'10',rnd(e.x1),'20',rnd(e.y1),'11',rnd(e.x2),'21',rnd(e.y2)].join('\n');
-  return['0','ARC','8',L,'10',rnd(e.cx),'20',rnd(e.cy),'40',rnd(e.r),'50',rnd(e.a1),'51',rnd(e.a2)].join('\n');}
-function buildDXF(ents){return [dxfHeader(),...ents.map(entToDxf),'0','ENDSEC','0','EOF'].join('\n');}
+/* ===== DXF (R12) ===== */
+function dxfHeader(){return['0','SECTION','2','TABLES','0','TABLE','2','LAYER','70','2','0','LAYER','2','CORTE','70','0','62','1','6','CONTINUOUS','0','LAYER','2','GRABADO','70','0','62','5','6','CONTINUOUS','0','ENDTAB','0','ENDSEC','0','SECTION','2','ENTITIES'].join('\n');}
+function entToDxf(e){const L=e.layer==='engrave'?'GRABADO':'CORTE';if(e.t==='circle')return['0','CIRCLE','8',L,'10',rnd(e.cx),'20',rnd(e.cy),'40',rnd(e.r)].join('\n');if(e.t==='line')return['0','LINE','8',L,'10',rnd(e.x1),'20',rnd(e.y1),'11',rnd(e.x2),'21',rnd(e.y2)].join('\n');return['0','ARC','8',L,'10',rnd(e.cx),'20',rnd(e.cy),'40',rnd(e.r),'50',rnd(e.a1),'51',rnd(e.a2)].join('\n');}
+function buildDXF(ents){return[dxfHeader(),...ents.map(entToDxf),'0','ENDSEC','0','EOF'].join('\n');}
 
-/* ===================== Pipeline ===================== */
+/* ===== Pipeline ===== */
 function calcular(){
-  const tpl=TEMPLATES[tplActual], p={}; tpl.params.forEach(pr=>p[pr.k]=valores[pr.k]);
+  const tpl=TEMPLATES[tplActual],p={};tpl.params.forEach(pr=>p[pr.k]=valores[pr.k]);
   const k=compensar?(MATERIALES[matActual].kerf/2):0;
-  let ents=tpl.build(p,k); let cotas=tpl.cotas?tpl.cotas(p):[];
-  const bb=bbox(ents), pad=Math.max(2,(MATERIALES[matActual].kerf||0)+2);
-  const dx=-bb.minX+pad, dy=-bb.minY+pad;
-  ents=ents.map(e=>trasEnt(e,dx,dy));
+  let base=tpl.build(p,k);let cotas=tpl.cotas?tpl.cotas(p):[];
+  const bb=bbox(base),bw=bb.maxX-bb.minX,bh=bb.maxY-bb.minY,maxDim=Math.max(bw,bh);
+  const pad=Math.max((MATERIALES[matActual].kerf||0)+2,maxDim/20+4);
+  const dx=-bb.minX+pad,dy=-bb.minY+pad;
+  let ents=base.map(e=>trasEnt(e,dx,dy));
+  agujeros.forEach((a,i)=>{const c=circle(a.x,a.y,Math.max(0.2,a.d/2),'cut');c.holeIdx=i;ents.push(trasEnt(c,dx,dy));});
+  trazos.forEach(e=>ents.push(trasEnt(e,dx,dy)));
   cotas=cotas.map(c=>({...c,x:c.x+dx,y:c.y+dy}));
-  return {ents,cotas,W:(bb.maxX-bb.minX)+pad*2,H:(bb.maxY-bb.minY)+pad*2};
+  return{ents,cotas,W:bw+pad*2,H:bh+pad*2,pad,dx,dy,bb,pieza:{w:bw,h:bh}};
 }
-function settingsRec(){
-  const m=MATERIALES[matActual],t=grosor,f=watts/80;
-  const cutSpeed=Math.max(2,Math.min(140,Math.round(m.cut.baseSpeed*f*(3/Math.max(t,0.5)))));
-  const passes=Math.max(1,Math.ceil(t/(m.cut.passThk*f)));
-  return {power:Math.min(100,m.cut.power),cutSpeed,passes,eng:m.eng};
-}
+function settingsRec(){const m=MATERIALES[matActual],t=grosor,f=watts/80;return{power:Math.min(100,m.cut.power),cutSpeed:Math.max(2,Math.min(140,Math.round(m.cut.baseSpeed*f*(3/Math.max(t,0.5))))),passes:Math.max(1,Math.ceil(t/(m.cut.passThk*f))),eng:m.eng};}
 function render(){
   const r=calcular();
-  document.getElementById('stageWrap').innerHTML=buildSVG(r.ents,r.cotas,r.W,r.H,{preview:true});
-  const pad2=Math.max(2,(MATERIALES[matActual].kerf||0)+2)*2;
-  document.getElementById('sizeChip').textContent=`${rnd(r.W-pad2)} × ${rnd(r.H-pad2)} mm`;
-  window.__ult=r;
-  // settings
-  const s=settingsRec(), m=MATERIALES[matActual];
-  document.getElementById('settings').innerHTML=
-    `<div>🔪 <b>Corte:</b> ${s.power}% · ${s.cutSpeed} mm/s · ${s.passes} pasada${s.passes>1?'s':''}</div>`+
-    `<div class="eng">✏️ <b>Grabado:</b> ${s.eng.power}% · ${s.eng.speed} mm/s</div>`+
-    `<div style="font-size:.68rem;color:var(--muted);margin-top:3px">Estimación de arranque para ${watts}W — probá en un recorte y ajustá.</div>`;
+  document.getElementById('stageWrap').innerHTML=buildSVG(r.ents,r.cotas,r.W,r.H,{preview:true,imgStr:imgToSvg(r,true)});
+  document.getElementById('sizeChip').textContent=`${rnd(r.pieza.w)} × ${rnd(r.pieza.h)} mm`;
+  window.__ult=r;attachImgDrag(r);attachHoleDrag(r);
+  const s=settingsRec(),m=MATERIALES[matActual];
+  document.getElementById('settings').innerHTML=`<div>🔪 <b>Corte:</b> ${s.power}% · ${s.cutSpeed} mm/s · ${s.passes} pasada${s.passes>1?'s':''}</div><div class="eng">✏️ <b>Grabado:</b> ${s.eng.power}% · ${s.eng.speed} mm/s</div><div style="font-size:.68rem;color:var(--muted);margin-top:3px">Estimación de arranque para ${watts}W — probá en un recorte.</div>`;
   document.getElementById('kerfChip').textContent=`(${m.kerf} mm)`;
+  pintarAguSel();
 }
 function exportar(fmt){
-  const r=window.__ult||calcular(); let data,mime,ext;
-  if(fmt==='svg'){data=buildSVG(r.ents,null,r.W,r.H,{preview:false});mime='image/svg+xml';ext='svg';}
-  else{data=buildDXF(r.ents);mime='application/dxf';ext='dxf';}
-  const pad2=Math.max(2,(MATERIALES[matActual].kerf||0)+2)*2;
-  const nombre=`${TEMPLATES[tplActual].nombre.replace(/[^\w]+/g,'_')}_${rnd(r.W-pad2)}x${rnd(r.H-pad2)}mm.${ext}`;
-  const blob=new Blob([data],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
-}
+  const r=window.__ult||calcular();let data,mime,ext;
+  if(fmt==='svg'){data=buildSVG(r.ents,null,r.W,r.H,{preview:false,imgStr:imgToSvg(r,false)});mime='image/svg+xml';ext='svg';}
+  else{data=buildDXF(r.ents);mime='application/dxf';ext='dxf';if(imagen)alert('Nota: el DXF no incluye la imagen raster (sí los trazos). Para grabar la foto usá el SVG.');}
+  const nombre=`${TEMPLATES[tplActual].nombre.replace(/[^\w]+/g,'_')}_${rnd(r.pieza.w)}x${rnd(r.pieza.h)}mm.${ext}`;
+  const blob=new Blob([data],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 
-/* ===================== Cotas clicables ===================== */
+/* ===== Cotas ===== */
 let cotaKey=null;
-function editarCota(ev,key){
-  ev.stopPropagation(); cotaKey=key;
-  const inp=document.getElementById('cotaInput'), pr=TEMPLATES[tplActual].params.find(x=>x.k===key);
-  inp.value=valores[key]; if(pr){inp.min=pr.min;inp.max=pr.max;inp.step=pr.step;}
-  inp.style.left=Math.max(6,ev.clientX-48)+'px'; inp.style.top=Math.max(6,ev.clientY-16)+'px';
-  inp.style.display='block'; inp.focus(); inp.select();
-}
-function aplicarCota(){const inp=document.getElementById('cotaInput'); if(cotaKey&&inp.value!==''){setVal(cotaKey,inp.value);} ocultarCota();}
-function ocultarCota(){document.getElementById('cotaInput').style.display='none'; cotaKey=null;}
+function editarCota(ev,key){ev.stopPropagation();cotaKey=key;const inp=document.getElementById('cotaInput'),pr=TEMPLATES[tplActual].params.find(x=>x.k===key);inp.value=valores[key];if(pr){inp.min=pr.min;inp.max=pr.max;inp.step=pr.step;}inp.style.left=Math.max(6,ev.clientX-48)+'px';inp.style.top=Math.max(6,ev.clientY-16)+'px';inp.style.display='block';inp.focus();inp.select();}
+function aplicarCota(){const inp=document.getElementById('cotaInput');if(cotaKey&&inp.value!=='')setVal(cotaKey,inp.value);ocultarCota();}
+function ocultarCota(){document.getElementById('cotaInput').style.display='none';cotaKey=null;}
 
-/* ===================== UI ===================== */
-function pintarSelector(){
-  document.getElementById('tplGrid').innerHTML=Object.entries(TEMPLATES).map(([id,t])=>
-    `<div class="tpl-card ${id===tplActual?'active':''}" onclick="elegir('${id}')"><span class="ic">${t.icon}</span>${t.nombre}</div>`).join('');
-}
-function elegir(id){tplActual=id;valores={};TEMPLATES[id].params.forEach(p=>valores[p.k]=p.def);pintarSelector();pintarParams();render();}
-function pintarParams(){
-  const tpl=TEMPLATES[tplActual]; document.getElementById('tplDesc').textContent=tpl.desc;
-  document.getElementById('params').innerHTML=tpl.params.map(p=>{
-    if(p.slider)return `<div class="field"><label>${p.label}: <b id="lbl_${p.k}">${valores[p.k]}</b></label><div class="row"><input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${valores[p.k]}" oninput="setVal('${p.k}',this.value,true)"></div></div>`;
-    return `<div class="field"><label>${p.label}</label><div class="row"><input type="number" id="inp_${p.k}" min="${p.min}" max="${p.max}" step="${p.step}" value="${valores[p.k]}" oninput="setVal('${p.k}',this.value)"><span class="unit">mm</span></div></div>`;
-  }).join('');
-}
-function setVal(k,v,slider){
-  v=parseFloat(v); if(isNaN(v))return; valores[k]=v;
-  if(slider){const l=document.getElementById('lbl_'+k);if(l)l.textContent=v;}
-  else{const i=document.getElementById('inp_'+k);if(i&&parseFloat(i.value)!==v)i.value=v;}
-  render();
-}
-function pintarMaterial(){
-  document.getElementById('selMat').innerHTML=Object.entries(MATERIALES).map(([id,m])=>
-    `<option value="${id}" ${id===matActual?'selected':''}>${m.nombre}</option>`).join('');
-  pintarGrosores();
-}
-function pintarGrosores(){
-  const gs=MATERIALES[matActual].grosores;
-  if(!gs.includes(grosor))grosor=gs[Math.min(1,gs.length-1)];
-  document.getElementById('selGrosor').innerHTML=gs.map(g=>`<option value="${g}" ${g===grosor?'selected':''}>${g} mm</option>`).join('');
-}
+/* ===== Agujeros a gusto ===== */
+function agregarAgujero(){const bb=templateBB();agujeros.push({x:(bb.minX+bb.maxX)/2,y:(bb.minY+bb.maxY)/2,d:nuevoD});selAgu=agujeros.length-1;render();}
+function borrarAgujero(){if(selAgu>=0){agujeros.splice(selAgu,1);selAgu=-1;render();}}
+function setAguD(v){v=parseFloat(v);if(!isNaN(v)&&selAgu>=0){agujeros[selAgu].d=v;render();}}
+function pintarAguSel(){const box=document.getElementById('aguSel');if(selAgu<0||!agujeros[selAgu]){box.style.display='none';return;}box.style.display='block';box.innerHTML=`<div class="two" style="align-items:flex-end"><div class="field" style="flex:1;margin:0"><label>Ø agujero seleccionado</label><div class="row"><input type="number" min="1" max="200" step="1" value="${agujeros[selAgu].d}" oninput="setAguD(this.value)"><span class="unit">mm</span></div></div><button class="btn btn-ghost btn-sm" style="margin-bottom:0;color:#c0392b" onclick="borrarAgujero()">🗑</button></div>`;}
+function scaleOf(r){const svg=document.querySelector('#stageWrap svg');if(!svg)return 1;const rect=svg.getBoundingClientRect();return Math.min(rect.width/r.W,rect.height/r.H);}
+function attachHoleDrag(r){
+  agujeros.forEach((a,i)=>{const el=document.getElementById('hole_'+i);if(!el)return;
+    el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();selAgu=i;render();
+      const scale=scaleOf(r),sx=e.clientX,sy=e.clientY,x0=a.x,y0=a.y;
+      function mv(ev){a.x=x0+(ev.clientX-sx)/scale;a.y=y0-(ev.clientY-sy)/scale;render();}
+      function up(){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}
+      document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});});}
+
+/* ===== Imagen raster ===== */
+function subirImg(input){const f=input.files&&input.files[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{const im=new Image();im.onload=()=>{imagen={src:e.target.result,aspect:(im.width/im.height)||1,wmm:0,fx:0.5,fy:0.5,rot:0,natW:im.width,natH:im.height};const r=calcular();imagen.wmm=Math.round(Math.min(r.pieza.w,r.pieza.h)*0.4);pintarImgCtrls();render();};im.src=e.target.result;};rd.readAsDataURL(f);}
+function pintarImgCtrls(){const c=document.getElementById('imgCtrls');if(!imagen){c.style.display='none';return;}c.style.display='block';
+  c.innerHTML=`<div class="two"><div class="field" style="flex:1;margin:0"><label>Tamaño (ancho)</label><div class="row"><input type="number" min="5" max="2000" step="1" value="${Math.round(imagen.wmm)}" oninput="setImg('wmm',this.value)"><span class="unit">mm</span></div></div><div class="field" style="width:84px;margin:0"><label>Rotación</label><div class="row"><input type="number" min="-180" max="180" step="5" value="${imagen.rot}" oninput="setImg('rot',this.value)"><span class="unit">°</span></div></div></div>
+  <div class="two" style="margin-top:6px"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="centrarImg()">Centrar</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="quitarImg()">Quitar foto</button></div>
+  <div style="border-top:1px dashed #cdddff;margin-top:10px;padding-top:9px">
+    <label style="font-size:.74rem;font-weight:700;color:var(--pc-burgundy)">Convertir a líneas (trazar)</label>
+    <div class="field" style="margin:6px 0"><label>Umbral: <b id="thrLbl">128</b> · <label style="display:inline;font-weight:400"><input type="checkbox" id="trzInv"> invertir</label></label><input type="range" id="thrRng" min="20" max="235" step="1" value="128" oninput="document.getElementById('thrLbl').textContent=this.value"></div>
+    <div class="two"><div class="field" style="flex:1;margin:0"><label>Capa</label><select id="trzLayer"><option value="engrave">Grabado (azul)</option><option value="cut">Corte (rojo)</option></select></div>
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:0" onclick="trazarImagen()">🪄 Trazar</button></div>
+    <div id="trzInfo" style="font-size:.7rem;color:var(--muted);margin-top:5px"></div>
+    ${trazos.length?`<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;color:#c0392b" onclick="borrarTrazo()">Borrar trazo (${trazos.length} líneas)</button>`:''}</div>`;}
+function setImg(k,v){v=parseFloat(v);if(isNaN(v))return;imagen[k]=v;render();}
+function centrarImg(){if(imagen){imagen.fx=0.5;imagen.fy=0.5;render();}}
+function quitarImg(){imagen=null;document.getElementById('fileImg').value='';pintarImgCtrls();render();}
+function attachImgDrag(r){const el=document.getElementById('imgEl');if(!el)return;el.addEventListener('pointerdown',e=>{e.preventDefault();const scale=scaleOf(r),sx=e.clientX,sy=e.clientY,fx0=imagen.fx,fy0=imagen.fy;function mv(ev){imagen.fx=Math.max(0,Math.min(1,fx0+((ev.clientX-sx)/scale)/r.pieza.w));imagen.fy=Math.max(0,Math.min(1,fy0-((ev.clientY-sy)/scale)/r.pieza.h));render();}function up(){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);}document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});}
+
+/* ===== Trazado raster -> vector (marching squares) ===== */
+function gridFromImage(im,maxRes){const sc=Math.min(1,maxRes/Math.max(im.naturalWidth||im.width,im.naturalHeight||im.height));const w=Math.max(3,Math.round((im.naturalWidth||im.width)*sc)),h=Math.max(3,Math.round((im.naturalHeight||im.height)*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(im,0,0,w,h);const px=ctx.getImageData(0,0,w,h).data;const data=new Float32Array(w*h);for(let i=0;i<w*h;i++){const al=px[i*4+3];data[i]=al<128?255:(0.299*px[i*4]+0.587*px[i*4+1]+0.114*px[i*4+2]);}return{data,w,h};}
+function marchingSquares(g,thr,inv){const{data,w,h}=g;const V=(x,y)=>{const v=data[y*w+x];return inv?255-v:v;};const segs=[];for(let y=0;y<h-1;y++)for(let x=0;x<w-1;x++){const va=V(x,y),vb=V(x+1,y),vc=V(x+1,y+1),vd=V(x,y+1);const a=va<thr,b=vb<thr,c=vc<thr,d=vd<thr;if(a===b&&b===c&&c===d)continue;const pts=[];if(a!==b)pts.push([x+(thr-va)/(vb-va),y]);if(b!==c)pts.push([x+1,y+(thr-vb)/(vc-vb)]);if(c!==d)pts.push([x+(thr-vd)/(vc-vd),y+1]);if(d!==a)pts.push([x,y+(thr-va)/(vd-va)]);if(pts.length===2)segs.push([pts[0],pts[1]]);else if(pts.length===4){segs.push([pts[0],pts[1]]);segs.push([pts[2],pts[3]]);}}return segs;}
+function chainSegs(segs){const K=p=>Math.round(p[0]*50)/50+','+Math.round(p[1]*50)/50;const map=new Map();segs.forEach((s,i)=>{for(const e of[0,1]){const k=K(s[e]);if(!map.has(k))map.set(k,[]);map.get(k).push([i,e]);}});const used=new Array(segs.length).fill(false);const polys=[];for(let i=0;i<segs.length;i++){if(used[i])continue;used[i]=true;let poly=[segs[i][0],segs[i][1]];let grow=true;while(grow){grow=false;const cand=map.get(K(poly[poly.length-1]))||[];for(const[j,e]of cand){if(used[j])continue;used[j]=true;poly.push(segs[j][e===0?1:0]);grow=true;break;}}grow=true;while(grow){grow=false;const cand=map.get(K(poly[0]))||[];for(const[j,e]of cand){if(used[j])continue;used[j]=true;poly.unshift(segs[j][e===0?1:0]);grow=true;break;}}polys.push(poly);}return polys;}
+function dp(points,eps){if(points.length<3)return points;let dmax=0,idx=0;const[a,b]=[points[0],points[points.length-1]];for(let i=1;i<points.length-1;i++){const d=distSeg(points[i],a,b);if(d>dmax){dmax=d;idx=i;}}if(dmax>eps){const l=dp(points.slice(0,idx+1),eps),r=dp(points.slice(idx),eps);return l.slice(0,-1).concat(r);}return[a,b];}
+function distSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;if(L2===0)return Math.hypot(p[0]-a[0],p[1]-a[1]);let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-(a[0]+t*dx),p[1]-(a[1]+t*dy));}
+function trazarImagen(){
+  if(!imagen)return;const info=document.getElementById('trzInfo');info.textContent='Trazando…';
+  const thr=parseFloat(document.getElementById('thrRng').value),inv=document.getElementById('trzInv').checked,layer=document.getElementById('trzLayer').value;
+  const im=new Image();im.onload=()=>{
+    const g=gridFromImage(im,220);const segs=marchingSquares(g,thr,inv);
+    let polys=chainSegs(segs).map(pl=>dp(pl,0.8)).filter(pl=>pl.length>=2);
+    // mapear pixel -> mm (caja de la imagen en coords nativas del template)
+    const r=calcular();const cxN=r.bb.minX+imagen.fx*r.pieza.w,cyN=r.bb.minY+imagen.fy*r.pieza.h;
+    const wmm=imagen.wmm,hmm=imagen.wmm/(imagen.aspect||1),left=cxN-wmm/2,top=cyN+hmm/2;
+    const mm=(px,py)=>[left+(px/g.w)*wmm, top-(py/g.h)*hmm];
+    const out=[];polys.forEach(pl=>{for(let i=0;i<pl.length-1;i++){const A=mm(pl[i][0],pl[i][1]),B=mm(pl[i+1][0],pl[i+1][1]);out.push(line(A[0],A[1],B[0],B[1],layer));}});
+    trazos=out;info.textContent=out.length+' líneas generadas ('+polys.length+' contornos).';pintarImgCtrls();render();
+  };im.src=imagen.src;}
+function borrarTrazo(){trazos=[];pintarImgCtrls();render();}
+
+/* ===== UI ===== */
+function pintarSelector(){document.getElementById('tplGrid').innerHTML=Object.entries(TEMPLATES).map(([id,t])=>`<div class="tpl-card ${id===tplActual?'active':''}" onclick="elegir('${id}')"><span class="ic">${t.icon}</span>${t.nombre}</div>`).join('');}
+function elegir(id){tplActual=id;valores={};TEMPLATES[id].params.forEach(p=>valores[p.k]=p.def);selAgu=-1;pintarSelector();pintarParams();render();}
+function pintarParams(){const tpl=TEMPLATES[tplActual];document.getElementById('tplDesc').textContent=tpl.desc;document.getElementById('params').innerHTML=tpl.params.map(p=>{if(p.slider)return`<div class="field"><label>${p.label}: <b id="lbl_${p.k}">${valores[p.k]}</b></label><div class="row"><input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${valores[p.k]}" oninput="setVal('${p.k}',this.value,true)"></div></div>`;return`<div class="field"><label>${p.label}</label><div class="row"><input type="number" id="inp_${p.k}" min="${p.min}" max="${p.max}" step="${p.step}" value="${valores[p.k]}" oninput="setVal('${p.k}',this.value)"><span class="unit">mm</span></div></div>`;}).join('');}
+function setVal(k,v,slider){v=parseFloat(v);if(isNaN(v))return;valores[k]=v;if(slider){const l=document.getElementById('lbl_'+k);if(l)l.textContent=v;}else{const i=document.getElementById('inp_'+k);if(i&&parseFloat(i.value)!==v)i.value=v;}render();}
+function pintarMaterial(){document.getElementById('selMat').innerHTML=Object.entries(MATERIALES).map(([id,m])=>`<option value="${id}" ${id===matActual?'selected':''}>${m.nombre}</option>`).join('');pintarGrosores();}
+function pintarGrosores(){const gs=MATERIALES[matActual].grosores;if(!gs.includes(grosor))grosor=gs[Math.min(1,gs.length-1)];document.getElementById('selGrosor').innerHTML=gs.map(g=>`<option value="${g}" ${g===grosor?'selected':''}>${g} mm</option>`).join('');}
 function setMaterial(id){matActual=id;pintarGrosores();render();}
 function setGrosor(v){grosor=parseFloat(v);render();}
 function setWatts(v){v=parseFloat(v);if(!isNaN(v))watts=Math.max(20,Math.min(600,v));render();}
 function setCompensar(b){compensar=b;render();}
 
 // init
-pintarMaterial(); pintarSelector(); elegir('rueda');
+pintarMaterial();pintarSelector();elegir('rueda');
 document.getElementById('inpWatts').value=watts;
 </script>
 </body>

@@ -127,6 +127,11 @@
 </div>
 <input id="cotaInput" type="number" step="0.5" onkeydown="if(event.key==='Enter')aplicarCota();if(event.key==='Escape')ocultarCota()" onblur="aplicarCota()">
 
+<!-- Servidos como ir.attachment publicos (40526/40527): URL absoluta porque este HTML
+     corre en un iframe blob donde las rutas relativas no resuelven. Para desarrollo
+     local sin red, cambiar temporalmente a three.min.js / OrbitControls.js del directorio. -->
+<script src="https://www.paracarpinteros.com/web/content/40526"></script>
+<script src="https://www.paracarpinteros.com/web/content/40527"></script>
 <script>
 /* ===== Geometría neutra (mm, Y-arriba) ===== */
 const D2R=Math.PI/180;
@@ -188,7 +193,7 @@ function elHitR(el){if(el.tipo==='a')return Math.max(el.d/2,4);if(el.tipo==='r')
 /* ===== SVG ===== */
 const COLOR={cut:'#e11d2a',engrave:'#1763d6'};
 const rnd=n=>Math.round(n*1000)/1000;
-function entToSvg(e){const col=COLOR[e.layer]||COLOR.cut,sel=(e.elIdx===selEl&&e.elIdx!=null),st=sel?'#2a8a2a':col,sw=sel?'0.7':'0.3';if(e.t==='circle')return`<circle cx="${e.cx}" cy="${e.cy}" r="${e.r}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"/>`;if(e.t==='line')return`<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"/>`;const[sx,sy]=P(e.cx,e.cy,e.r,e.a1),[ex,ey]=P(e.cx,e.cy,e.r,e.a2),laf=(e.a2-e.a1)>180?1:0;return`<path d="M ${sx} ${sy} A ${e.r} ${e.r} 0 ${laf} 1 ${ex} ${ey}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"/>`;}
+function entToSvg(e){const col=COLOR[e.layer]||COLOR.cut,sel=(e.elIdx===selEl&&e.elIdx!=null),st=sel?'#2a8a2a':col,sw=sel?'0.7':'0.3',dash=e.pocket?' stroke-dasharray="1.4 1"':'';if(e.t==='circle')return`<circle cx="${e.cx}" cy="${e.cy}" r="${e.r}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"${dash}/>`;if(e.t==='line')return`<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"${dash}/>`;const[sx,sy]=P(e.cx,e.cy,e.r,e.a1),[ex,ey]=P(e.cx,e.cy,e.r,e.a2),laf=(e.a2-e.a1)>180?1:0;return`<path d="M ${sx} ${sy} A ${e.r} ${e.r} 0 ${laf} 1 ${ex} ${ey}" class="geo" fill="none" stroke="${st}" stroke-width="${sw}"${dash}/>`;}
 function imgToSvg(r,preview){if(!imagen||!imagen.src)return'';const cx=r.pad+imagen.fx*r.pieza.w,cy=r.pad+imagen.fy*r.pieza.h,w=imagen.wmm,h=imagen.wmm/(imagen.aspect||1),x=cx-w/2,ytop=r.H-(cy+h/2),rot=imagen.rot?` transform="rotate(${rnd(-imagen.rot)} ${rnd(cx)} ${rnd(r.H-cy)})"`:'',extra=preview?' style="cursor:move;opacity:.92" id="imgEl"':'';return`<image href="${imagen.src}" xlink:href="${imagen.src}" x="${rnd(x)}" y="${rnd(ytop)}" width="${rnd(w)}" height="${rnd(h)}"${rot} preserveAspectRatio="none"${extra}/>`;}
 function niceStep(d){const raw=d/10,p=Math.pow(10,Math.floor(Math.log10(raw||1))),n=raw/p,m=n<1.5?1:(n<3.5?2:(n<7.5?5:10));return Math.max(1,m*p);}
 function axesSvg(r){
@@ -222,7 +227,7 @@ function calcular(){
   const pad=Math.max((MATERIALES[matActual].kerf||0)+2,maxDim/20+4);
   const dx=-bb.minX+pad,dy=-bb.minY+pad;
   let ents=base.map(e=>trasEnt(e,dx,dy));
-  elementos.forEach((el,i)=>elGeom(el).forEach(g=>{g.elIdx=i;ents.push(trasEnt(g,dx,dy));}));
+  elementos.forEach((el,i)=>elGeom(el).forEach(g=>{g.elIdx=i;if(el.modo==='cajeado')g.pocket=true;ents.push(trasEnt(g,dx,dy));}));
   trazos.forEach(e=>ents.push(trasEnt(e,dx,dy)));
   cotas=cotas.map(c=>({...c,x:c.x+dx,y:c.y+dy}));
   return{ents,cotas,W:bw+pad*2,H:bh+pad*2,pad,dx,dy,bb,pieza:{w:bw,h:bh}};
@@ -275,9 +280,9 @@ function ocultarCota(){document.getElementById('cotaInput').style.display='none'
 
 /* ===== Elementos: agregar / editar / arrastrar ===== */
 function agregar(tipo){const bb=templateBB(),cx=(bb.minX+bb.maxX)/2,cy=(bb.minY+bb.maxY)/2;
-  if(tipo==='a')elementos.push({tipo:'a',x:cx,y:cy,d:nuevoD});
-  else if(tipo==='r')elementos.push({tipo:'r',x:cx,y:cy,len:40,w:8,ang:0});
-  else elementos.push({tipo:'c',x:cx,y:cy,r:Math.max(30,(bb.maxX-bb.minX)/4),sweep:90,w:8,ang:0});
+  if(tipo==='a')elementos.push({tipo:'a',x:cx,y:cy,d:nuevoD,modo:'pasante',prof:grosor});
+  else if(tipo==='r')elementos.push({tipo:'r',x:cx,y:cy,len:40,w:8,ang:0,modo:'pasante',prof:grosor});
+  else elementos.push({tipo:'c',x:cx,y:cy,r:Math.max(30,(bb.maxX-bb.minX)/4),sweep:90,w:8,ang:0,modo:'pasante',prof:grosor});
   selEl=elementos.length-1;pintarElSel();render();}
 function borrarEl(){if(selEl>=0){elementos.splice(selEl,1);selEl=-1;pintarElSel();render();}}
 function selectElIdx(i){selEl=i;pintarElSel();render();}
@@ -287,7 +292,7 @@ function pintarElLista(){
   if(!elementos.length){box.innerHTML='';return;}
   box.innerHTML='<div style="font-size:.72rem;font-weight:700;color:var(--pc-burgundy);margin-bottom:4px">Elementos ('+elementos.length+')</div>'+elementos.map((el,i)=>{
     const nom=el.tipo==='a'?'Agujero Ø'+rnd(el.d):(el.tipo==='r'?'Ranura recta '+rnd(el.len):'Ranura curva r'+rnd(el.r)),sel=i===selEl;
-    return `<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:6px;font-size:.73rem;cursor:pointer;${sel?'background:#e8f3e2;':''}" onclick="selectElIdx(${i})"><span style="flex:1">${sel?'▸ ':''}${nom} <span style="color:var(--muted)">(${rnd(el.x)},${rnd(el.y)})</span></span><button onclick="event.stopPropagation();borrarElIdx(${i})" style="border:none;background:none;cursor:pointer;color:#c0392b;font-size:.95rem;line-height:1">🗑</button></div>`;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:6px;font-size:.73rem;cursor:pointer;${sel?'background:#e8f3e2;':''}" onclick="selectElIdx(${i})"><span style="flex:1">${sel?'▸ ':''}${nom} <span style="color:var(--muted)">(${rnd(el.x)},${rnd(el.y)})</span>${el.modo==='cajeado'?` <span style="color:#840016;font-weight:700">▽${rnd(Math.min(el.prof!=null?el.prof:grosor,grosor))}mm</span>`:''}</span><button onclick="event.stopPropagation();borrarElIdx(${i})" style="border:none;background:none;cursor:pointer;color:#c0392b;font-size:.95rem;line-height:1">🗑</button></div>`;
   }).join('');
 }
 function centroPieza(){const bb=templateBB();return[(bb.minX+bb.maxX)/2,(bb.minY+bb.maxY)/2];}
@@ -302,6 +307,7 @@ function arregloCircular(){const el=elementos[selEl];if(!el)return;const n=Math.
 function arregloLineal(){const el=elementos[selEl];if(!el)return;const n=Math.max(2,Math.min(60,parseInt(document.getElementById('lN').value)||3));const paso=parseFloat(document.getElementById('lPaso').value)||30;const ang=parseFloat(document.getElementById('lAng').value)||0,ux=Math.cos(ang*D2R),uy=Math.sin(ang*D2R);
   for(let k=1;k<n;k++)elementos.push({...el,x:el.x+ux*paso*k,y:el.y+uy*paso*k});render();}
 function setElProp(prop,v){v=parseFloat(v);if(!isNaN(v)&&selEl>=0){elementos[selEl][prop]=v;render();}}
+function setElModo(v){if(selEl<0)return;const el=elementos[selEl];el.modo=v;if(v==='cajeado'&&(el.prof==null||el.prof>=grosor))el.prof=Math.max(0.5,Math.round(grosor*0.5*2)/2);pintarElSel();render();}
 function fEl(label,prop,val,step){return`<div class="field" style="margin:0;flex:1"><label>${label}</label><div class="row"><input id="el_${prop}" type="number" step="${step||1}" value="${rnd(val)}" oninput="setElProp('${prop}',this.value)"></div></div>`;}
 function pintarElSel(){
   const box=document.getElementById('elSel');if(selEl<0||!elementos[selEl]){box.style.display='none';return;}
@@ -311,17 +317,22 @@ function pintarElSel(){
   else if(el.tipo==='r')campos+=`<div class="three" style="margin-top:6px">${fEl('Largo','len',el.len)}${fEl('Ancho','w',el.w)}${fEl('Áng°','ang',el.ang,5)}</div>`;
   else campos+=`<div class="three" style="margin-top:6px">${fEl('Radio','r',el.r)}${fEl('Barrido°','sweep',el.sweep,5)}${fEl('Ancho','w',el.w)}</div>`+`<div class="two" style="margin-top:6px">${fEl('Orientación°','ang',el.ang||0,5)}<div style="flex:1"></div></div>`;
   const nom=el.tipo==='a'?'Agujero':(el.tipo==='r'?'Ranura recta':'Ranura curva');
+  const caj=el.modo==='cajeado';const prof=Math.min(el.prof!=null?el.prof:grosor,grosor);
+  const depthUI=`<div style="border-top:1px dashed #d8cde6;margin-top:8px;padding-top:7px"><div class="two" style="align-items:flex-end">`
+   +`<div class="field" style="flex:1;margin:0"><label>Vaciado</label><select id="el_modo" onchange="setElModo(this.value)"><option value="pasante"${caj?'':' selected'}>Pasante (atraviesa)</option><option value="cajeado"${caj?' selected':''}>Cajeado (a profundidad)</option></select></div>`
+   +(caj?fEl('Prof. Z (mm)','prof',prof,0.5):'<div style="flex:1"></div>')
+   +`</div>${caj?`<div style="font-size:.68rem;color:var(--muted);margin-top:4px">Caja de ${rnd(prof)} mm sobre ${grosor} mm de grosor — visible en 3D; el SVG/DXF la marca con línea punteada.</div>`:''}</div>`;
   const sim=`<div style="border-top:1px dashed #d8cde6;margin-top:8px;padding-top:7px"><div style="font-size:.72rem;font-weight:700;color:var(--pc-burgundy);margin-bottom:5px">Simetrías y arreglos</div>
     <div class="three"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="espejar('y')">⇋ Espejo</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="espejar('x')">⇵ Espejo</button></div>
     <div class="two" style="margin-top:6px;align-items:center"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="arregloCircular()">⟳ En círculo</button><span style="font-size:.7rem;color:var(--muted)">N</span><input id="aN" type="number" min="2" max="48" value="4" style="width:48px;padding:6px;border:1px solid var(--border);border-radius:6px"></div>
     <div style="display:flex;gap:6px;margin-top:6px;align-items:center"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="arregloLineal()">⋯ En línea</button><span style="font-size:.7rem;color:var(--muted)">N</span><input id="lN" type="number" min="2" max="60" value="3" style="width:44px;padding:6px;border:1px solid var(--border);border-radius:6px"><span style="font-size:.7rem;color:var(--muted)">paso</span><input id="lPaso" type="number" min="1" value="30" style="width:52px;padding:6px;border:1px solid var(--border);border-radius:6px"><input id="lAng" type="number" value="0" title="ángulo°" style="width:44px;padding:6px;border:1px solid var(--border);border-radius:6px"></div></div>`;
-  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:.78rem;color:#2a8a2a">▸ ${nom} seleccionado</b><button class="btn btn-ghost btn-sm" style="color:#c0392b;padding:4px 8px" onclick="borrarEl()">🗑</button></div>${campos}${sim}`;
+  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:.78rem;color:#2a8a2a">▸ ${nom} seleccionado</b><button class="btn btn-ghost btn-sm" style="color:#c0392b;padding:4px 8px" onclick="borrarEl()">🗑</button></div>${campos}${depthUI}${sim}`;
 }
 function syncElValues(){ // actualiza valores sin reconstruir (no roba el foco al escribir)
   const box=document.getElementById('coordBox');
   if(selEl<0||!elementos[selEl]){if(box)box.textContent='—';return;}
   const el=elementos[selEl];
-  ['x','y','d','len','w','ang','r','sweep'].forEach(pr=>{const i=document.getElementById('el_'+pr);if(i&&document.activeElement!==i&&el[pr]!=null)i.value=rnd(el[pr]);});
+  ['x','y','d','len','w','ang','r','sweep','prof'].forEach(pr=>{const i=document.getElementById('el_'+pr);if(i&&document.activeElement!==i&&el[pr]!=null)i.value=rnd(el[pr]);});
   if(box)box.innerHTML=`<span style="font-size:.7rem;color:var(--muted)">X</span><input type="number" step="${snap||0.5}" value="${rnd(el.x)}" oninput="setElProp('x',this.value)"><span style="font-size:.7rem;color:var(--muted)">Y</span><input type="number" step="${snap||0.5}" value="${rnd(el.y)}" oninput="setElProp('y',this.value)">`;
 }
 function snapVal(v){return snap>0?Math.round(v/snap)*snap:v;}
@@ -376,53 +387,121 @@ function borrarTrazo(){trazos=[];pintarImgCtrls();render();}
 
 /* ===== Zoom / Pan ===== */
 function applyView(){const svg=document.querySelector('#stageWrap svg');if(!svg)return;svg.style.transformOrigin='center center';svg.style.transform=`translate(${view.px}px,${view.py}px) scale(${view.z})`;}
-function zoomBtn(f){view.z=Math.max(0.3,Math.min(25,view.z*f));if(vista3d)render3d();else applyView();}
-function ajustar(){view={z:1,px:0,py:0};if(vista3d){rot={x:58,z:-26};render3d();}else applyView();}
-function toggle3d(){vista3d=!vista3d;if(vista3d){if(rot.x===0&&rot.z===0)rot={x:58,z:-26};view={z:1,px:0,py:0};}const b=document.getElementById('btn3d');if(b)b.classList.toggle('btn-cut',vista3d);render();}
-/* ===== 3D sólido (extrusión por el grosor, huecos punzados) ===== */
-function contornos(){
-  const p=paramsActuales();let ents=TEMPLATES[tplActual].build(p,0);
-  elementos.forEach(el=>elGeom(el).forEach(g=>ents.push(g)));
-  trazos.filter(e=>e.layer==='cut').forEach(e=>ents.push(e));
+function zoomBtn(f){if(vista3d){const T=window._three;if(T){const tg=T.controls.target;T.camera.position.sub(tg).multiplyScalar(1/f).add(tg);T.controls.update();}return;}view.z=Math.max(0.3,Math.min(25,view.z*f));applyView();}
+function ajustar(){view={z:1,px:0,py:0};if(vista3d){if(window._three)window._three._framed=false;render3d();}else applyView();}
+function toggle3d(){vista3d=!vista3d;if(vista3d){view={z:1,px:0,py:0};if(window._three)window._three._framed=false;}const b=document.getElementById('btn3d');if(b)b.classList.toggle('btn-cut',vista3d);render();}
+/* ===== 3D solido real (Three.js): cajeados a su profundidad, agujeros pasantes ===== */
+function entsToLoops(ents){
   const loops=[],segs=[];
   ents.forEach(e=>{
-    if(e.t==='circle'){const ring=[];for(let i=0;i<28;i++)ring.push(P(e.cx,e.cy,e.r,i*360/28));loops.push(ring);}
-    else if(e.t==='arc'){const steps=Math.max(2,Math.ceil((e.a2-e.a1)/8)),pts=[];for(let i=0;i<=steps;i++)pts.push(P(e.cx,e.cy,e.r,e.a1+(e.a2-e.a1)*i/steps));for(let i=0;i<pts.length-1;i++)segs.push([pts[i],pts[i+1]]);}
+    if(e.t==='circle'){const ring=[];for(let i=0;i<48;i++)ring.push(P(e.cx,e.cy,e.r,i*360/48));loops.push(ring);}
+    else if(e.t==='arc'){const steps=Math.max(2,Math.ceil((e.a2-e.a1)/6)),pts=[];for(let i=0;i<=steps;i++)pts.push(P(e.cx,e.cy,e.r,e.a1+(e.a2-e.a1)*i/steps));for(let i=0;i<pts.length-1;i++)segs.push([pts[i],pts[i+1]]);}
     else segs.push([[e.x1,e.y1],[e.x2,e.y2]]);
   });
   chainSegs(segs).forEach(pl=>{if(pl.length>=3)loops.push(pl);});
-  if(!loops.length)return{outer:[],holes:[]};
-  const area=r=>{let s=0;for(let i=0;i<r.length;i++){const a=r[i],b=r[(i+1)%r.length];s+=a[0]*b[1]-b[0]*a[1];}return s/2;};
-  let outer=loops[0],oa=Math.abs(area(loops[0]));
-  loops.forEach(l=>{const a=Math.abs(area(l));if(a>oa){oa=a;outer=l;}});
+  return loops;
+}
+function areaOf(r){let s=0;for(let i=0;i<r.length;i++){const a=r[i],b=r[(i+1)%r.length];s+=a[0]*b[1]-b[0]*a[1];}return Math.abs(s/2);}
+function loopsOuterHoles(loops){
+  if(!loops.length)return{outer:null,holes:[]};
+  let outer=loops[0],oa=areaOf(loops[0]);loops.forEach(l=>{const a=areaOf(l);if(a>oa){oa=a;outer=l;}});
   return{outer,holes:loops.filter(l=>l!==outer)};
+}
+function _clean(poly){if(!poly||poly.length<2)return poly;const n=poly.length,a=poly[0],b=poly[n-1];return (Math.abs(a[0]-b[0])<1e-6&&Math.abs(a[1]-b[1])<1e-6)?poly.slice(0,n-1):poly;}
+function solido3d(){
+  const p=paramsActuales();
+  let baseEnts=TEMPLATES[tplActual].build(p,0);
+  trazos.filter(e=>e.layer==='cut').forEach(e=>baseEnts.push(e));
+  const oh=loopsOuterHoles(entsToLoops(baseEnts));
+  const through=oh.holes.map(_clean),pockets=[];
+  elementos.forEach(el=>{
+    const loops=entsToLoops(elGeom(el));
+    if(el.modo==='cajeado'){const depth=Math.max(0.2,Math.min(el.prof!=null?el.prof:grosor,grosor));loops.forEach(pl=>pockets.push({poly:_clean(pl),depth}));}
+    else loops.forEach(pl=>through.push(_clean(pl)));
+  });
+  return{outer:_clean(oh.outer),through,pockets,t:Math.max(grosor,0.6)};
+}
+/* --- construccion de la malla (caras + paredes, sin libreria CSG) --- */
+function _ringV2(poly){return poly.map(p=>new THREE.Vector2(p[0],p[1]));}
+function _asCCW(v){return THREE.ShapeUtils.isClockWise(v)?v.slice().reverse():v;}
+function _asCW(v){return THREE.ShapeUtils.isClockWise(v)?v:v.slice().reverse();}
+function _pushFace(pos,contourPoly,holePolys,h){
+  const contour=_asCCW(_ringV2(contourPoly));
+  const holes=(holePolys||[]).filter(p=>p&&p.length>=3).map(p=>_asCW(_ringV2(p)));
+  let tris;try{tris=THREE.ShapeUtils.triangulateShape(contour,holes);}catch(e){tris=[];}
+  const all=contour.concat.apply(contour,holes);
+  for(const tri of tris)for(const idx of tri){const v=all[idx];if(v)pos.push(v.x,h,v.y);}
+}
+function _pushWall(pos,poly,h0,h1){
+  for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];
+    pos.push(a[0],h0,a[1], b[0],h0,b[1], b[0],h1,b[1]);
+    pos.push(a[0],h0,a[1], b[0],h1,b[1], a[0],h1,a[1]);
+  }
+}
+function buildMesh3d(sol){
+  if(!sol.outer||sol.outer.length<3)return null;
+  const t=sol.t,pos=[];
+  const topHoles=sol.through.concat(sol.pockets.map(pk=>pk.poly));
+  _pushFace(pos,sol.outer,topHoles,t);           // cara superior (menos todos los huecos)
+  _pushFace(pos,sol.outer,sol.through,0);         // cara inferior (solo huecos pasantes)
+  _pushWall(pos,sol.outer,0,t);                   // pared exterior
+  sol.through.forEach(poly=>_pushWall(pos,poly,0,t));
+  sol.pockets.forEach(pk=>{const fh=Math.max(0,t-pk.depth);_pushFace(pos,pk.poly,[],fh);_pushWall(pos,pk.poly,fh,t);});
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  geo.computeVertexNormals();geo.computeBoundingBox();
+  const mat=new THREE.MeshStandardMaterial({color:0xc89a4e,roughness:0.82,metalness:0.0,side:THREE.DoubleSide});
+  const group=new THREE.Group();
+  group.add(new THREE.Mesh(geo,mat));
+  try{const edges=new THREE.EdgesGeometry(geo,32);group.add(new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color:0x5a370f,transparent:true,opacity:0.32})));}catch(e){}
+  const bb=geo.boundingBox,center=new THREE.Vector3(),size=new THREE.Vector3();bb.getCenter(center);bb.getSize(size);
+  return{group,center,radius:0.5*Math.max(size.x,size.y,size.z,1)};
+}
+/* --- escena Three.js (se crea una vez y se reutiliza) --- */
+function ensureThree(host,W,H){
+  if(window._three)return window._three;
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0xfaf6ec);
+  const camera=new THREE.PerspectiveCamera(42,W/H,0.5,500000);
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(W,H);
+  renderer.domElement.style.borderRadius='4px';renderer.domElement.style.boxShadow='0 6px 30px rgba(0,0,0,.12)';
+  scene.add(new THREE.HemisphereLight(0xffffff,0x4a3318,1.0));
+  const d1=new THREE.DirectionalLight(0xffffff,0.85);d1.position.set(0.6,1.2,0.8);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xfff0d8,0.35);d2.position.set(-0.8,0.5,-0.6);scene.add(d2);
+  const controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.dampingFactor=0.12;
+  const T={scene,camera,renderer,controls,mesh:null,_framed:false,raf:null};
+  T.loop=function(){if(!vista3d){T.raf=null;return;}controls.update();renderer.render(scene,camera);T.raf=requestAnimationFrame(T.loop);};
+  window._three=T;return T;
+}
+function frameCamera3d(T,center,radius){
+  T.controls.target.copy(center);
+  const dir=new THREE.Vector3(0.5,0.72,1).normalize();
+  T.camera.position.copy(center).addScaledVector(dir,radius*3.0);
+  T.camera.near=Math.max(0.5,radius*0.02);T.camera.far=radius*60;T.camera.updateProjectionMatrix();
+  T.controls.update();
 }
 function render3d(){
  try{
-  const wrap=document.getElementById('stageWrap');let cv=document.getElementById('cv3d');
-  const W=wrap.clientWidth||640,H=wrap.clientHeight||500;
-  if(!cv){wrap.innerHTML=`<button id="btnBack2d" onclick="toggle3d()">← Volver a 2D</button><canvas id="cv3d" style="width:100%;height:100%;background:#fcfaf4;border-radius:4px;box-shadow:0 6px 30px rgba(0,0,0,.12);cursor:grab"></canvas>`;cv=document.getElementById('cv3d');}
-  cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.clearRect(0,0,W,H);
-  const{outer,holes}=contornos();if(!outer.length){ctx.fillStyle='#999';ctx.font='14px sans-serif';ctx.fillText('Agregá geometría de corte',20,28);return;}
-  const t=Math.max(grosor,0.6);
-  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;[outer,...holes].forEach(r=>r.forEach(pt=>{minX=Math.min(minX,pt[0]);minY=Math.min(minY,pt[1]);maxX=Math.max(maxX,pt[0]);maxY=Math.max(maxY,pt[1]);}));
-  const cx=(minX+maxX)/2,cy=(minY+maxY)/2,span=Math.max(maxX-minX,maxY-minY,1),scale=Math.min(W,H)*0.62*view.z/span;
-  const ax=rot.x*D2R,az=rot.z*D2R;
-  const rotv=(x,y,z)=>{const x1=x*Math.cos(az)-y*Math.sin(az),y1=x*Math.sin(az)+y*Math.cos(az);return[x1,y1*Math.cos(ax)-z*Math.sin(ax),y1*Math.sin(ax)+z*Math.cos(ax)];};
-  const proj=(x,y,z)=>{const r=rotv(x-cx,y-cy,z-t/2);return[W/2+view.px+r[0]*scale,H/2+view.py-r[1]*scale,r[2]];};
-  const face=(z,fill)=>{ctx.beginPath();[outer,...holes].forEach(r=>{const q0=proj(r[0][0],r[0][1],z);ctx.moveTo(q0[0],q0[1]);for(let i=1;i<r.length;i++){const q=proj(r[i][0],r[i][1],z);ctx.lineTo(q[0],q[1]);}ctx.closePath();});ctx.fillStyle=fill;ctx.fill('evenodd');ctx.strokeStyle='rgba(90,55,15,.5)';ctx.lineWidth=1;ctx.stroke();};
-  const walls=[];[outer,...holes].forEach(ring=>{for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length],q=[proj(a[0],a[1],0),proj(b[0],b[1],0),proj(b[0],b[1],t),proj(a[0],a[1],t)];const depth=(q[0][2]+q[1][2]+q[2][2]+q[3][2])/4;const nx=b[1]-a[1],ny=-(b[0]-a[0]),nl=Math.hypot(nx,ny)||1,rn=rotv(nx/nl,ny/nl,0),lit=0.5+0.45*Math.abs(rn[2]);walls.push({q,depth,lit});}});
-  walls.sort((A,B)=>A.depth-B.depth);
-  face(0,'#b07c2c');
-  walls.forEach(w=>{ctx.beginPath();ctx.moveTo(w.q[0][0],w.q[0][1]);for(let i=1;i<4;i++)ctx.lineTo(w.q[i][0],w.q[i][1]);ctx.closePath();const g=w.lit;ctx.fillStyle=`rgb(${Math.round(196*g)},${Math.round(150*g)},${Math.round(82*g)})`;ctx.fill();ctx.strokeStyle='rgba(90,55,15,.3)';ctx.lineWidth=.5;ctx.stroke();});
-  face(t,'#e7b86a');
+  if(typeof THREE==='undefined'){const w=document.getElementById('stageWrap');if(w)w.innerHTML='<div style="padding:20px;color:#999">No se pudo cargar Three.js (revisá la conexión; se sirve desde /web/content/40526).</div>';return;}
+  const wrap=document.getElementById('stageWrap');const W=wrap.clientWidth||640,H=wrap.clientHeight||500;
+  if(!document.getElementById('cv3dHost')){wrap.innerHTML='<button id="btnBack2d" onclick="toggle3d()">← Volver a 2D</button><div id="cv3dHost" style="width:100%;height:100%;display:flex"></div>';}
+  const host=document.getElementById('cv3dHost');
+  const T=ensureThree(host,W,H);
+  if(T.renderer.domElement.parentNode!==host)host.appendChild(T.renderer.domElement);
+  T.renderer.setSize(W,H);T.camera.aspect=W/H;T.camera.updateProjectionMatrix();
+  if(T.mesh){T.scene.remove(T.mesh);T.mesh.traverse(o=>{if(o.geometry)o.geometry.dispose();});T.mesh=null;}
+  const built=buildMesh3d(solido3d());
+  if(built){T.mesh=built.group;T.scene.add(T.mesh);if(!T._framed){frameCamera3d(T,built.center,built.radius);T._framed=true;}}
+  if(!T.raf)T.loop();
  }catch(err){console.warn('render3d:',err);}
 }
+
 function initVista(){
   const wrap=document.getElementById('stageWrap');
-  wrap.addEventListener('wheel',e=>{e.preventDefault();zoomBtn(e.deltaY<0?1.12:1/1.12);},{passive:false});
+  wrap.addEventListener('wheel',e=>{if(vista3d)return;e.preventDefault();zoomBtn(e.deltaY<0?1.12:1/1.12);},{passive:false});
   wrap.addEventListener('pointerdown',e=>{
-    if(window._drag)return;
+    if(window._drag||vista3d)return;
     if(!vista3d&&e.target.closest('#imgEl,#esz,[id^="hit_"],[id^="handle_"],.cota'))return;
     const sx=e.clientX,sy=e.clientY,px0=view.px,py0=view.py,rx0=rot.x,rz0=rot.z;
     function mv(ev){if(vista3d){rot.x=Math.max(-89,Math.min(89,rx0-(ev.clientY-sy)*0.45));rot.z=rz0+(ev.clientX-sx)*0.45;render3d();}else{view.px=px0+(ev.clientX-sx);view.py=py0+(ev.clientY-sy);applyView();}}

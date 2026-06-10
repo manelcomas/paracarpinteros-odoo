@@ -17,8 +17,18 @@ inline y no se descargue).
 | Pieza | id | Notas |
 |---|---|---|
 | `ir.attachment` `disenador_corte.html` | **40488** | `public=True`, `mimetype=text/html`. Es el que se sirve. |
+| `ir.attachment` `disenador_corte_three.min.js` | **40526** | Three.js (para la vista 3D), `public=True`. |
+| `ir.attachment` `disenador_corte_OrbitControls.js` | **40527** | Cámara orbital 3D, `public=True`. |
 | `ir.ui.view` `website.disenador-corte` | **7325** | qweb wrapper con el iframe + script blob. `website_id=3`. |
 | `website.page` `/disenador-corte` | **72** | `is_published=True`. |
+
+El HTML referencia los JS por **URL absoluta** (`https://www.paracarpinteros.com/web/content/40526|40527`),
+no relativa: dentro del iframe blob las rutas relativas no resuelven. Las copias
+`three.min.js` / `OrbitControls.js` de este directorio son para desarrollo local.
+**Gotcha CSP:** `/web/content/*` responde `Content-Security-Policy: default-src 'none'`,
+pero solo aplica abriendo el attachment directo como documento; el wrapper blob lo
+esquiva (la página `/disenador-corte` no manda CSP y el blob hereda del padre). Por
+eso `/web/content/40488` a pelo se ve roto y la página real no.
 
 ### Redeploy tras editar `disenador.html`
 

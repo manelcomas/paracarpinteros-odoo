@@ -304,6 +304,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   </select></div>
   <div class="row"><label>Altura</label><input type="number" id="txtSize" value="15" min="2" step="1"><span style="color:var(--mut)">mm</span>
    <select id="txtLayer"></select></div>
+  <div class="row"><label>Ancho</label><input type="number" id="txtWsc" value="100" min="10" max="1000" step="5"><span style="color:var(--mut)">% — condensá (&lt;100) o estirá (&gt;100) las letras; lo reajustás cuando quieras arrastrando el tirador lateral o en Propiedades</span></div>
   <div style="color:var(--mut);font-size:11px;line-height:1.45">El trazo fino graba en una pasada rápida. Las letras con grosor son contorno cerrado: grabalas, vaciálas con fresa, o ponelas en capa Corte para <b>letras caladas</b>. Acentos se simplifican (á→a); la ñ sale.</div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="txtCancel">Cancelar</button><button class="btn acc" id="txtGo">Colocar</button></div>
 </div>
@@ -515,7 +516,12 @@ function getHandles(s){switch(s.type){
  case 'arc':return [{x:s.cx,y:s.cy,i:0},{x:s.cx+s.r*Math.cos(s.a1),y:s.cy+s.r*Math.sin(s.a1),i:1},{x:s.cx+s.r*Math.cos(s.a2),y:s.cy+s.r*Math.sin(s.a2),i:2}];
  case 'dim':return [{x:s.p1.x,y:s.p1.y,i:0},{x:s.p2.x,y:s.p2.y,i:1}];
  case 'image':return imgCorners(s).map((p,i)=>({x:p.x,y:p.y,i}));
- case 'text':return [{x:s.x,y:s.y,i:0}];
+ case 'text':{const hs=[{x:s.x,y:s.y,i:0}];
+  const bb=polysBBox(textPolylines(s));
+  if(bb.x1>bb.x0+0.01){
+   hs.push({x:bb.x1,y:(bb.y0+bb.y1)/2,i:1}); /* lateral: estirar/condensar ancho */
+   hs.push({x:bb.x1,y:bb.y0,i:2});}          /* esquina: tamaño proporcional */
+  return hs;}
 }return [];}
 function applyHandle(s,i,p,e){switch(s.type){
  case 'line':case 'poly':s.pts[i]={x:p.x,y:p.y};break;
@@ -523,7 +529,14 @@ function applyHandle(s,i,p,e){switch(s.type){
  case 'circle':if(i===0){s.cx=p.x;s.cy=p.y;}else s.r=Math.max(0.1,dist(p,{x:s.cx,y:s.cy}));break;
  case 'arc':if(i===0){s.cx=p.x;s.cy=p.y;}else if(i===1){s.r=Math.max(0.1,dist(p,{x:s.cx,y:s.cy}));s.a1=Math.atan2(p.y-s.cy,p.x-s.cx);}else s.a2=Math.atan2(p.y-s.cy,p.x-s.cx);break;
  case 'dim':if(i===0)s.p1={x:p.x,y:p.y};else s.p2={x:p.x,y:p.y};break;
- case 'text':s.x=p.x;s.y=p.y;break;
+ case 'text':
+  if(i===0){s.x=p.x;s.y=p.y;}
+  else{const bb=polysBBox(textPolylines(s));
+   if(i===1){const w0=(bb.x1-s.x)/(s.wscale||1); /* ancho natural sin escala */
+    if(w0>0.01)s.wscale=Math.min(10,Math.max(0.1,(p.x-s.x)/w0));}
+   else{const top=s.y-bb.y0; /* alto de las letras sobre la línea base */
+    if(top>0.01)s.size=Math.max(2,s.size*(s.y-p.y)/top);}}
+  break;
  case 'image':{const c={x:s.x+s.w/2,y:s.y+s.h/2};const r=(s.rot||0)*Math.PI/180;const lp=r?rotPt(p,c,-r):p;
   const cs=[{x:s.x,y:s.y},{x:s.x+s.w,y:s.y},{x:s.x+s.w,y:s.y+s.h},{x:s.x,y:s.y+s.h}];const o=cs[(i+2)%4],me=cs[i];
   let w=Math.max(1,Math.abs(lp.x-o.x)),h=Math.max(1,Math.abs(lp.y-o.y));
@@ -636,7 +649,8 @@ function renderProps(){const el=$('#props');
   case 'text':{h+='<div class="row"><label>Texto</label><input type="text" data-prop="text" value="'+String(s.text||'').replace(/"/g,'&quot;')+'" style="width:150px"></div>';
    const fopts=[['hershey','Trazo fino (1 línea)'],['bebas','Bebas — condensada'],['poppins','Poppins — fina'],['poppinsb','Poppins NEGRITA'],['archivo','Archivo Black — muy gruesa'],['pacifico','Pacifico — cursiva'],['abril','Abril Fatface — serif']];
    h+='<div class="row"><label>Letra</label><select data-prop="font" style="max-width:160px">'+fopts.map(o=>'<option value="'+o[0]+'"'+((s.font||'hershey')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>';
-   h+=propRow('X','x',s.x)+propRow('Y','y',s.y)+propRow('Altura','size',s.size,1);break;}
+   h+=propRow('X','x',s.x)+propRow('Y','y',s.y)+propRow('Altura','size',s.size,1)+propRow('Ancho %','wsc',(s.wscale||1)*100,5);
+   h+='<div style="color:var(--mut);font-size:10.5px;margin:1px 0 3px">Ancho: 100 = natural · &lt;100 condensa · &gt;100 estira. También arrastrando el tirador lateral del texto; el de la esquina cambia el tamaño entero.</div>';break;}
  }
  if(MODO==='router'&&s.type!=='dim'&&s.type!=='image'&&s.layer!=='cota'){
   const cnc=s.cnc||{op:'auto',fresa:-1,prof:0};
@@ -669,6 +683,7 @@ $('#props').addEventListener('change',e=>{const s=shapes.find(x=>x.id===sel);if(
   else if(prop==='d'){s.r=Math.max(0.05,v/2);}
   else if(prop==='ebL'||prop==='ebR'||prop==='ebT'||prop==='ebB'){const pr=pieceRef(s.id,{x:s.cx,y:s.cy});if(!pr)return;
    if(prop==='ebL')s.cx=pr.x0+v;else if(prop==='ebR')s.cx=pr.x1-v;else if(prop==='ebT')s.cy=pr.y0+v;else s.cy=pr.y1-v;}
+  else if(prop==='wsc'){s.wscale=Math.min(10,Math.max(0.1,v/100));}
   else if(prop==='a1'||prop==='a2'){s[prop]=v*Math.PI/180;}
   else if(prop==='rot'){s.rot=v;}
   else{s[prop]=v;if((prop==='w'||prop==='h'||prop==='r'||prop==='size')&&s[prop]<=0)s[prop]=0.1;if(prop==='rx'&&s.rx<0)s.rx=0;}}
@@ -1156,6 +1171,8 @@ function textPolylines(s){const fk=s.font||'hershey';let out;
    for(const line of lines){out=out.concat(otPathToPolys(font.getPath(line,0,0,fs),s.x,s.y+ly));ly+=(s.size||10)*1.5;}}
   else out=hersheyPolys(s); /* cargando: trazo fino de relleno mientras tanto */
  } else out=hersheyPolys(s);
+ const ws=s.wscale||1; /* estirar/condensar letras, re-ajustable siempre (tirador, Propiedades) */
+ if(ws!==1)for(const pl of out)for(const q of pl)q.x=s.x+(q.x-s.x)*ws;
  if(s.flipH||s.flipV){const bb=polysBBox(out);const mx=(bb.x0+bb.x1)/2,my=(bb.y0+bb.y1)/2;
   for(const pl of out)for(const q of pl){if(s.flipH)q.x=2*mx-q.x;if(s.flipV)q.y=2*my-q.y;}}
  return out;}
@@ -1702,7 +1719,7 @@ $('#txtCancel').onclick=()=>{txtPending=null;$('#txtDlg').classList.remove('show
 $('#txtGo').onclick=()=>{const v=$('#txtVal').value.trim();
  $('#txtDlg').classList.remove('show');
  if(!v||!txtPending){txtPending=null;return;}
- newShape({type:'text',text:v,x:txtPending.x,y:txtPending.y,size:Math.max(2,+$('#txtSize').value||15),layer:$('#txtLayer').value,font:$('#txtFont').value,flipH:false,flipV:false});
+ newShape({type:'text',text:v,x:txtPending.x,y:txtPending.y,size:Math.max(2,+$('#txtSize').value||15),wscale:Math.min(10,Math.max(0.1,(+$('#txtWsc').value||100)/100)),layer:$('#txtLayer').value,font:$('#txtFont').value,flipH:false,flipV:false});
  txtPending=null;setTool('select');refresh();};
 $('#txtVal').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#txtGo').click();}});
 

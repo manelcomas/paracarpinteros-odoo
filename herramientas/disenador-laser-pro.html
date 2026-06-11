@@ -813,7 +813,7 @@ function renderProps(){const el=$('#props');
  if(MODO==='router'&&s.type!=='dim'&&s.type!=='image'&&s.layer!=='cota'){
   const cnc=s.cnc||{op:'auto',fresa:-1,prof:0};
   const meta=CNCMETA?CNCMETA.get(s.id):null;
-  const ops=[['auto','Auto'+(meta?' → '+OPNAMES[meta.op].toLowerCase():'')],['fuera','Perfil exterior'],['dentro','Perfil interior'],['sobre','Sobre la línea (sin comp.)'],['cajeado','Cajeado (vaciado)'],['taladro','Taladro'],['no','No mecanizar']];
+  const ops=[['auto','Auto'+(meta?' → '+OPNAMES[meta.op].toLowerCase():'')],['fuera','Perfil exterior'],['dentro','Perfil interior'],['sobre','Sobre la línea (sin comp.)'],['cajeado','Cajeado (vaciado)'],['taladro','Taladro'],['vcarve','V-carve (tallado en V)'],['no','No mecanizar']];
   h+='<div style="border-top:1px solid var(--line);margin:6px 0 2px;padding-top:6px;color:var(--acc);font-family:\'Bebas Neue\';letter-spacing:1.5px;font-size:13px">FRESADO (ROUTER)</div>';
   h+='<div class="row"><label>Oper.</label><select data-prop="cncOp" style="max-width:170px">'+ops.map(o=>'<option value="'+o[0]+'"'+((cnc.op||'auto')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>';
   h+='<div class="row"><label>Fresa</label><select data-prop="cncFresa" style="max-width:170px"><option value="-1"'+(!(cnc.fresa>=0)?' selected':'')+'>Por defecto'+(meta?' (T'+(meta.f+1)+')':'')+'</option>'+FRESAS.map((t,i)=>'<option value="'+i+'"'+(cnc.fresa===i?' selected':'')+'>T'+(i+1)+' '+t.nombre+'</option>').join('')+'</select></div>';
@@ -2051,7 +2051,7 @@ function gfmt(v){return String(Math.round(v*1000)/1000);}
 let MODO='laser',CNCMETA=null,fresaEdit=-1;
 const FCOL=['#1e88e5','#e5611e','#2e9e44','#8e24aa','#c79100','#00897b','#d81b60'];
 const fcol=i=>FCOL[i%FCOL.length];
-const OPNAMES={fuera:'Perfil exterior',dentro:'Perfil interior',sobre:'Sobre la línea',cajeado:'Cajeado',taladro:'Taladro',no:'No mecanizar'};
+const OPNAMES={fuera:'Perfil exterior',dentro:'Perfil interior',sobre:'Sobre la línea',cajeado:'Cajeado',taladro:'Taladro',vcarve:'V-carve (tallado en V)',no:'No mecanizar'};
 const TIPONOM={recta:'recta',upcut:'espiral upcut',downcut:'espiral downcut',vbit:'V-bit',bola:'punta de bola'};
 const FRESAS_DEF=[
  {nombre:'Recta Ø6 mm',tipo:'recta',d:6,filos:2,ang:0,paso:2.5,fxy:1200,fz:300,rpm:10000,step:45},
@@ -2089,9 +2089,12 @@ function cncMeta(){const cfg=rtCfg();const out=new Map();
  for(const s of shapes){if(s.type==='image'||s.type==='dim'||s.layer==='cota')continue;
   let op=(s.cnc&&s.cnc.op)||'auto';if(op==='auto')op=autoOp(s);
   if(op==='no'){out.set(s.id,null);continue;}
-  let f=(s.cnc&&s.cnc.fresa>=0)?s.cnc.fresa:(op==='sobre'?cfg.fGrab:cfg.fCorte);
+  const vbitIdx=FRESAS.findIndex(x=>x.tipo==='vbit');
+  let f=(s.cnc&&s.cnc.fresa>=0)?s.cnc.fresa:
+   (op==='sobre'?cfg.fGrab:op==='vcarve'?(vbitIdx>=0?vbitIdx:cfg.fGrab):cfg.fCorte);
   if(f>=FRESAS.length)f=0;
-  const prof=(s.cnc&&s.cnc.prof>0)?s.cnc.prof:(op==='sobre'?cfg.grab:cfg.esp);
+  const prof=(s.cnc&&s.cnc.prof>0)?s.cnc.prof:
+   (op==='sobre'?cfg.grab:op==='vcarve'?Math.min(cfg.esp*0.6,5):cfg.esp);
   out.set(s.id,{op,f,prof});}
  return out;}
 function shapeLabel(s){switch(s.type){
@@ -2151,10 +2154,16 @@ function jobPaths(s,m,t){const tr=t.d/2;
  if(m.op==='sobre')return{kind:'paths',paths:flattenShape(s,0.12)};
  if(m.op==='taladro'){if(s.type==='circle')return{kind:'disk',c:{x:s.cx,y:s.cy},R:s.r};
   return{kind:'paths',paths:flattenShape(s,0.12),warn:shapeLabel(s)+': taladro solo aplica a círculos — se corta sobre la línea'};}
+ if(m.op==='vcarve'){const grupos=vcarveJob(s,t,m.prof);
+  if(!grupos)return{kind:'paths',paths:flattenShape(s,0.12),warn:shapeLabel(s)+': V-carve necesita contornos CERRADOS (texto con grosor, rect, círculo, poly cerrada) — se graba sobre la línea'};
+  const w=t.tipo!=='vbit'?shapeLabel(s)+': V-carve con una fresa que no es V-bit (asumo 60°) — asignale una V-bit en Propiedades':null;
+  return w?{kind:'vcarve',grupos:grupos,warn:w}:{kind:'vcarve',grupos:grupos};}
  if(m.op==='cajeado'){if(s.type==='circle')return{kind:'disk',c:{x:s.cx,y:s.cy},R:s.r};
   if(s.type==='rect')return{kind:'pocketR',s:s};
+  const rings=pocketRings(s,t);
+  if(rings)return rings.length>1?{kind:'pocketG',rings:rings,warn:shapeLabel(s)+': cajeado con varios contornos — ojo: los huecos interiores también se vacían'}:{kind:'pocketG',rings:rings};
   const ps=offsetPaths(s,-tr);if(!ps.length)return{empty:'no se pudo compensar el cajeado'};
-  return{kind:'paths',paths:ps,warn:shapeLabel(s)+': cajeado solo en rectángulo/círculo — se corta su perfil interior'};}
+  return{kind:'paths',paths:ps,warn:shapeLabel(s)+': el cajeado necesita una forma cerrada — se corta su perfil interior'};}
  const d=m.op==='fuera'?tr:-tr;const ps=offsetPaths(s,d);
  if(!ps.length)return{empty:'la fresa Ø'+t.d+' no cabe (forma demasiado pequeña)'};
  return{kind:'paths',paths:ps};}
@@ -2251,10 +2260,90 @@ function emitPocketRect(s,t,prof,cfg){const tr=t.d/2,F=t.fxy;
    g+='G1 X'+gpx(back)+' Y'+gpy(back)+' F'+gfmt(F)+'\n';}
   d=dt;}
  g+='G0 Z'+gfmt(cfg.zs)+'\n';return g;}
+/* --- cajeado de CUALQUIER forma cerrada: offsets sucesivos hacia dentro --- */
+function pocketRings(s,t){const tr=t.d/2;
+ const step=Math.max(0.4,t.d*(t.step||40)/100);
+ const base=flattenShape(s,0.1).filter(f=>f.closed&&f.pts.length>2);
+ if(!base.length)return null;
+ const out=[];
+ for(const f of base){const sub=[];let d=-tr,guard=400,prevA=Infinity;
+  while(guard-->0){const r=offsetRing(f.pts,d);if(!r)break;
+   const a=ringArea(r);
+   /* el offset interior debe achicarse y quedar dentro; si no, el anillo se invirtió: fin */
+   if(a>=prevA-1e-6||!pointInPoly(r[0],f.pts))break;
+   prevA=a;sub.push(r);d-=step;}
+  if(sub.length)out.push(sub.reverse());} /* del centro hacia el borde */
+ return out.length?out:null;}
+function emitPocketG(rings,t,prof,cfg){let g='';
+ const tan=Math.tan(cfg.rampa*Math.PI/180);
+ for(const sub of rings){const first=sub[0];
+  g+='G0 Z'+gfmt(cfg.zs)+'\nG0 X'+gpx(first[0])+' Y'+gpy(first[0])+'\nG1 Z0 F'+gfmt(t.fz)+'\n';
+  let d=0,idx=0;
+  while(d<prof-1e-9){const dt=Math.min(prof,d+t.paso);
+   const r=ringPass(first,idx,d,dt,t.fxy,t.fz,tan);g+=r.g;idx=r.idx;
+   for(let i=1;i<sub.length;i++){const ring=sub[i];
+    g+='G1 X'+gpx(ring[0])+' Y'+gpy(ring[0])+' F'+gfmt(t.fxy)+'\n';
+    for(let k=1;k<=ring.length;k++){const p=ring[k%ring.length];
+     g+='G1 X'+gpx(p)+' Y'+gpy(p)+' F'+gfmt(t.fxy)+'\n';}}
+   if(dt<prof-1e-9){const back=first[((idx%first.length)+first.length)%first.length];
+    g+='G1 X'+gpx(back)+' Y'+gpy(back)+' F'+gfmt(t.fxy)+'\n';}
+   d=dt;}
+  g+='G0 Z'+gfmt(cfg.zs)+'\n';}
+ return g;}
+/* --- V-carve básico: offsets sucesivos = eje medio aproximado; Z = distancia/tan(ángulo/2).
+   En formas con agujeros (letras) cada frente avanza desde su borde y se recorta donde
+   el OTRO borde queda más cerca: los frentes se encuentran en la línea media. --- */
+function distAContornos(p,conts,skip){let best=Infinity;
+ for(let i=0;i<conts.length;i++){if(i===skip)continue;const c=conts[i];
+  for(let j=0;j<c.length;j++){const r=distSeg(p,c[j],c[(j+1)%c.length]);if(r.d<best)best=r.d;}}
+ return best;}
+function vcarveJob(s,t,zmax){
+ const ang=(t.tipo==='vbit'&&t.ang)?t.ang:60;
+ const tanH=Math.tan(ang/2*Math.PI/180)||0.5774;
+ const conts=flattenShape(s,0.1).filter(f=>f.closed&&f.pts.length>2).map(f=>f.pts);
+ if(!conts.length)return null;
+ /* paridad de contención: par = contorno exterior (frente hacia dentro), impar = agujero (hacia fuera) */
+ const dirDe=ci=>{let dep=0;
+  for(let j=0;j<conts.length;j++){if(j===ci)continue;if(pointInPoly(conts[ci][0],conts[j]))dep++;}
+  return dep%2?1:-1;};
+ const step=0.35;
+ const grupos=[];
+ for(let ci=0;ci<conts.length;ci++){const cont=conts[ci];const dir=dirDe(ci);const grp=[];
+  let guard=400,prevA=dir<0?Infinity:-Infinity;
+  for(let d=step*0.6;guard-->0;d+=step){
+   const ring=offsetRing(cont,dir*d);if(!ring)break;
+   const a=ringArea(ring);
+   /* hacia dentro debe achicarse (y quedar dentro); hacia fuera, agrandarse — si no, se invirtió */
+   if(dir<0){if(a>=prevA-1e-6||!pointInPoly(ring[0],cont))break;}
+   else if(a<=prevA+1e-6)break;
+   prevA=a;
+   const z=Math.min(zmax,d/tanH);
+   if(conts.length>1){const runs=[];let cur=null;
+    for(const p of ring){
+     if(distAContornos(p,conts,ci)>d-0.02){if(!cur){cur=[];runs.push(cur);}cur.push(p);}
+     else cur=null;}
+    if(runs.length===1&&runs[0].length===ring.length)grp.push({pts:ring,z:z,closed:true});
+    else{for(const run of runs)if(run.length>1)grp.push({pts:run,z:z,closed:false});
+     if(!runs.length)break;}} /* el frente ya chocó entero con el otro borde */
+   else grp.push({pts:ring,z:z,closed:true});
+   if(z>=zmax&&d>t.d)break;}
+  if(grp.length)grupos.push(grp);}
+ return grupos.length?grupos:null;}
+function emitVCarve(grupos,t,cfg){let g='';
+ for(const grp of grupos){
+  for(const r of grp){
+   g+='G0 Z'+gfmt(cfg.zs)+'\nG0 X'+gpx(r.pts[0])+' Y'+gpy(r.pts[0])+'\nG1 Z-'+gfmt(r.z)+' F'+gfmt(t.fz)+'\n';
+   const n=r.pts.length;
+   for(let k=1;k<(r.closed?n+1:n);k++){const p=r.pts[k%n];
+    g+='G1 X'+gpx(p)+' Y'+gpy(p)+' F'+gfmt(t.fxy)+'\n';}}
+  g+='G0 Z'+gfmt(cfg.zs)+'\n';}
+ return g;}
 function gcodeJob(job,t,cfg){const s=job.s,m=job.m,j=job.j;
  let g='\n('+OPNAMES[m.op]+' - '+shapeLabel(s).replace(/[()]/g,'')+' - prof '+gfmt(m.prof)+'mm)\n';
  if(j.kind==='disk')g+=emitDisk(j.c,j.R,t,m.prof,cfg);
  else if(j.kind==='pocketR')g+=emitPocketRect(j.s,t,m.prof,cfg);
+ else if(j.kind==='pocketG')g+=emitPocketG(j.rings,t,m.prof,cfg);
+ else if(j.kind==='vcarve')g+=emitVCarve(j.grupos,t,cfg);
  else for(const p of j.paths){if(!p.pts||p.pts.length<2)continue;
   g+=p.closed?gcodeRing(p.pts,m.prof,t,cfg):gcodeOpen(p.pts,m.prof,t,cfg);}
  return g;}
@@ -2268,7 +2357,7 @@ function buildRouter(){const cfg=rtCfg();const meta=cncMeta();const warns=[];con
   if(j.empty){warns.push(shapeLabel(s)+': '+j.empty);continue;}
   if(!grupos.has(m.f))grupos.set(m.f,[]);
   grupos.get(m.f).push({s:s,m:m,j:j});}
- const OPORD={sobre:0,taladro:1,cajeado:2,dentro:3,fuera:4};
+ const OPORD={sobre:0,vcarve:1,taladro:2,cajeado:3,dentro:4,fuera:5};
  const areaOf=s=>{const bb=bboxOf(s);return (bb.x1-bb.x0)*(bb.y1-bb.y0);};
  const progs=[];
  for(const fi of [...grupos.keys()].sort((a,b)=>a-b)){
@@ -2283,6 +2372,8 @@ function jobLen(job,t){const passes=profSteps(job.m.prof,t.paso).length;let L=0;
   let s1=2*Math.PI*Math.min(rr,step)*2;for(let r=Math.min(rr,step)+step;r<rr-0.01;r+=step)s1+=2*Math.PI*r;
   if(rr>step)s1+=2*Math.PI*rr;L=s1*passes;}
  else if(job.j.kind==='pocketR'){const s=job.j.s;L=(s.w*s.h/step)*passes;}
+ else if(job.j.kind==='pocketG'){for(const sub of job.j.rings)for(const r of sub)L+=pathLen(r,true);L*=passes;}
+ else if(job.j.kind==='vcarve'){for(const grp of job.j.grupos)for(const r of grp)L+=pathLen(r.pts,r.closed);}
  return L;}
 function fileNameNc(nombre,p){return nombre+'_T'+(p.fi+1)+'_'+p.t.nombre.toLowerCase().replace(/[^a-z0-9.]+/g,'-').replace(/^-+|-+$/g,'')+'.nc';}
 function gcodeFresa(p,cfg,nombre){const t=p.t;
@@ -2339,17 +2430,18 @@ function hojaRuta(){const b=buildRouter();
  if(!b.progs.length){alert('No hay operaciones de fresado que documentar.');return;}
  const cfg=b.cfg;const nombre=($('#gcNombre')&&$('#gcNombre').value.trim())||'pieza';
  const pr=pieceRef();const dims=pr?N(pr.x1-pr.x0)+' × '+N(pr.y1-pr.y0)+' mm':'—';
- let cards='';
+ let cards='';let totalMin=0,opGlobal=0;
  b.progs.forEach((p,i)=>{const t=p.t;
-  const min=p.jobs.reduce((acc,j)=>acc+jobLen(j,p.t),0)/t.fxy*1.25;
-  const rows=p.jobs.map(job=>'<tr><td>'+OPNAMES[job.m.op]+'</td><td>'+shapeLabel(job.s)+'</td><td>'+N(job.m.prof)+' mm</td><td>'+profSteps(job.m.prof,t.paso).length+'</td></tr>').join('');
+  const min=p.jobs.reduce((acc,j)=>acc+jobLen(j,p.t),0)/t.fxy*1.25;totalMin+=min;
+  const rows=p.jobs.map(job=>{const jm=jobLen(job,t)/t.fxy*1.25;opGlobal++;
+   return '<tr><td>'+opGlobal+'</td><td>'+OPNAMES[job.m.op]+'</td><td>'+shapeLabel(job.s)+'</td><td>'+N(job.m.prof)+' mm</td><td>'+(job.m.op==='vcarve'?'Z variable':profSteps(job.m.prof,t.paso).length)+'</td><td>'+(jm<1?'<1':Math.round(jm))+' min</td></tr>';}).join('');
   cards+='<div class="card"><div class="chead" style="border-left:6px solid '+fcol(p.fi)+'">'
    +fresaSVG(t,fcol(p.fi))
    +'<div><h2>PASO '+(i+1)+' — T'+(p.fi+1)+': '+t.nombre+'</h2>'
    +'<div class="specs">Ø '+t.d+' mm · '+TIPONOM[t.tipo]+(t.tipo==='vbit'?' '+(t.ang||60)+'°':'')+' · '+t.filos+' filo(s)<br>'
    +'Avance '+t.fxy+' mm/min · Plunge '+t.fz+' mm/min · '+t.rpm+' RPM · '+t.paso+' mm/pasada · ≈ '+(min<1?'<1':Math.round(min))+' min'
    +(cfg.modo==='porFresa'?'<br>Archivo: <b>'+fileNameNc(nombre,p)+'</b>':'')+'</div></div></div>'
-   +'<table><tr><th>Operación</th><th>Forma</th><th>Prof. total</th><th>Pasadas</th></tr>'+rows+'</table>'
+   +'<table><tr><th>#</th><th>Operación</th><th>Forma</th><th>Prof. total</th><th>Pasadas</th><th>Tiempo</th></tr>'+rows+'</table>'
    +'<div class="nota">☐ Montar la fresa &nbsp;·&nbsp; ☐ <b>Re-zerear Z</b> tocando la cara superior &nbsp;·&nbsp; ☐ Ejecutar'+(cfg.modo==='porFresa'?' el archivo de este paso':'')+'</div></div>';});
  const html='<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Hoja de ruta CNC — '+nombre+'</title><style>'
   +'body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#112;margin:24px;max-width:760px}'
@@ -2367,7 +2459,8 @@ function hojaRuta(){const b=buildRouter();
   +'</style></head><body>'
   +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><img src="https://www.paracarpinteros.com/web/image/website/3/logo/ParaCarpinteros" alt="Paracarpinteros" style="height:34px"><span style="color:#777;font-size:12px">paracarpinteros.com — fanáticos de la carpintería</span></div>'
   +'<h1>HOJA DE RUTA CNC — '+nombre+'</h1>'
-  +'<div class="meta"><b>Pieza:</b> '+dims+' · <b>Espesor:</b> '+cfg.esp+' mm · <b>Origen XY:</b> esquina inferior izquierda · <b>Z0:</b> cara superior · <b>Rampa:</b> '+cfg.rampa+'°<br>'
+  +'<div class="meta"><b>Pieza:</b> '+dims+' · <b>Espesor:</b> '+cfg.esp+' mm · <b>Origen XY:</b> esquina inferior izquierda · <b>Z0:</b> cara superior · <b>Rampa:</b> '+cfg.rampa+'° · <b>Tiempo total:</b> ≈ '+(totalMin<1?'<1':Math.round(totalMin))+' min (sin cambios de fresa)<br>'
+  +'Las operaciones van numeradas (#) en el orden exacto en que las ejecuta cada archivo.<br>'
   +(cfg.modo==='m0'?'<b>Archivo único</b> con pausas M0: re-zerear Z con sonda en cada pausa.':'<b>Un archivo por fresa</b>: ejecutalos en orden, re-zereando Z al cambiar.')
   +' Compensación de radio incluida — no apliques offset extra en el control.</div>'
   +(b.warns.length?'<div class="warn">⚠ '+b.warns.join('<br>⚠ ')+'</div>':'')
@@ -3122,7 +3215,7 @@ function renderLegend(){const el=$('#fresaLegend');
  for(const s of shapes){const m=CNCMETA.get(s.id);if(!m)continue;
   if(!por.has(m.f))por.set(m.f,{});const o=por.get(m.f);o[m.op]=(o[m.op]||0)+1;}
  if(!por.size){el.style.display='none';return;}
- const ABBR={fuera:'perfil ext.',dentro:'perfil int.',sobre:'grabado',cajeado:'cajeado',taladro:'taladro'};
+ const ABBR={fuera:'perfil ext.',dentro:'perfil int.',sobre:'grabado',cajeado:'cajeado',taladro:'taladro',vcarve:'V-carve'};
  let h='<b>FRESAS EN ESTE DIBUJO</b>';
  for(const fi of [...por.keys()].sort((a,b)=>a-b)){const t=FRESAS[fi];const o=por.get(fi);
   const det=('T'+(fi+1)+' — '+t.nombre+'&#10;'+TIPONOM[t.tipo]+(t.tipo==='vbit'?' '+(t.ang||60)+'°':'')+' · Ø '+t.d+' mm · '+t.filos+' filo(s)&#10;Pasada '+t.paso+' mm · Avance '+t.fxy+' mm/min · '+t.rpm+' RPM&#10;Clic para editar esta fresa');

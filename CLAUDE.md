@@ -251,6 +251,24 @@ Como se lee fresca por mensaje, el cambio en la DB **es inmediato sin rebuild**.
 
 **"Enseñar al bot" desde el panel:** el panel tiene un botón (icono birrete) junto a la respuesta manual en el `chat-foot`. Abre un modal (título + dato) que hace `POST /api/knowledge` con `category="aprendido"`, `active=1` → inserta una fila en `bot_knowledge`, así que el dato queda vivo al instante para todas las conversaciones futuras (no retroactivo a la actual) y es editable/borrable en el editor de conocimiento. El canal es solo la respuesta manual (lo enseña el equipo, no el cliente) para evitar envenenamiento. El backend (`POST/PUT/DELETE /api/knowledge`) ya existía; lo nuevo es solo UI en `static/panel.{html,js}`, desplegable por static hot-reload (rsync + `docker cp`, sin rebuild).
 
+### SEO / Google Merchant (feed + schema)
+
+- **Feed Merchant Center**: `scripts/generate_feed.py` (solo lee Odoo por XML-RPC,
+  stdlib puro) genera RSS 2.0 Google Shopping con los `product.template`
+  publicados (`g:id` = `default_code`; omite sin ref o sin imagen). Corre **en el
+  VPS** vía `/etc/cron.d/feed-google` (diario 3am hora del VPS) cargando las
+  credenciales del `.env` del bridge, y escribe directo a
+  `/var/www/html/feed-google.xml` → `https://panel.paracarpinteros.com/feed-google.xml`.
+  La copia del script en el VPS está en `/opt/paracarpinteros-odoo/scripts/`
+  (subida por scp; cuando se commitee y haga `git pull` quedará versionada).
+- **Schema Product**: Odoo 19 genera el JSON-LD de las fichas **en Python, no en
+  QWeb** (no hay vista que tocar). Emite todo menos `sku`; lo añade el snippet
+  `pc-sku-jsonld` del `custom_code_footer` del website 3 leyendo el `Ref:` del DOM
+  (script `scripts/inject_sku_schema.py`, idempotente, backup en `scripts/_backups/`).
+- **Search Console**: `scripts/add_gsc_txt.py TOKEN [--apply]` crea el TXT de
+  verificación en Cloudflare (zona paracarpinteros.com). El `.env` no tiene
+  `CF_API_TOKEN`; usa `CLOUDFLARE_EMAIL` + `CLOUDFLARE_GLOBAL_API_KEY`.
+
 ## The `.env` baúl pattern
 
 El proyecto tiene **un `.env` raíz** que centraliza credenciales para los scripts en `scripts/`:

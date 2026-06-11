@@ -95,6 +95,8 @@ input[type=checkbox]{accent-color:var(--acc)}
 #capaList .lyr.off{opacity:.55}
 #capaList .lyr [data-edit]{cursor:pointer}
 #capaList .lyr:hover{background:var(--inbg);border-radius:5px}
+#nodeBar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;background:var(--panel);border:1px solid var(--acc);border-radius:9px;padding:5px 8px;display:none;gap:5px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.4);flex-wrap:wrap;max-width:96%}
+#nodeBar.show{display:flex}
 </style>
 </head>
 <body>
@@ -143,6 +145,14 @@ input[type=checkbox]{accent-color:var(--acc)}
       <g id="gGrid"></g><g id="gShapes"></g><g id="gOverlay"></g>
     </svg>
     <div id="fresaLegend"></div>
+    <div id="nodeBar">
+      <b style="font-family:'Bebas Neue';letter-spacing:1px;color:var(--acc);font-size:13px">NODOS</b>
+      <button class="btn" id="ndSmoothB" title="Alterna los nodos seleccionados entre esquina recta y curva suave (tecla S)">● Suave / ◣ Esquina</button>
+      <button class="btn" id="ndSplitB" title="Abre el camino en el nodo seleccionado: si es cerrado lo abre ahí, si es abierto lo parte en dos formas">✂ Partir</button>
+      <button class="btn" id="ndJoinB" title="Cierra el camino si seleccionás sus dos extremos, o lo une con otro camino abierto cuyo extremo esté a menos de 5 mm">⨝ Unir</button>
+      <button class="btn" id="ndDelB" title="Borra los nodos seleccionados (Supr)">⌫ Nodo</button>
+      <button class="btn acc" id="ndDone" title="Salir del modo nodos (Esc)">✓ Listo</button>
+    </div>
     <div id="guia"></div>
     <div id="v3d">
       <div id="v3dBar">
@@ -157,7 +167,7 @@ input[type=checkbox]{accent-color:var(--acc)}
       <span class="kbd">V L P R O G A D T H</span> herramientas (<span class="kbd">G</span> = perforación) · <span class="kbd">Ctrl+Z / Ctrl+Y</span> deshacer / rehacer<br>
       <span class="kbd">Supr</span> borrar selección · <span class="kbd">Esc</span> cancelar<br>
       <span class="kbd">Shift</span> al dibujar: ángulos de 15° · al escalar imagen: libre<br>
-      <span class="kbd">Doble clic</span> en una línea: insertar nodo · <span class="kbd">Alt+clic</span> en nodo: borrarlo<br>
+      <span class="kbd">Doble clic</span> en una forma: <b>editar sus nodos</b> (clic en la línea añade, <span class="kbd">Supr</span> borra, <span class="kbd">S</span> esquina↔suave, <span class="kbd">Esc</span> sale)<br>
       <span class="kbd">Enter</span> termina polilínea · <span class="kbd">C</span> la cierra<br>
       Mientras dibujas, escribe la <b>longitud</b> en la barra inferior y pulsa <span class="kbd">Enter</span><br>
       Rueda: zoom · Botón central o espacio: mover vista<br>Imagen seleccionada → <b>Recortar</b>, <b>Vectorizar</b>, <b>Quitar fondo</b> (varita por color) o <b>Borrador</b> (pincel) en Propiedades
@@ -414,7 +424,7 @@ let tool='select',draft=null,drag=null;
 let undoStack=[],redoStack=[];
 let view={x:0,y:0,w:1000,h:700};
 let mouseW={x:0,y:0},rawW={x:0,y:0},snapHit=null,shiftDown=false,spaceDown=false;
-let cropMode=null,vecCtx=null,imgEdit=null,liveT=0,txtPending=null,arrTarget=null,distTarget=null;
+let cropMode=null,vecCtx=null,imgEdit=null,liveT=0,txtPending=null,arrTarget=null,distTarget=null,nodeEdit=null;
 /* Tema oscuro = paneles oscuros con CAMA CLARA (estilo LightBurn): el dibujo se ve como sobre la tabla */
 const THEMES={
  dark:{disp:{corte:'#e53935',grabado:'#222222',cota:'#a07900'},areaFill:'#f7f4ee',gridMinor:'#e6e1d6',gridMajor:'#d2cbbd',label:'#8a857a',handleFill:'#ffffff'},
@@ -497,9 +507,30 @@ function snapPt(raw,opts={}){snapHit=null;const mm=pxmm(),tol=10*mm;
 
 /* ================= Geometría de figuras ================= */
 function arcPath(a){const p1={x:a.cx+a.r*Math.cos(a.a1),y:a.cy+a.r*Math.sin(a.a1)},p2={x:a.cx+a.r*Math.cos(a.a2),y:a.cy+a.r*Math.sin(a.a2)};let d=a.a2-a.a1;while(d<0)d+=Math.PI*2;while(d>=Math.PI*2)d-=Math.PI*2;const laf=d>Math.PI?1:0;return 'M '+N(p1.x)+' '+N(p1.y)+' A '+N(a.r)+' '+N(a.r)+' 0 '+laf+' 1 '+N(p2.x)+' '+N(p2.y);}
+/* Polilíneas con curvas: cada nodo puede llevar cin/cout (Bézier CÚBICA, estilo Inkscape).
+   Un segmento a→b es curvo si a.cout o b.cin existen; si falta uno se usa el propio ancla. */
+function bezPt(a,c1,c2,b,t){const mt=1-t;
+ return{x:mt*mt*mt*a.x+3*mt*mt*t*c1.x+3*mt*t*t*c2.x+t*t*t*b.x,
+        y:mt*mt*mt*a.y+3*mt*mt*t*c1.y+3*mt*t*t*c2.y+t*t*t*b.y};}
+function segPathD(a,b){if(a.cout||b.cin){const c1=a.cout||a,c2=b.cin||b;
+  return ' C '+N(c1.x)+' '+N(c1.y)+' '+N(c2.x)+' '+N(c2.y)+' '+N(b.x)+' '+N(b.y);}
+ return ' L '+N(b.x)+' '+N(b.y);}
+function flatPoly(s,tol){const n=s.pts.length;const r=[{x:s.pts[0].x,y:s.pts[0].y}];
+ const segs=n-1+(s.closed?1:0);
+ for(let k=0;k<segs;k++){const a=s.pts[k],b=s.pts[(k+1)%n];
+  if(a.cout||b.cin){const c1=a.cout||a,c2=b.cin||b;
+   const L=dist(a,c1)+dist(c1,c2)+dist(c2,b);
+   const st=Math.max(4,Math.min(64,Math.ceil(L/Math.max(0.25,tol*2))));
+   for(let j=1;j<=st;j++)r.push(bezPt(a,c1,c2,b,j/st));}
+  else r.push({x:b.x,y:b.y});}
+ if(s.closed)r.pop(); /* el cierre repite el primer punto */
+ return r;}
 function shapePathD(s){switch(s.type){
  case 'line':return 'M '+N(s.pts[0].x)+' '+N(s.pts[0].y)+' L '+N(s.pts[1].x)+' '+N(s.pts[1].y);
- case 'poly':{let d='M '+N(s.pts[0].x)+' '+N(s.pts[0].y);for(let i=1;i<s.pts.length;i++)d+=' L '+N(s.pts[i].x)+' '+N(s.pts[i].y);if(s.closed)d+=' Z';return d;}
+ case 'poly':{const n=s.pts.length;let d='M '+N(s.pts[0].x)+' '+N(s.pts[0].y);
+  for(let i=1;i<n;i++)d+=segPathD(s.pts[i-1],s.pts[i]);
+  if(s.closed){const a=s.pts[n-1],b=s.pts[0];if(a.cout||b.cin)d+=segPathD(a,b);d+=' Z';}
+  return d;}
  case 'rect':{const r=Math.max(0,Math.min(s.rx||0,Math.min(s.w,s.h)/2));
   if(!r)return 'M '+N(s.x)+' '+N(s.y)+' h '+N(s.w)+' v '+N(s.h)+' h '+N(-s.w)+' Z';
   const x=s.x,y=s.y,w=s.w,hh=s.h;
@@ -524,7 +555,7 @@ function getHandles(s){switch(s.type){
   return hs;}
 }return [];}
 function applyHandle(s,i,p,e){switch(s.type){
- case 'line':case 'poly':s.pts[i]={x:p.x,y:p.y};break;
+ case 'line':case 'poly':{const q=s.pts[i];s.pts[i]=movePt(q,p.x-q.x,p.y-q.y);break;}
  case 'rect':{const cs=[{x:s.x,y:s.y},{x:s.x+s.w,y:s.y},{x:s.x+s.w,y:s.y+s.h},{x:s.x,y:s.y+s.h}];const o=cs[(i+2)%4];s.x=Math.min(p.x,o.x);s.y=Math.min(p.y,o.y);s.w=Math.max(0.1,Math.abs(p.x-o.x));s.h=Math.max(0.1,Math.abs(p.y-o.y));break;}
  case 'circle':if(i===0){s.cx=p.x;s.cy=p.y;}else s.r=Math.max(0.1,dist(p,{x:s.cx,y:s.cy}));break;
  case 'arc':if(i===0){s.cx=p.x;s.cy=p.y;}else if(i===1){s.r=Math.max(0.1,dist(p,{x:s.cx,y:s.cy}));s.a1=Math.atan2(p.y-s.cy,p.x-s.cx);}else s.a2=Math.atan2(p.y-s.cy,p.x-s.cx);break;
@@ -544,8 +575,12 @@ function applyHandle(s,i,p,e){switch(s.type){
   const sx=Math.sign(me.x-o.x)||1,sy=Math.sign(me.y-o.y)||1;
   s.w=w;s.h=h;s.x=sx>0?o.x:o.x-w;s.y=sy>0?o.y:o.y-h;break;}
 }}
+function movePt(p,dx,dy){const q=Object.assign({},p,{x:p.x+dx,y:p.y+dy});
+ if(p.cin)q.cin={x:p.cin.x+dx,y:p.cin.y+dy};
+ if(p.cout)q.cout={x:p.cout.x+dx,y:p.cout.y+dy};
+ return q;}
 function translateShape(s,dx,dy){switch(s.type){
- case 'line':case 'poly':s.pts=s.pts.map(p=>({x:p.x+dx,y:p.y+dy}));break;
+ case 'line':case 'poly':s.pts=s.pts.map(p=>movePt(p,dx,dy));break;
  case 'rect':case 'image':case 'text':s.x+=dx;s.y+=dy;break;
  case 'circle':case 'arc':s.cx+=dx;s.cy+=dy;break;
  case 'dim':s.p1={x:s.p1.x+dx,y:s.p1.y+dy};s.p2={x:s.p2.x+dx,y:s.p2.y+dy};break;
@@ -605,8 +640,11 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  if(drag&&drag.kind==='crop'&&drag.b){const a=drag.a,b=drag.b;out+='<rect x="'+Math.min(a.x,b.x)+'" y="'+Math.min(a.y,b.y)+'" width="'+Math.abs(b.x-a.x)+'" height="'+Math.abs(b.y-a.y)+'" fill="rgba(77,163,255,.12)" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';}
  if(drag&&drag.kind==='band'&&drag.b){const a=drag.a,b=drag.b;out+='<rect x="'+Math.min(a.x,b.x)+'" y="'+Math.min(a.y,b.y)+'" width="'+Math.abs(b.x-a.x)+'" height="'+Math.abs(b.y-a.y)+'" fill="rgba(232,168,0,.08)" stroke="#E8A800" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';}
  if(snapHit)out+='<circle cx="'+snapHit.x+'" cy="'+snapHit.y+'" r="'+(6*mm)+'" fill="none" stroke="#4dff88" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
+ if(nodeEdit){const ns=ndShape();
+  if(!ns){nodeEdit=null;$('#nodeBar').classList.remove('show');}
+  else out+=ndMarkup(ns,mm);}
  const s=shapes.find(x=>x.id===sel);
- if(s&&tool==='select'){for(const h of getHandles(s))out+='<rect class="h" data-hi="'+h.i+'" x="'+(h.x-5*mm)+'" y="'+(h.y-5*mm)+'" width="'+(10*mm)+'" height="'+(10*mm)+'" fill="'+TH().handleFill+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
+ if(s&&tool==='select'&&!nodeEdit){for(const h of getHandles(s))out+='<rect class="h" data-hi="'+h.i+'" x="'+(h.x-5*mm)+'" y="'+(h.y-5*mm)+'" width="'+(10*mm)+'" height="'+(10*mm)+'" fill="'+TH().handleFill+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
  gOverlay.innerHTML=out;}
 function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();renderCapas();guiaTick();autosave();}
 
@@ -664,7 +702,10 @@ function renderProps(){const el=$('#props');
    h+='<div style="color:var(--mut);font-size:10.5px;margin:2px 0 4px">→ <span style="color:'+fcol(meta.f)+'">●</span> '+OPNAMES[meta.op]+' · T'+(meta.f+1)+' Ø'+ft.d+' · '+N(meta.prof)+' mm en '+profSteps(meta.prof,ft.paso).length+' pasada(s)</div>';}
   else h+='<div style="color:var(--mut);font-size:10.5px;margin:2px 0 4px">→ no se mecaniza</div>';}
  const mir=['line','poly','arc','image','text','dim'].includes(s.type);
- h+='<div class="row" style="margin-top:8px">'+(mir?'<button class="btn" data-act="mh">↔ Espejo</button><button class="btn" data-act="mv">↕ Espejo</button>':'')+'</div>';
+ const ndBtn=(s.type==='poly'||s.type==='line')?'<button class="btn" data-act="nodes" title="Mover, añadir y borrar los puntos del camino — también con doble clic sobre la forma">✎ Editar nodos</button>':
+  (['rect','circle','arc','text'].includes(s.type)?'<button class="btn" data-act="topath" title="Convierte la forma en un camino de nodos editables (pierde sus medidas de '+({rect:'rectángulo',circle:'círculo',arc:'arco',text:'texto'})[s.type]+')">⤳ Convertir a trazado</button>':'');
+ if(ndBtn)h+='<div class="row" style="margin-top:8px">'+ndBtn+'</div>';
+ h+='<div class="row"'+(ndBtn?'':' style="margin-top:8px"')+'>'+(mir?'<button class="btn" data-act="mh">↔ Espejo</button><button class="btn" data-act="mv">↕ Espejo</button>':'')+'</div>';
  h+='<div class="row"><button class="btn" data-act="arr">▦ Repetir</button><button class="btn" data-act="ch">Centrar H</button><button class="btn" data-act="cv">Centrar V</button></div>';
  h+='<div class="row"><button class="btn" data-act="dup">Duplicar</button><button class="btn" data-act="del">Borrar</button></div>';
  el.innerHTML=h;}
@@ -706,6 +747,14 @@ function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
  else if(act==='wand'||act==='erase'){if(imgEdit)return;openImgEdit(s,act==='wand'?'wand':'brush');}
  else if(act==='crop'){if(imgEdit)return;cropMode={id:s.id};svg.classList.add('cropping');$('#hint').textContent='Arrastra un rectángulo sobre la imagen para quedarte solo con esa parte · Esc cancela';}
  else if(act==='vect'){openVect(s);}
+ else if(act==='nodes'){if(s.type==='line'){pushUndo();s.type='poly';s.closed=false;}
+  if(s.type==='poly')enterNodeEdit(s.id);}
+ else if(act==='topath'){
+  const nom={rect:'rectángulo',circle:'círculo',arc:'arco',text:'texto'}[s.type]||s.type;
+  if(!confirm('¿Convertir este '+nom+' a trazado editable por nodos?\nPierde sus medidas de '+nom+' (y el ajuste de kerf si lo tenía). Ctrl+Z lo deshace.'))return;
+  const ids=toPath(s);if(!ids||!ids.length)return;
+  if(ids.length>1)$('#hint').textContent=ids.length+' caminos creados — doble clic en cualquiera para editar sus nodos';
+  else enterNodeEdit(ids[0]);}
  else if(act==='mh'||act==='mv'){pushUndo();mirrorShape(s,act==='mh'?'h':'v');refresh();}
  else if(act==='arr'){arrTarget=s.id;$('#arrDlg').classList.add('show');}
  else if(act==='mirH'||act==='mirV'){const pr=pieceRef(s.id,{x:s.cx,y:s.cy});
@@ -736,11 +785,12 @@ function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
   else translateShape(s,0,(pr.y0+pr.y1)/2-(bb.y0+bb.y1)/2);refresh();}}
 
 /* ================= Herramientas / ratón ================= */
-function setTool(t){tool=t;draft=null;snapHit=null;$('#draftIn').classList.remove('show');
+function setTool(t){if(nodeEdit)exitNodeEdit();
+ tool=t;draft=null;snapHit=null;$('#draftIn').classList.remove('show');
  $('#holeIn').classList.toggle('show',t==='hole');
  document.querySelectorAll('.tbtn[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
  svg.setAttribute('class','tool-'+t);
- const hints={select:'Clic: seleccionar · botón derecho: centrar, espejo, duplicar… · doble clic en línea: insertar nodo · Alt+clic en nodo: borrar',line:'Clic inicio, clic fin · Shift: 15° · escribe longitud + Enter',poly:'Clic por puntos · Enter termina · C cierra · doble clic termina',rect:'Clic esquina, clic esquina opuesta · o escribe An/Al + Enter',circle:'Clic centro, clic radio · o escribe radio + Enter',hole:'Clic coloca una perforación con el Ø de abajo · botón derecho sobre ella: centrar, 4 esquinas, repartir N…',arc:'Clic centro → clic inicio → clic fin (sentido horario)',dim:'Clic en dos puntos para acotar',text:'Clic donde quieras colocar el texto (el punto es la línea base)',pan:'Arrastra para mover la vista'};
+ const hints={select:'Clic: seleccionar · botón derecho: centrar, espejo, duplicar… · doble clic en una forma: editar sus nodos',line:'Clic inicio, clic fin · Shift: 15° · escribe longitud + Enter',poly:'Clic por puntos · Enter termina · C cierra · doble clic termina',rect:'Clic esquina, clic esquina opuesta · o escribe An/Al + Enter',circle:'Clic centro, clic radio · o escribe radio + Enter',hole:'Clic coloca una perforación con el Ø de abajo · botón derecho sobre ella: centrar, 4 esquinas, repartir N…',arc:'Clic centro → clic inicio → clic fin (sentido horario)',dim:'Clic en dos puntos para acotar',text:'Clic donde quieras colocar el texto (el punto es la línea base)',pan:'Arrastra para mover la vista'};
  $('#hint').textContent=hints[t]||'';renderOverlay();}
 document.querySelectorAll('.tbtn[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
 
@@ -790,6 +840,7 @@ svg.addEventListener('mousedown',e=>{const raw=toWorld(e);
  if(cropMode&&e.button===0){drag={kind:'crop',a:raw,b:raw};e.preventDefault();return;}
  if(e.button===1||spaceDown||tool==='pan'){drag={kind:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};e.preventDefault();return;}
  if(e.button!==0)return;
+ if(nodeEdit){ndMouseDown(e,raw);return;}
  if(tool==='select'){
   if(e.target.classList&&e.target.classList.contains('h')){const i=+e.target.dataset.hi;const s=shapes.find(x=>x.id===sel);if(!s)return;
    if(e.altKey&&(s.type==='poly')&&s.pts.length>2){pushUndo();s.pts.splice(i,1);refresh();return;}
@@ -816,6 +867,21 @@ svg.addEventListener('mousemove',e=>{const raw=toWorld(e);rawW=raw;
     drag.last=p;drag.moved=true;renderShapes();renderOverlay();}return;}
   if(drag.kind==='crop'){drag.b=raw;renderOverlay();return;}
   if(drag.kind==='pan'){const mm=pxmm();view.x=drag.vx-(e.clientX-drag.sx)*mm;view.y=drag.vy-(e.clientY-drag.sy)*mm;setViewBox();renderGrid();renderShapes();renderOverlay();return;}
+  if(drag.kind==='ndMove'){const ns=ndShape();if(!ns)return;
+   const p=ndSnap(raw,ns,drag.i);const dx=p.x-drag.last.x,dy=p.y-drag.last.y;
+   if(dx||dy){const idxs=nodeEdit&&nodeEdit.sel.has(drag.i)?[...nodeEdit.sel]:[drag.i];
+    for(const i of idxs)if(ns.pts[i])ns.pts[i]=movePt(ns.pts[i],dx,dy);
+    drag.last=p;drag.moved=true;renderShapes();renderOverlay();}
+   return;}
+  if(drag.kind==='ndCtrl'){const ns=ndShape();if(!ns||!ns.pts[drag.i])return;
+   const pt=ns.pts[drag.i];const st=parseFloat($('#sStep').value)||1;
+   let p={x:raw.x,y:raw.y};if($('#gSnap').checked){p.x=Math.round(p.x/st)*st;p.y=Math.round(p.y/st)*st;}
+   pt[drag.side==='in'?'cin':'cout']={x:p.x,y:p.y};
+   if(pt.sm){const o=drag.side==='in'?'cout':'cin'; /* suave: el otro control queda colineal */
+    if(pt[o]){const L=Math.hypot(pt[o].x-pt.x,pt[o].y-pt.y);
+     const dx=pt.x-p.x,dy=pt.y-p.y;const l=Math.hypot(dx,dy)||1e-9;
+     pt[o]={x:pt.x+dx/l*L,y:pt.y+dy/l*L};}}
+   drag.moved=true;renderShapes();renderOverlay();return;}
   const s=shapes.find(x=>x.id===sel);if(!s)return;
   if(drag.kind==='handle'){const p=snapPt(raw,{exclude:sel});applyHandle(s,drag.i,p,e);drag.moved=true;renderShapes();renderOverlay();renderProps();return;}
   if(drag.kind==='move'){const p=snapPt(raw,{exclude:sel});const dx=p.x-drag.last.x,dy=p.y-drag.last.y;if(dx||dy){translateShape(s,dx,dy);drag.last=p;drag.moved=true;renderShapes();renderOverlay();renderProps();}return;}}
@@ -836,17 +902,15 @@ window.addEventListener('mouseup',()=>{
   }
   refresh();return;}
  if(drag&&drag.kind==='gmove'){if(drag.moved)commit(drag.pre);drag=null;refresh();return;}
- if(drag&&(drag.kind==='handle'||drag.kind==='move')&&drag.moved)commit(drag.pre);drag=null;});
+ if(drag&&(drag.kind==='handle'||drag.kind==='move'||drag.kind==='ndMove'||drag.kind==='ndCtrl')&&drag.moved)commit(drag.pre);drag=null;});
 svg.addEventListener('dblclick',e=>{e.preventDefault();
  if(tool==='poly'&&draft&&draft.pts.length){draft.pts.pop();finishPoly(false);return;}
- if(tool!=='select')return;
+ if(tool!=='select'||nodeEdit)return;
  const g=e.target.closest&&e.target.closest('[data-id]');if(!g)return;
  const s=shapes.find(x=>x.id===+g.dataset.id);if(!s)return;
- if(s.type==='line'||s.type==='poly'){const p=toWorld(e);const mm=pxmm(),tol=8*mm;
-  const pts=s.type==='line'?s.pts:s.pts;const n=pts.length;const segs=[];
-  for(let i=0;i<n-1;i++)segs.push([i,i+1]);if(s.type==='poly'&&s.closed)segs.push([n-1,0]);
-  let best=null;for(const [i,j] of segs){const r=distSeg(p,pts[i],pts[j]);if(r.d<tol&&(!best||r.d<best.d))best={i,q:r.q,d:r.d};}
-  if(best){pushUndo();if(s.type==='line'){s.type='poly';s.closed=false;}s.pts.splice(best.i+1,0,snapPt(best.q));sel=s.id;refresh();}}});
+ if(s.type==='line'){pushUndo();s.type='poly';s.closed=false;}
+ if(s.type==='poly'){sel=s.id;selGrp.clear();enterNodeEdit(s.id);return;}
+ if(['rect','circle','arc','text'].includes(s.type)){sel=s.id;selGrp.clear();refresh();propAction('topath');}});
 svg.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY>0?1.12:1/1.12;const p=toWorld(e);
  view.x=p.x-(p.x-view.x)*f;view.y=p.y-(p.y-view.y)*f;view.w*=f;view.h*=f;refresh();},{passive:false});
 /* ================= Menú contextual (botón derecho sobre una forma) ================= */
@@ -854,6 +918,8 @@ const ctxEl=$('#ctx');
 function hideCtx(){ctxEl.style.display='none';}
 function showCtx(x,y,s){const its=[];
  its.push(['pch','◫ Centrar en la pieza ↔'],['pcv','⊟ Centrar en la pieza ↕'],['ch','Centrar en la mesa ↔'],['cv','Centrar en la mesa ↕'],null);
+ if(s.type==='poly'||s.type==='line')its.push(['nodes','✎ Editar nodos']);
+ if(['rect','circle','arc','text'].includes(s.type))its.push(['topath','⤳ Convertir a trazado (nodos)']);
  if(['line','poly','arc','image','text','dim'].includes(s.type))its.push(['mh','↔ Espejo'],['mv','↕ Espejo']);
  if(s.type==='circle')its.push(['mirH','⧉↔ Copia espejada al otro lado'],['mirV','⧉↕ Copia espejada arriba/abajo'],['corners','▣ Copiar a las 4 esquinas'],['dist','⋯ Repartir N equidistantes']);
  if(s.type==='image')its.push(null,['crop','✂ Recortar'],['vect','⟲ Vectorizar'],['wand','🪄 Quitar fondo']);
@@ -865,11 +931,194 @@ function showCtx(x,y,s){const its=[];
 ctxEl.addEventListener('click',e=>{const act=e.target.dataset.act;hideCtx();if(act)propAction(act);});
 window.addEventListener('mousedown',e=>{if(ctxEl.style.display==='block'&&!ctxEl.contains(e.target))hideCtx();});
 svg.addEventListener('contextmenu',e=>{e.preventDefault();
+ if(nodeEdit){hideCtx();return;}
  const g=e.target.closest&&e.target.closest('[data-id]');
  if(!g){hideCtx();return;}
  sel=+g.dataset.id;refresh();
  const s=shapes.find(x=>x.id===sel);
  if(s)showCtx(e.clientX,e.clientY,s);});
+
+/* ================= Edición de nodos (doble clic en una forma) =================
+   nodeEdit={id, sel:Set<índices>}. Anclas cuadradas (redondas si el nodo es suave),
+   controles Bézier azules de los nodos seleccionados. Clic en la línea añade nodo. */
+function ndShape(){return nodeEdit?shapes.find(x=>x.id===nodeEdit.id&&x.type==='poly'):null;}
+function enterNodeEdit(id){const s=shapes.find(x=>x.id===id);if(!s||s.type!=='poly')return;
+ nodeEdit={id:id,sel:new Set()};sel=id;selGrp.clear();
+ $('#nodeBar').classList.add('show');
+ $('#hint').textContent='Modo nodos: arrastrá los puntos · clic sobre la línea añade un nodo · Supr borra · S esquina/suave · clic en vacío o Esc para salir';
+ refresh();}
+function exitNodeEdit(){if(!nodeEdit)return;nodeEdit=null;
+ $('#nodeBar').classList.remove('show');$('#hint').textContent='';refresh();}
+function ndMarkup(s,mm){let o='';const n=s.pts.length,r=4.5*mm;
+ for(const i of nodeEdit.sel){const pt=s.pts[i];if(!pt)continue;
+  for(const side of ['cin','cout']){const c=pt[side];if(!c)continue;
+   o+='<line x1="'+N(pt.x)+'" y1="'+N(pt.y)+'" x2="'+N(c.x)+'" y2="'+N(c.y)+'" stroke="#4da3ff" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>'
+    +'<circle class="ndC" data-ni="'+i+'" data-side="'+(side==='cin'?'in':'out')+'" cx="'+N(c.x)+'" cy="'+N(c.y)+'" r="'+N(r*0.9)+'" fill="#4da3ff" stroke="#ffffff" stroke-width="1.2" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}}
+ for(let i=0;i<n;i++){const pt=s.pts[i];const on=nodeEdit.sel.has(i);
+  o+='<rect class="ndA" data-ni="'+i+'" x="'+N(pt.x-r)+'" y="'+N(pt.y-r)+'" width="'+N(2*r)+'" height="'+N(2*r)+'"'+(pt.sm?' rx="'+N(r)+'"':'')+' fill="'+(on?'#E8A800':TH().handleFill)+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
+ return o;}
+/* snap de nodos: imán a nodos de otras formas y del propio camino + rejilla */
+function ndSnap(raw,s,skipI){const mm=pxmm(),tol=10*mm;snapHit=null;
+ if($('#eSnap').checked){let best=null,bd=tol;
+  for(const q of keyPoints(s.id)){const d=dist(q,raw);if(d<bd){bd=d;best=q;}}
+  s.pts.forEach((q,i)=>{if(i===skipI||(nodeEdit&&nodeEdit.sel.has(i)))return;
+   const d=dist(q,raw);if(d<bd){bd=d;best=q;}});
+  if(best){snapHit={x:best.x,y:best.y};return{x:best.x,y:best.y};}}
+ let p={x:raw.x,y:raw.y};const st=parseFloat($('#sStep').value)||1;
+ if($('#gSnap').checked){p.x=Math.round(p.x/st)*st;p.y=Math.round(p.y/st)*st;}
+ return p;}
+function ndSegHit(s,p){const n=s.pts.length;const segs=n-1+(s.closed?1:0);let best=null;
+ for(let k=0;k<segs;k++){const a=s.pts[k],b=s.pts[(k+1)%n];
+  if(a.cout||b.cin){const c1=a.cout||a,c2=b.cin||b;let prev={x:a.x,y:a.y};
+   for(let j=1;j<=24;j++){const q=bezPt(a,c1,c2,b,j/24);const rr=distSeg(p,prev,q);
+    if(!best||rr.d<best.d)best={seg:k,t:(j-1+rr.t)/24,q:rr.q,d:rr.d,curve:true};prev=q;}}
+  else{const rr=distSeg(p,a,b);if(!best||rr.d<best.d)best={seg:k,t:rr.t,q:rr.q,d:rr.d,curve:false};}}
+ return best;}
+function bezSplit(a,c1,c2,b,t){const L=(p,q)=>({x:p.x+(q.x-p.x)*t,y:p.y+(q.y-p.y)*t});
+ const q0=L(a,c1),q1=L(c1,c2),q2=L(c2,b);const r0=L(q0,q1),r1=L(q1,q2);
+ return{q0:q0,q2:q2,r0:r0,r1:r1,s:L(r0,r1)};}
+function ndInsert(s,hit){const n=s.pts.length;const k=hit.seg,a=s.pts[k],b=s.pts[(k+1)%n];
+ let np;
+ if(hit.curve){const c1=a.cout||a,c2=b.cin||b;const sp=bezSplit(a,c1,c2,b,hit.t);
+  if(a.cout)a.cout=sp.q0;
+  if(b.cin)b.cin=sp.q2;
+  np={x:sp.s.x,y:sp.s.y,sm:true,cin:sp.r0,cout:sp.r1};}
+ else np={x:hit.q.x,y:hit.q.y};
+ s.pts.splice(k+1,0,np);return k+1;}
+function ndMouseDown(e,raw){const s=ndShape();
+ if(!s){exitNodeEdit();return;}
+ const t=e.target;
+ if(t.classList&&t.classList.contains('ndC')){
+  drag={kind:'ndCtrl',i:+t.dataset.ni,side:t.dataset.side,pre:snapshot(),moved:false};return;}
+ if(t.classList&&t.classList.contains('ndA')){const i=+t.dataset.ni;
+  if(e.altKey){nodeEdit.sel=new Set([i]);ndDeleteSel();return;}
+  if(e.shiftKey){if(nodeEdit.sel.has(i))nodeEdit.sel.delete(i);else nodeEdit.sel.add(i);}
+  else if(!nodeEdit.sel.has(i))nodeEdit.sel=new Set([i]);
+  drag={kind:'ndMove',i:i,last:{x:s.pts[i].x,y:s.pts[i].y},pre:snapshot(),moved:false};
+  renderOverlay();return;}
+ const g=t.closest&&t.closest('[data-id]');
+ if(g&&+g.dataset.id===s.id&&e.detail===1){ /* clic sobre la línea: añadir nodo */
+  const hit=ndSegHit(s,raw);const mm=pxmm();
+  if(hit&&hit.d<10*mm){const pre=snapshot();const ni=ndInsert(s,hit);
+   nodeEdit.sel=new Set([ni]);
+   drag={kind:'ndMove',i:ni,last:{x:s.pts[ni].x,y:s.pts[ni].y},pre:pre,moved:true};
+   renderShapes();renderOverlay();renderProps();return;}}
+ exitNodeEdit();} /* clic fuera del camino: salir del modo nodos */
+function ndDeleteSel(){const s=ndShape();if(!s)return;
+ const del=[...nodeEdit.sel].filter(i=>i>=0&&i<s.pts.length).sort((a,b)=>b-a);
+ if(!del.length){$('#hint').textContent='Seleccioná primero el nodo que querés borrar';return;}
+ const min=s.closed?3:2;
+ if(s.pts.length-del.length<min){$('#hint').textContent='El camino necesita al menos '+min+' nodos — para eliminar la forma entera salí del modo nodos y usá Supr';return;}
+ pushUndo();for(const i of del)s.pts.splice(i,1);
+ nodeEdit.sel.clear();refresh();}
+function esquinar(s,i){const p=s.pts[i];delete p.cin;delete p.cout;delete p.sm;}
+function suavizar(s,i){const n=s.pts.length;const p=s.pts[i];
+ const prev=s.closed?s.pts[(i-1+n)%n]:s.pts[Math.max(0,i-1)];
+ const next=s.closed?s.pts[(i+1)%n]:s.pts[Math.min(n-1,i+1)];
+ let dx=next.x-prev.x,dy=next.y-prev.y;const l=Math.hypot(dx,dy)||1e-9;dx/=l;dy/=l;
+ const d1=dist(prev,p)/3,d2=dist(next,p)/3;
+ p.sm=true;
+ if(!(i===0&&!s.closed))p.cin={x:p.x-dx*d1,y:p.y-dy*d1};
+ if(!(i===n-1&&!s.closed))p.cout={x:p.x+dx*d2,y:p.y+dy*d2};}
+function ndSmooth(){const s=ndShape();if(!s)return;
+ if(!nodeEdit.sel.size){$('#hint').textContent='Seleccioná uno o más nodos (Shift+clic suma) y volvé a darle';return;}
+ pushUndo();const mk=[...nodeEdit.sel].filter(i=>s.pts[i]);
+ const algunaEsquina=mk.some(i=>!s.pts[i].sm);
+ for(const i of mk)algunaEsquina?suavizar(s,i):esquinar(s,i);
+ $('#hint').textContent=algunaEsquina?'Nodo(s) suavizados — arrastrá los puntos azules para dar forma a la curva':'Nodo(s) vueltos a esquina recta';
+ refresh();}
+function ndSplit(){const s=ndShape();if(!s)return;
+ if(nodeEdit.sel.size!==1){$('#hint').textContent='Seleccioná UN nodo para partir el camino ahí';return;}
+ const i=[...nodeEdit.sel][0];const n=s.pts.length;if(!s.pts[i])return;
+ if(s.closed){pushUndo();
+  const pts=[];for(let k=0;k<n;k++)pts.push(s.pts[(i+k)%n]);
+  pts.push(JSON.parse(JSON.stringify(s.pts[i])));
+  delete pts[0].cin;delete pts[pts.length-1].cout;
+  s.pts=pts;s.closed=false;nodeEdit.sel=new Set([0]);refresh();
+  $('#hint').textContent='Camino abierto en ese nodo — ahora tiene dos extremos ahí';return;}
+ if(i===0||i===n-1){$('#hint').textContent='Ese ya es un extremo — elegí un nodo del medio';return;}
+ pushUndo();
+ const a=s.pts.slice(0,i+1),b=s.pts.slice(i).map(p=>JSON.parse(JSON.stringify(p)));
+ delete a[a.length-1].cout;delete b[0].cin;
+ s.pts=a;
+ shapes.push({id:nextId++,type:'poly',pts:b,closed:false,layer:s.layer,kerf:'no'});
+ nodeEdit.sel=new Set([i]);refresh();
+ $('#hint').textContent='Camino partido en dos — el tramo nuevo es otra forma';}
+function revPts(pts){return pts.slice().reverse().map(p=>{const q=Object.assign({},p);
+ const t=q.cin;
+ if(p.cout)q.cin={x:p.cout.x,y:p.cout.y};else delete q.cin;
+ if(t)q.cout={x:t.x,y:t.y};else delete q.cout;
+ return q;});}
+function ndJoin(){const s=ndShape();if(!s)return;
+ if(s.closed){$('#hint').textContent='Este camino ya está cerrado';return;}
+ const n=s.pts.length;const selA=[...nodeEdit.sel];
+ if(selA.length===2&&selA.includes(0)&&selA.includes(n-1)){
+  pushUndo();s.closed=true;nodeEdit.sel.clear();refresh();
+  $('#hint').textContent='Camino cerrado — los dos extremos quedaron unidos';return;}
+ const i=selA.length===1?selA[0]:0;
+ const endI=(i===0||i===n-1)?i:(n-1); /* sin extremo elegido, probamos con el último */
+ const me=s.pts[endI===0?0:n-1];
+ let best=null;
+ for(const o of shapes){if(o.id===s.id||o.type!=='poly'||o.closed||!o.pts||o.pts.length<2)continue;
+  for(const oi of [0,o.pts.length-1]){const d=dist(o.pts[oi],me);
+   if(d<5&&(!best||d<best.d))best={o:o,oi:oi,d:d};}}
+ if(!best){$('#hint').textContent='Para cerrar este camino: Shift+clic en sus dos extremos y ⨝ Unir. Para unirlo con otro: acercá los extremos a menos de 5 mm';return;}
+ pushUndo();
+ let mine=s.pts.slice();if(endI===0)mine=revPts(mine); /* mi extremo elegido queda al final */
+ let theirs=best.o.pts.slice();if(best.oi!==0)theirs=revPts(theirs); /* su extremo cercano al principio */
+ if(dist(mine[mine.length-1],theirs[0])<0.05)theirs=theirs.slice(1); /* sin punto duplicado */
+ s.pts=mine.concat(theirs);
+ shapes=shapes.filter(x=>x.id!==best.o.id);
+ nodeEdit.sel.clear();refresh();
+ $('#hint').textContent='Caminos unidos en uno solo';}
+$('#ndSmoothB').onclick=ndSmooth;
+$('#ndSplitB').onclick=ndSplit;
+$('#ndJoinB').onclick=ndJoin;
+$('#ndDelB').onclick=ndDeleteSel;
+$('#ndDone').onclick=exitNodeEdit;
+
+/* --- Convertir a trazado: cualquier primitiva → camino de nodos editables --- */
+const BZK=0.5522847498; /* constante kappa para aproximar arcos con Bézier */
+function replaceWith(s,arr){pushUndo();
+ const idx=shapes.indexOf(s);const ids=[];
+ const ns=arr.map(o=>{const c=Object.assign({id:nextId++},o);ids.push(c.id);return c;});
+ shapes.splice(idx<0?shapes.length:idx,idx<0?0:1,...ns);
+ if(ids.length>1){selGrp=new Set(ids);sel=null;}else{sel=ids[0];selGrp.clear();}
+ refresh();return ids;}
+function toPath(s){const base={layer:capaKey(s.layer)==='cota'?'cota':capaKey(s.layer),kerf:'no'};
+ if(s.type==='line'){pushUndo();s.type='poly';s.closed=false;refresh();return[s.id];}
+ if(s.type==='poly')return[s.id];
+ if(s.type==='circle'){const r=s.r,k=BZK*r,cx=s.cx,cy=s.cy;
+  const pts=[
+   {x:cx+r,y:cy,sm:true,cin:{x:cx+r,y:cy-k},cout:{x:cx+r,y:cy+k}},
+   {x:cx,y:cy+r,sm:true,cin:{x:cx+k,y:cy+r},cout:{x:cx-k,y:cy+r}},
+   {x:cx-r,y:cy,sm:true,cin:{x:cx-r,y:cy+k},cout:{x:cx-r,y:cy-k}},
+   {x:cx,y:cy-r,sm:true,cin:{x:cx-k,y:cy-r},cout:{x:cx+k,y:cy-r}}];
+  return replaceWith(s,[Object.assign({type:'poly',pts:pts,closed:true},base)]);}
+ if(s.type==='rect'){const r=Math.max(0,Math.min(s.rx||0,Math.min(s.w,s.h)/2));
+  let pts;
+  if(!r)pts=[{x:s.x,y:s.y},{x:s.x+s.w,y:s.y},{x:s.x+s.w,y:s.y+s.h},{x:s.x,y:s.y+s.h}];
+  else{const k=BZK*r,x0=s.x,y0=s.y,x1=s.x+s.w,y1=s.y+s.h;
+   pts=[
+    {x:x0+r,y:y0,cin:{x:x0+r-k,y:y0}},{x:x1-r,y:y0,cout:{x:x1-r+k,y:y0}},
+    {x:x1,y:y0+r,cin:{x:x1,y:y0+r-k}},{x:x1,y:y1-r,cout:{x:x1,y:y1-r+k}},
+    {x:x1-r,y:y1,cin:{x:x1-r+k,y:y1}},{x:x0+r,y:y1,cout:{x:x0+r-k,y:y1}},
+    {x:x0,y:y1-r,cin:{x:x0,y:y1-r+k}},{x:x0,y:y0+r,cout:{x:x0,y:y0+r-k}}];}
+  return replaceWith(s,[Object.assign({type:'poly',pts:pts,closed:true},base)]);}
+ if(s.type==='arc'){let d=s.a2-s.a1;while(d<0)d+=2*Math.PI;while(d>=2*Math.PI)d-=2*Math.PI;
+  if(d<0.001)return null;
+  const nseg=Math.max(1,Math.ceil(d/(Math.PI/2)));
+  const h=(4/3)*Math.tan(d/nseg/4)*s.r;
+  const pts=[];
+  for(let i=0;i<=nseg;i++){const a=s.a1+d*i/nseg;
+   pts.push({x:s.cx+s.r*Math.cos(a),y:s.cy+s.r*Math.sin(a),sm:i>0&&i<nseg});}
+  for(let i=0;i<nseg;i++){const a=s.a1+d*i/nseg,b=s.a1+d*(i+1)/nseg;
+   pts[i].cout={x:pts[i].x-h*Math.sin(a),y:pts[i].y+h*Math.cos(a)};
+   pts[i+1].cin={x:pts[i+1].x+h*Math.sin(b),y:pts[i+1].y-h*Math.cos(b)};}
+  return replaceWith(s,[Object.assign({type:'poly',pts:pts,closed:false},base)]);}
+ if(s.type==='text'){const polys=textPolylines(s);if(!polys.length)return null;
+  return replaceWith(s,polys.map(pl=>Object.assign({type:'poly',pts:pl.map(q=>({x:q.x,y:q.y})),closed:!!pl.closed},base)));}
+ return null;}
 
 /* ================= Teclado ================= */
 window.addEventListener('keydown',e=>{
@@ -880,6 +1129,7 @@ window.addEventListener('keydown',e=>{
  if(inInput)return;
  if(e.key==='Escape'){
   hideCtx();
+  if(nodeEdit){exitNodeEdit();return;}
   if(imgEdit){finishImgEdit(false);return;}
   if(txtPending){txtPending=null;$('#txtDlg').classList.remove('show');return;}
   if(arrTarget){arrTarget=null;$('#arrDlg').classList.remove('show');return;}
@@ -893,6 +1143,9 @@ window.addEventListener('keydown',e=>{
   if(cropMode){cropMode=null;svg.classList.remove('cropping');$('#hint').textContent='';renderOverlay();return;}
   if(draft&&draft.pts.length){draft.pts=[];$('#draftIn').classList.remove('show');renderOverlay();}else{sel=null;selGrp.clear();refresh();}return;}
  if(e.key==='Enter'&&tool==='poly'){finishPoly(false);return;}
+ if(nodeEdit){
+  if(e.key==='Delete'||e.key==='Backspace'){ndDeleteSel();return;}
+  if(e.key.toLowerCase()==='s'){ndSmooth();return;}}
  if((e.key==='Delete'||e.key==='Backspace')&&selGrp.size){pushUndo();shapes=shapes.filter(x=>!selGrp.has(x.id));selGrp.clear();sel=null;refresh();return;}
  if((e.key==='Delete'||e.key==='Backspace')&&sel!=null){pushUndo();shapes=shapes.filter(x=>x.id!==sel);sel=null;refresh();return;}
  if(draft&&draft.pts.length){if(e.key.toLowerCase()==='c'&&tool==='poly'){finishPoly(true);return;}
@@ -1187,6 +1440,7 @@ function bboxOf(s){switch(s.type){
  case 'dim':return polysBBox([[s.p1,s.p2]]);
  case 'text':return polysBBox(textPolylines(s));
  case 'arc':return polysBBox(flattenShape(s,0.3).map(j=>j.pts));
+ case 'poly':return polysBBox([(s.pts&&s.pts.some(p=>p.cin||p.cout))?flatPoly(s,0.3):(s.pts||[])]);
  default:return polysBBox([s.pts||[]]);}}
 function ringArea(pts){let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];a+=p.x*q.y-q.x*p.y;}return Math.abs(a)/2;}
 function pointInPoly(p,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){
@@ -1218,7 +1472,8 @@ function mirrorShape(s,ax){
   if(ax==='h'){const a1=Math.PI-s.a2,a2=Math.PI-s.a1;s.a1=a1;s.a2=a2;}
   else{const a1=-s.a2,a2=-s.a1;s.a1=a1;s.a2=a2;}return;}
  if(s.type==='dim'){s.p1=rf(s.p1);s.p2=rf(s.p2);return;}
- if(s.pts)s.pts=s.pts.map(rf);}
+ if(s.pts)s.pts=s.pts.map(p=>{const q=Object.assign({},p,rf(p));
+  if(p.cin)q.cin=rf(p.cin);if(p.cout)q.cout=rf(p.cout);return q;});}
 $('#arCancel').onclick=()=>{arrTarget=null;$('#arrDlg').classList.remove('show');};
 $('#arGo').onclick=()=>{const s=shapes.find(x=>x.id===arrTarget);
  $('#arrDlg').classList.remove('show');if(!s){arrTarget=null;return;}
@@ -1266,7 +1521,7 @@ function arcSteps(r,ang,tol){if(r<=tol)return 4;const st=2*Math.acos(Math.max(-1
 function flattenShape(s,tol){tol=tol||0.15;const out=[];
  switch(s.type){
   case 'line':out.push({pts:s.pts.slice(),closed:false});break;
-  case 'poly':out.push({pts:s.pts.slice(),closed:!!s.closed});break;
+  case 'poly':out.push({pts:flatPoly(s,tol),closed:!!s.closed});break;
   case 'text':for(const pl of textPolylines(s))out.push({pts:pl,closed:!!pl.closed,fill:!!pl.fill});break;
   case 'circle':{const n=arcSteps(s.r,Math.PI*2,tol);const p=[];
    for(let i=0;i<n;i++){const a=i/n*Math.PI*2;p.push({x:s.cx+s.r*Math.cos(a),y:s.cy+s.r*Math.sin(a)});}

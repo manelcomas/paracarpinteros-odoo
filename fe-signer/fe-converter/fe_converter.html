@@ -1315,6 +1315,17 @@ body{font-family:'Hanken Grotesk',-apple-system,'Segoe UI',sans-serif !important
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 
 <script>
+// === Clave del servicio de firma/buzón: NO hardcodear en el HTML (la página es pública).
+// Se guarda en localStorage del navegador y se pide una sola vez. Para cambiarla:
+// localStorage.removeItem('fe.signer_api_key') y recargar.
+function _feApiKey() {
+  let k = localStorage.getItem('fe.signer_api_key') || '';
+  if (!k) {
+    k = (window.prompt('Clave del servicio de firma (X-API-Key del fe-signer):') || '').trim();
+    if (k) localStorage.setItem('fe.signer_api_key', k);
+  }
+  return k;
+}
 let EMISOR = {
   nombre:          'GABRIELA BRENES SOLANO',
   nombreComercial: 'La Juguetería para Carpinteros',
@@ -2556,7 +2567,7 @@ ${v7_receptorXml}
     // por una sola llamada al endpoint /sign.php del VPS que firma con CRLibre, librería
     // probada en producción CR. Mantiene el "1 click desde Odoo" del conversor.
     const SIGNER_URL = 'https://panel.paracarpinteros.com/sign.php';
-    const SIGNER_API_KEY = '5244633db0219316428f0cfc747a55f863d4f0d319fda5ecab9ba9a625cbc6d4';
+    const SIGNER_API_KEY = _feApiKey();
 
     // Convertir el .p12 a base64 (lo necesita el endpoint)
     const _certBytes = new Uint8Array(certArrayBuf);
@@ -3344,7 +3355,7 @@ async function enviarFEACliente(attId, clave, btn) {
 // envía a Hacienda. Doble confirmación: casilla + contraseña (hash SHA-256 en Odoo,
 // nunca en claro). Reutiliza sign.php, el Worker y el patrón de subida a Odoo.
 const ANUL_SIGNER_URL = 'https://panel.paracarpinteros.com/sign.php';
-const ANUL_SIGNER_KEY = '5244633db0219316428f0cfc747a55f863d4f0d319fda5ecab9ba9a625cbc6d4';
+// ANUL_SIGNER_KEY: clave perezosa vía _feApiKey() en el punto de uso (no en carga).
 const ANUL_HASH_KEY = 'fe.anulacion_confirm_hash';
 
 async function _anulSha256Hex(str) {
@@ -3511,7 +3522,7 @@ async function _anulEmitNC(row, razon, certArrayBuf, pin, setMsg) {
   const xmlb64 = btoa(unescape(encodeURIComponent(nc)));
   const sresp = await fetch(ANUL_SIGNER_URL, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'X-API-Key': ANUL_SIGNER_KEY},
+    headers: {'Content-Type':'application/json', 'X-API-Key': _feApiKey()},
     body: JSON.stringify({ xmlBase64: xmlb64, p12Base64: p12b64, pin: pin, tipoDoc: '03' })
   });
   const stext = await sresp.text();
@@ -3580,7 +3591,7 @@ function switchTabById(tab) {
 // ═════════════════════ v28: RECEPCIÓN ═════════════════════
 // v32: la pestaña Recepción usa el backend del buzón (OAuth Gmail + firma/envío MR).
 const BUZON_BASE = 'https://panel.paracarpinteros.com/buzon-rx';
-const BUZON_API_KEY = '5244633db0219316428f0cfc747a55f863d4f0d319fda5ecab9ba9a625cbc6d4';
+// BUZON_API_KEY: clave perezosa vía _feApiKey() en el punto de uso (no en carga).
 let __recLoaded = false;
 let __recRows = [];
 
@@ -3611,7 +3622,7 @@ async function loadRecepcionFE() {
   if (empty) empty.style.display = 'none';
   try {
     const resp = await fetch(BUZON_BASE + '/list?status=todas&limit=200', {
-      headers: {'X-API-Key': BUZON_API_KEY}
+      headers: {'X-API-Key': _feApiKey()}
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) throw new Error((data && data.error) || ('HTTP ' + resp.status));
@@ -3728,7 +3739,7 @@ async function recRevisarCorreo() {
   const btn = document.getElementById('rec-sync-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Revisando…'; }
   try {
-    const resp = await fetch(BUZON_BASE + '/sync', { method: 'POST', headers: {'X-API-Key': BUZON_API_KEY} });
+    const resp = await fetch(BUZON_BASE + '/sync', { method: 'POST', headers: {'X-API-Key': _feApiKey()} });
     const data = await resp.json();
     if (!resp.ok || !data.ok) throw new Error((data && data.error) || ('HTTP ' + resp.status));
     const rs = data.resumen || {};
@@ -3836,7 +3847,7 @@ async function recEnviarMR(clave, tipoMR) {
     if (motivo.trim()) payload.motivo_rechazo = motivo.trim();
     const resp = await fetch(BUZON_BASE + '/mr', {
       method: 'POST',
-      headers: {'Content-Type':'application/json', 'X-API-Key': BUZON_API_KEY},
+      headers: {'Content-Type':'application/json', 'X-API-Key': _feApiKey()},
       body: JSON.stringify(payload)
     });
     let data = {};

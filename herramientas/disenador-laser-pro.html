@@ -26,8 +26,8 @@ header h1 span{color:var(--txt)}
 .spacer{flex:1}
 main{flex:1;display:flex;min-height:0}
 #tools{width:52px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding-top:8px;gap:6px}
-.tbtn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);cursor:pointer;font-size:16px;position:relative}
-.tbtn small{position:absolute;bottom:1px;right:3px;font-size:8px;color:var(--mut)}
+.tbtn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);cursor:pointer;font-size:21px;position:relative;line-height:1}
+.tbtn small{position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--mut);font-weight:700}
 .tbtn:hover{border-color:var(--acc)}
 .tbtn.on{background:var(--accBg);color:#1a1a1a;border-color:var(--accBg)}
 .tbtn.on small{color:#1a1a1a}
@@ -38,7 +38,7 @@ main{flex:1;display:flex;min-height:0}
 #side{width:265px;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:10px}
 .sec{margin-bottom:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .sec h3{font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:1.5px;font-size:15px;color:var(--acc);margin-bottom:6px;cursor:pointer;user-select:none;display:flex;align-items:center}
-.sec h3::after{content:'▾';margin-left:auto;color:var(--mut);font-size:11px;transition:transform .15s}
+.sec h3::after{content:'▾';margin-left:auto;color:var(--acc);font-size:15px;transition:transform .15s}
 .sec.cerrada h3{margin-bottom:0}
 .sec.cerrada h3::after{transform:rotate(-90deg)}
 .sec.cerrada>*:not(h3){display:none}
@@ -72,6 +72,17 @@ input[type=checkbox]{accent-color:var(--acc)}
 #v3dBar{position:absolute;top:10px;left:10px;display:flex;gap:8px;align-items:center;background:rgba(22,22,22,.88);padding:6px 10px;border:1px solid var(--line);border-radius:8px;z-index:7}
 #v3dBar label{color:var(--mut);font-size:11px}
 #v3dMsg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#999;font-size:13px;text-align:center;max-width:420px;line-height:1.6}
+#fresaLegend{position:absolute;top:10px;right:10px;z-index:4;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:11px;max-width:240px;display:none;box-shadow:0 3px 14px rgba(0,0,0,.35)}
+#fresaLegend>b{font-family:'Bebas Neue';letter-spacing:1.2px;color:var(--acc);font-weight:400;font-size:13px;display:block;margin-bottom:3px}
+.flItem{display:flex;align-items:center;gap:7px;padding:3px 4px;margin:1px -4px;border-radius:6px;cursor:pointer;line-height:1.35}
+.flItem:hover{background:var(--panel2)}
+#guia{position:absolute;left:10px;bottom:10px;z-index:5;background:var(--panel);border:1px solid var(--acc);border-radius:10px;padding:10px 12px;max-width:400px;display:none;box-shadow:0 6px 22px rgba(0,0,0,.45)}
+#guia .gTop{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+#guia .gTxt{font-size:12px;line-height:1.55;margin-bottom:8px}
+#guia .gBtns{display:flex;gap:6px;justify-content:flex-end}
+.queOpt{display:block;padding:8px 10px;border:1px solid var(--line);border-radius:7px;margin:6px 0;cursor:pointer}
+.queOpt:hover{border-color:var(--acc)}
+.queOpt span{display:block;color:var(--mut);font-size:11px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -115,6 +126,8 @@ input[type=checkbox]{accent-color:var(--acc)}
     <svg id="cv" class="tool-select" xmlns="http://www.w3.org/2000/svg">
       <g id="gGrid"></g><g id="gShapes"></g><g id="gOverlay"></g>
     </svg>
+    <div id="fresaLegend"></div>
+    <div id="guia"></div>
     <div id="v3d">
       <div id="v3dBar">
         <button class="btn acc" id="v3dBack">← Volver a 2D</button>
@@ -218,6 +231,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   </div>
 </main>
 <div id="status">
+  <button class="btn" id="bGuia" title="Asistente paso a paso: decinos qué querés hacer y te acompañamos hasta el archivo final">🧭 ¿Qué querés hacer?</button>
   <span>X <b id="sx">0.0</b></span><span>Y <b id="sy">0.0</b></span>
   <span class="draftIn" id="draftIn">
     <label id="lblA">Long.</label><input type="number" id="inLen" step="0.1">
@@ -292,6 +306,14 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div style="color:var(--mut);font-size:10.5px;margin:4px 0;line-height:1.4">Compensación de radio de fresa incluida (exterior/interior) · entrada en rampa · taladros en hélice. Hacé el cero de pieza (X0 Y0 Z0 con la <b>primera</b> fresa) antes de ejecutar, y probá la primera vez en el aire (Z alto).</div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="gcCancel">Cancelar</button><button class="btn" id="gcHoja">📋 Hoja de ruta</button><button class="btn acc" id="gcGo">Generar</button></div>
 </div>
+<div id="queDlg" class="dlg" style="width:340px">
+  <h3>¿QUÉ QUERÉS HACER?</h3>
+  <div class="queOpt" data-g="cortar"><b>✂️ Cortar una pieza</b><span>El contorno atraviesa el material y la pieza se suelta. Te guiamos del dibujo al archivo.</span></div>
+  <div class="queOpt" data-g="grabar"><b>✏️ Grabar un dibujo o texto</b><span>Marcar la superficie sin atravesarla: nombres, logos, decorado.</span></div>
+  <div class="queOpt" data-g="perforar"><b>◉ Perforar agujeros</b><span>Perforaciones con medida exacta al borde, espejadas o repartidas.</span></div>
+  <div class="queOpt" data-g="cajear"><b>🛠 Vaciar un cajeado</b><span>Rebaje a cierta profundidad sin atravesar — encajes, bandejas (modo Router).</span></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="queCancel">Cerrar</button></div>
+</div>
 <div id="fresaDlg" class="dlg">
   <h3 id="fdTitle">FRESA</h3>
   <div class="row"><label>Nombre</label><input type="text" id="fdNom" style="width:180px" maxlength="40"></div>
@@ -326,8 +348,9 @@ let undoStack=[],redoStack=[];
 let view={x:0,y:0,w:1000,h:700};
 let mouseW={x:0,y:0},rawW={x:0,y:0},snapHit=null,shiftDown=false,spaceDown=false;
 let cropMode=null,vecCtx=null,imgEdit=null,liveT=0,txtPending=null,arrTarget=null,distTarget=null;
+/* Tema oscuro = paneles oscuros con CAMA CLARA (estilo LightBurn): el dibujo se ve como sobre la tabla */
 const THEMES={
- dark:{disp:{corte:'#ff5252',grabado:'#f0f0f0',cota:'#E8A800'},areaFill:'#1f1f1f',gridMinor:'#2a2a2a',gridMajor:'#383838',label:'#6c6c6c',handleFill:'#1a1a1a'},
+ dark:{disp:{corte:'#e53935',grabado:'#222222',cota:'#a07900'},areaFill:'#f7f4ee',gridMinor:'#e6e1d6',gridMajor:'#d2cbbd',label:'#8a857a',handleFill:'#ffffff'},
  light:{disp:{corte:'#d32f2f',grabado:'#1c1c1c',cota:'#9c7400'},areaFill:'#ffffff',gridMinor:'#ebe8e2',gridMajor:'#d5d1c9',label:'#9a958c',handleFill:'#ffffff'}};
 let theme='dark';let DISP=THEMES.dark.disp;
 function TH(){return THEMES[theme];}
@@ -466,7 +489,7 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  const s=shapes.find(x=>x.id===sel);
  if(s&&tool==='select'){for(const h of getHandles(s))out+='<rect class="h" data-hi="'+h.i+'" x="'+(h.x-5*mm)+'" y="'+(h.y-5*mm)+'" width="'+(10*mm)+'" height="'+(10*mm)+'" fill="'+TH().handleFill+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
  gOverlay.innerHTML=out;}
-function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();}
+function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();guiaTick();}
 
 /* ================= Propiedades ================= */
 function propRow(lbl,prop,val,step){return '<div class="row"><label>'+lbl+'</label><input type="number" data-prop="'+prop+'" value="'+N(val)+'" step="'+(step||0.5)+'"></div>';}
@@ -670,6 +693,7 @@ window.addEventListener('keydown',e=>{
   if(arrTarget){arrTarget=null;$('#arrDlg').classList.remove('show');return;}
   if(distTarget){distTarget=null;$('#distDlg').classList.remove('show');return;}
   if($('#v3d').classList.contains('show')){cerrar3d();return;}
+  if($('#queDlg').classList.contains('show')){$('#queDlg').classList.remove('show');return;}
   if($('#fresaDlg').classList.contains('show')){$('#fresaDlg').classList.remove('show');return;}
   if($('#gcDlg').classList.contains('show')){$('#gcDlg').classList.remove('show');return;}
   if(vecCtx){closeVect();return;}
@@ -1011,7 +1035,7 @@ function gfmt(v){return String(Math.round(v*1000)/1000);}
 
 /* ================= Modo Router CNC: fresas, operaciones y G-code ================= */
 let MODO='laser',CNCMETA=null,fresaEdit=-1;
-const FCOL=['#4da3ff','#ff8a4d','#4dff88','#e84dff','#ffd24d','#7ad7ff','#ff7a7a'];
+const FCOL=['#1e88e5','#e5611e','#2e9e44','#8e24aa','#c79100','#00897b','#d81b60'];
 const fcol=i=>FCOL[i%FCOL.length];
 const OPNAMES={fuera:'Perfil exterior',dentro:'Perfil interior',sobre:'Sobre la línea',cajeado:'Cajeado',taladro:'Taladro',no:'No mecanizar'};
 const TIPONOM={recta:'recta',upcut:'espiral upcut',downcut:'espiral downcut',vbit:'V-bit',bola:'punta de bola'};
@@ -1273,7 +1297,7 @@ $('#gcHoja').onclick=()=>hojaRuta();
 $('#rtHoja').onclick=()=>hojaRuta();
 
 /* --- hoja de ruta imprimible --- */
-function fresaSVG(t,col){const W=Math.max(10,Math.min(46,t.d*3.2)),cx=35;let cut='';
+function fresaSVG(t,col,svgW,svgH){const W=Math.max(10,Math.min(46,t.d*3.2)),cx=35;let cut='';
  if(t.tipo==='vbit')cut='<polygon points="'+(cx-W/2)+',48 '+(cx+W/2)+',48 '+cx+',102" fill="#cfd6dd" stroke="#556"/>'
   +'<text x="'+cx+'" y="78" text-anchor="middle" font-size="11" fill="#334">'+(t.ang||60)+'°</text>';
  else if(t.tipo==='bola')cut='<rect x="'+(cx-W/2)+'" y="48" width="'+W+'" height="46" fill="#cfd6dd" stroke="#556"/>'
@@ -1281,7 +1305,7 @@ function fresaSVG(t,col){const W=Math.max(10,Math.min(46,t.d*3.2)),cx=35;let cut
  else{cut='<rect x="'+(cx-W/2)+'" y="48" width="'+W+'" height="54" fill="#cfd6dd" stroke="#556"/>';
   const dir=t.tipo==='downcut'?-1:1;
   for(let i=0;i<3;i++){const y=58+i*15;cut+='<line x1="'+(cx-W/2)+'" y1="'+(y+6*dir)+'" x2="'+(cx+W/2)+'" y2="'+(y-6*dir)+'" stroke="#8893a0" stroke-width="1.5"/>';}}
- return '<svg width="70" height="126" viewBox="0 0 70 126" style="flex:none">'
+ return '<svg width="'+(svgW||70)+'" height="'+(svgH||126)+'" viewBox="0 0 70 126" style="flex:none">'
   +'<rect x="22" y="2" width="26" height="6" rx="2" fill="'+col+'"/>'
   +'<rect x="27" y="8" width="16" height="40" rx="2" fill="#9aa1a8" stroke="#556"/>'
   +cut
@@ -1549,6 +1573,68 @@ $('#v3dBack').onclick=cerrar3d;
 $('#v3dGrosor').addEventListener('change',()=>{if($('#v3d').classList.contains('show'))render3d();});
 window.addEventListener('resize',()=>{if(T3){const ov=$('#v3d');const W=ov.clientWidth||800,H=ov.clientHeight||600;
  T3.camera.aspect=W/H;T3.camera.updateProjectionMatrix();T3.renderer.setSize(W,H);}});
+
+/* ================= Leyenda de fresas sobre el dibujo ================= */
+function renderLegend(){const el=$('#fresaLegend');
+ if(MODO!=='router'||!CNCMETA){el.style.display='none';return;}
+ const por=new Map();
+ for(const s of shapes){const m=CNCMETA.get(s.id);if(!m)continue;
+  if(!por.has(m.f))por.set(m.f,{});const o=por.get(m.f);o[m.op]=(o[m.op]||0)+1;}
+ if(!por.size){el.style.display='none';return;}
+ const ABBR={fuera:'perfil ext.',dentro:'perfil int.',sobre:'grabado',cajeado:'cajeado',taladro:'taladro'};
+ let h='<b>FRESAS EN ESTE DIBUJO</b>';
+ for(const fi of [...por.keys()].sort((a,b)=>a-b)){const t=FRESAS[fi];const o=por.get(fi);
+  const det=('T'+(fi+1)+' — '+t.nombre+'&#10;'+TIPONOM[t.tipo]+(t.tipo==='vbit'?' '+(t.ang||60)+'°':'')+' · Ø '+t.d+' mm · '+t.filos+' filo(s)&#10;Pasada '+t.paso+' mm · Avance '+t.fxy+' mm/min · '+t.rpm+' RPM&#10;Clic para editar esta fresa');
+  h+='<div class="flItem" data-fi="'+fi+'" title="'+det+'">'+fresaSVG(t,fcol(fi),17,30)
+   +'<span><b style="color:'+fcol(fi)+'">T'+(fi+1)+'</b> Ø'+t.d+' — '+Object.entries(o).map(([k,v])=>v+' '+ABBR[k]).join(', ')+'</span></div>';}
+ el.innerHTML=h;el.style.display='block';}
+$('#fresaLegend').addEventListener('click',e=>{const it=e.target.closest('.flItem');if(it)openFresaDlg(+it.dataset.fi);});
+
+/* ================= Asistente "¿Qué querés hacer?" ================= */
+let GUIA=null;
+const GUIAS={
+ cortar:{titulo:'Cortar una pieza',pasos:[
+  {t:'Elegí tu máquina en ÁREA DE TRABAJO (panel derecho), así dibujás sobre su mesa real.'},
+  {t:'Dibujá el contorno de la pieza: Rectángulo (R), Círculo (O) o Polilínea (P) en capa Corte. Tip: escribí las medidas exactas en la barra de abajo y Enter.',check:()=>!!pieceRef()},
+  {t:'¿Lleva agujeros o ventanas? Dibujalos dentro de la pieza: perforaciones con G, ventanas con R u O. Si no lleva, dale Siguiente.'},
+  {t:{laser:'En LÁSER Y MATERIAL elegí tu láser y el material: te damos potencia, velocidad y pasadas de arranque.',router:'En FRESADO CNC revisá el espesor del material y qué fresa corta (el trazo toma el color de su fresa).'}},
+  {t:{laser:'⬇ Exportar SVG (arriba a la derecha) y abrilo en LightBurn: rojo = corte, negro = grabado. ¡A cortar!',router:'⬇ G-code Router (arriba): un archivo por fresa, e imprimí la 📋 Hoja de ruta para seguir los pasos en la máquina.'}}]},
+ grabar:{titulo:'Grabar un dibujo o texto',pasos:[
+  {t:'Elegí tu máquina en ÁREA DE TRABAJO (panel derecho).'},
+  {t:'Escribí el texto con T (clic donde va) o subí tu dibujo con + Imagen / Logo y usá ⟲ Vectorizar en Propiedades para volverlo trazos grabables.',check:()=>shapes.some(s=>s.layer==='grabado'||s.type==='text'||s.type==='image')},
+  {t:{laser:'En LÁSER Y MATERIAL mirá la línea "Grabado": menos potencia y más velocidad que el corte.',router:'El grabado lo hace la fresa de grabado (una V-bit da líneas finas) a poca profundidad — revisá "Prof. grabado" en FRESADO CNC.'}},
+  {t:{laser:'⬇ Exportar SVG → LightBurn: lo negro es grabado. Probá primero en un recorte del mismo material.',router:'⬇ G-code Router e imprimí la 📋 Hoja de ruta. Probá primero en un recorte.'}}]},
+ perforar:{titulo:'Perforar agujeros',pasos:[
+  {t:'Primero el contorno de la pieza en capa Corte (R, O o P): los agujeros se miden respecto a ella.',check:()=>!!pieceRef()},
+  {t:'Tecla G: fijá el Ø en la barra de abajo y hacé clic donde va cada perforación.',check:()=>shapes.some(s=>s.perf)},
+  {t:'Seleccioná un agujero y mirá PROPIEDADES: distancia exacta a cada borde, ⧉ Espejo, ▣ 4 esquinas o ⋯ Repartir N equidistantes.'},
+  {t:{laser:'⬇ Exportar SVG: los círculos en rojo se cortan como agujeros.',router:'⬇ G-code Router: los agujeros salen en taladro helicoidal con la compensación de fresa ya hecha.'}}]},
+ cajear:{titulo:'Vaciar un cajeado',pasos:[
+  {t:'El cajeado es trabajo de fresa: pasá al modo 🌀 Router (arriba a la izquierda).',check:()=>MODO==='router'},
+  {t:'Dibujá un Rectángulo (R) o Círculo (O) donde va el vaciado, dentro de la pieza.'},
+  {t:'Con la forma seleccionada, en PROPIEDADES → Oper.: elegí "Cajeado" y poné la profundidad (menor que el espesor para no atravesar).',check:()=>shapes.some(s=>s.cnc&&s.cnc.op==='cajeado')},
+  {t:'Revisá la fresa y su Solape (40–50 % deja el fondo liso). El cajeado se vacía en anillos, del centro hacia fuera.'},
+  {t:'⬇ G-code Router e imprimí la 📋 Hoja de ruta. La primera vez, corré el archivo "en el aire" (Z alto) para verlo sin riesgo.'}]}};
+function guiaTxt(p){return typeof p.t==='string'?p.t:(p.t[MODO]||p.t.laser);}
+function renderGuia(){const el=$('#guia');if(!GUIA){el.style.display='none';return;}
+ const g=GUIAS[GUIA.key],p=g.pasos[GUIA.idx];
+ el.style.display='block';
+ el.innerHTML='<div class="gTop"><b style="color:var(--acc)">🧭 '+g.titulo+'</b><span style="color:var(--mut);font-size:11px"> paso '+(GUIA.idx+1)+' de '+g.pasos.length+'</span><button class="btn" id="gX" style="margin-left:auto;padding:0 7px" title="Cerrar la guía">✕</button></div>'
+  +'<div class="gTxt">'+guiaTxt(p)+(p.check?' <span style="color:var(--mut);font-size:11px">(detecto solo cuando esté hecho)</span>':'')+'</div>'
+  +'<div class="gBtns">'+(GUIA.idx>0?'<button class="btn" id="gPrev">‹ Anterior</button>':'')
+  +(GUIA.idx<g.pasos.length-1?'<button class="btn acc" id="gNext">Siguiente ›</button>':'<button class="btn acc" id="gFin">¡Listo! ✓</button>')+'</div>';
+ $('#gX').onclick=()=>{GUIA=null;renderGuia();};
+ const pv=$('#gPrev');if(pv)pv.onclick=()=>{GUIA.idx--;renderGuia();};
+ const nx=$('#gNext');if(nx)nx.onclick=()=>{GUIA.idx++;renderGuia();};
+ const fin=$('#gFin');if(fin)fin.onclick=()=>{GUIA=null;renderGuia();$('#hint').textContent='¡Buen trabajo! Guardá el proyecto (Guardar) para retocarlo otro día.';};}
+function guiaTick(){if(!GUIA)return;const g=GUIAS[GUIA.key],p=g.pasos[GUIA.idx];
+ if(p.check&&GUIA.idx<g.pasos.length-1){GUIA.hechos=GUIA.hechos||new Set();
+  if(!GUIA.hechos.has(GUIA.idx)&&p.check()){GUIA.hechos.add(GUIA.idx);GUIA.idx++;renderGuia();
+   $('#hint').textContent='✓ ¡Hecho! Vamos al paso '+(GUIA.idx+1)+'.';}}}
+$('#bGuia').onclick=()=>$('#queDlg').classList.add('show');
+$('#queCancel').onclick=()=>$('#queDlg').classList.remove('show');
+$('#queDlg').addEventListener('click',e=>{const o=e.target.closest('.queOpt');if(!o)return;
+ $('#queDlg').classList.remove('show');GUIA={key:o.dataset.g,idx:0};renderGuia();guiaTick();});
 
 /* ================= Secciones desplegables del panel ================= */
 document.querySelectorAll('#side .sec>h3').forEach(h=>{h.addEventListener('click',()=>{

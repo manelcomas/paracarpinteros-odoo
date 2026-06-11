@@ -63,7 +63,8 @@ input[type=checkbox]{accent-color:var(--acc)}
 #cv.cropping{cursor:crosshair}
 .dlg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--acc);border-radius:10px;padding:14px 16px;z-index:10;display:none;width:300px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .dlg.show{display:block}
-.dlg h3{font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:1.5px;color:var(--acc);margin-bottom:8px}
+.dlg h3{font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:1.5px;color:var(--acc);margin-bottom:8px;cursor:move;user-select:none}
+.dlg h3::before{content:'⠿ ';color:var(--mut);font-size:12px}
 .dlg canvas{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;image-rendering:pixelated}
 .dlg input[type=range]{flex:1;accent-color:var(--acc)}
 #v3d{position:absolute;inset:0;background:#101010;display:none;z-index:6}
@@ -1682,6 +1683,20 @@ $('#bGuia').onclick=()=>$('#queDlg').classList.add('show');
 $('#queCancel').onclick=()=>$('#queDlg').classList.remove('show');
 $('#queDlg').addEventListener('click',e=>{const o=e.target.closest('.queOpt');if(!o)return;
  $('#queDlg').classList.remove('show');GUIA={key:o.dataset.g,idx:0};renderGuia();guiaTick();});
+
+/* ================= Diálogos arrastrables por su título ================= */
+document.querySelectorAll('.dlg').forEach(d=>{const h=d.querySelector('h3');if(!h)return;
+ h.addEventListener('mousedown',e=>{
+  if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName))return;
+  e.preventDefault();
+  const r=d.getBoundingClientRect();
+  d.style.transform='none';d.style.right='auto';
+  d.style.left=r.left+'px';d.style.top=r.top+'px';
+  const ox=e.clientX-r.left,oy=e.clientY-r.top;
+  const mv=ev=>{d.style.left=Math.max(0,Math.min(window.innerWidth-80,ev.clientX-ox))+'px';
+   d.style.top=Math.max(0,Math.min(window.innerHeight-40,ev.clientY-oy))+'px';};
+  const up=()=>{window.removeEventListener('mousemove',mv);window.removeEventListener('mouseup',up);};
+  window.addEventListener('mousemove',mv);window.addEventListener('mouseup',up);});});
 
 /* ================= Secciones desplegables del panel ================= */
 document.querySelectorAll('#side .sec>h3').forEach(h=>{h.addEventListener('click',()=>{

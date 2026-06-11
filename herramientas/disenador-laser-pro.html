@@ -97,6 +97,13 @@ input[type=checkbox]{accent-color:var(--acc)}
 #capaList .lyr:hover{background:var(--inbg);border-radius:5px}
 #nodeBar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;background:var(--panel);border:1px solid var(--acc);border-radius:9px;padding:5px 8px;display:none;gap:5px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.4);flex-wrap:wrap;max-width:96%}
 #nodeBar.show{display:flex}
+#simCv{position:absolute;inset:0;display:none;z-index:4;width:100%;height:100%}
+#simCv.show{display:block}
+#simBar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:6;background:var(--panel);border:1px solid var(--acc);border-radius:9px;padding:6px 10px;display:none;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.4);flex-wrap:wrap;max-width:96%}
+#simBar.show{display:flex}
+#simBar input[type=range]{width:200px;accent-color:var(--acc)}
+#canvasWrap.simOn #gShapes{opacity:.14}
+#simDot{position:absolute;width:11px;height:11px;border-radius:50%;background:#ff3030;border:2px solid #fff;box-shadow:0 0 8px rgba(255,48,48,.9);z-index:5;display:none;pointer-events:none;transform:translate(-50%,-50%)}
 </style>
 </head>
 <body>
@@ -119,6 +126,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   <button class="btn" id="bTheme" title="Tema claro / oscuro">🌓 Tema</button>
   <button class="btn" id="bHelp">? Atajos</button>
   <button class="btn acc" id="bGc" style="display:none">⬇ G-code Router</button>
+  <button class="btn" id="bSim" style="display:none" title="Mirá cómo va a recorrer el láser tu diseño: orden real de ejecución, tiempo estimado y desplazamientos en vacío en rojo">▶ Simular</button>
   <button class="btn" id="bLg" style="display:none" title="G-code GRBL directo para láseres sin LightBurn: cada capa con su potencia, velocidad y pasadas">⬇ G-code Láser</button>
   <button class="btn acc" id="bExp">⬇ Exportar SVG (LightBurn)</button>
 </header>
@@ -152,6 +160,16 @@ input[type=checkbox]{accent-color:var(--acc)}
       <button class="btn" id="ndJoinB" title="Cierra el camino si seleccionás sus dos extremos, o lo une con otro camino abierto cuyo extremo esté a menos de 5 mm">⨝ Unir</button>
       <button class="btn" id="ndDelB" title="Borra los nodos seleccionados (Supr)">⌫ Nodo</button>
       <button class="btn acc" id="ndDone" title="Salir del modo nodos (Esc)">✓ Listo</button>
+    </div>
+    <canvas id="simCv"></canvas>
+    <div id="simDot"></div>
+    <div id="simBar">
+      <button class="btn acc" id="simPlay">⏸</button>
+      <input type="range" id="simSlider" min="0" max="1000" value="0">
+      <span id="simTime" style="font-size:12px;min-width:100px;text-align:center">0:00 / 0:00</span>
+      <select id="simVel" title="Velocidad de la animación respecto al tiempo real"><option value="1">×1 real</option><option value="5">×5</option><option value="10" selected>×10</option><option value="50">×50</option></select>
+      <span id="simInfo" style="color:var(--mut);font-size:11px"></span>
+      <button class="btn" id="simX">✕ Cerrar</button>
     </div>
     <div id="guia"></div>
     <div id="v3d">
@@ -228,6 +246,8 @@ input[type=checkbox]{accent-color:var(--acc)}
     </div>
     <div class="sec" id="expSec"><h3>EXPORTACIÓN</h3>
       <div class="row" title="El láser quema un pelito de material a cada lado de la línea (kerf). Este ajuste agranda las piezas y achica los agujeros esa pizca, para que los encajes queden justos y no flojos."><label>Kerf</label><input type="number" id="kerf" value="0.15" step="0.05" min="0"><span style="color:var(--mut)">mm (rect/círc.)</span></div>
+      <div class="row" title="Reordena los cortes para que el cabezal viaje menos en vacío: siempre salta al camino más cercano. Afecta al G-code láser y a la simulación."><label><input type="checkbox" id="optNN" checked> Optimizar orden (menos viajes)</label></div>
+      <div class="row" title="Corta primero lo de dentro (agujeros, ventanas) y al final el contorno exterior: así la pieza no se suelta antes de tiempo."><label><input type="checkbox" id="optInner" checked> Interiores antes que exteriores</label></div>
       <div class="row"><label><input type="checkbox" id="expCotas"> Incluir cotas (verde)</label></div>
       <div style="color:var(--mut);font-size:11px;margin-top:4px">El SVG sale agrupado por capa, cada una con su color. En LightBurn: Importar → cada color llega como una capa; los ajustes sugeridos van anotados en el archivo. Verde = cotas (ponla en capa T1 o bórrala).</div>
     </div>
@@ -666,7 +686,13 @@ function shapeMarkup(s){const mm=pxmm();const cp=capaDe(s);let col=(s.type==='di
   return '<g data-id="'+s.id+'"'+selA+'><path d="'+d+'" fill="'+fillAttr+'" fill-opacity="0.82" fill-rule="evenodd" stroke="'+col+'" stroke-width="'+(s.id===sel?2.2:1.6)+'" vector-effect="non-scaling-stroke" pointer-events="none"/>'+
    '<rect x="'+N(bb.x0)+'" y="'+N(bb.y0)+'" width="'+N(bb.x1-bb.x0)+'" height="'+N(bb.y1-bb.y0)+'" fill="rgba(0,0,0,0)" style="pointer-events:all;cursor:move"/></g>';}
  const d=shapePathD(s);
- return '<g data-id="'+s.id+'"'+selA+'><path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+(s.id===sel?2.2:1.6)+'" vector-effect="non-scaling-stroke" pointer-events="none"/>'+
+ let tabsMk='';
+ if(s.tabs&&s.tabs.w>0&&MODO==='laser'){ /* marcar dónde quedan los puentes sin cortar */
+  for(const f of flattenShape(s,0.4)){if(!f.closed||f.pts.length<3)continue;
+   const per=pathLen(f.pts,true);const n=tabsN(per,s.tabs);
+   for(let i=0;i<n;i++){const q=ringPointAt(f.pts,per,per*(i+0.5)/n);
+    tabsMk+='<rect x="'+N(q.x-2.4*mm)+'" y="'+N(q.y-2.4*mm)+'" width="'+N(4.8*mm)+'" height="'+N(4.8*mm)+'" fill="#E8A800" stroke="#7a5800" stroke-width="1" vector-effect="non-scaling-stroke"/>';}}}
+ return '<g data-id="'+s.id+'"'+selA+'><path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+(s.id===sel?2.2:1.6)+'" vector-effect="non-scaling-stroke" pointer-events="none"/>'+tabsMk+
   '<path d="'+d+'" fill="none" stroke="rgba(0,0,0,0)" stroke-width="12" vector-effect="non-scaling-stroke" style="pointer-events:stroke;cursor:move"/></g>';}
 function renderShapes(){CNCMETA=(typeof MODO!=='undefined'&&MODO==='router')?cncMeta():null;
  let out='';for(const s of shapes){if(!layerVisible(s))continue;out+=shapeMarkup(s);}gShapes.innerHTML=out;}
@@ -779,6 +805,8 @@ function renderProps(){const el=$('#props');
   +(offOk?'<button class="btn" data-act="off" title="Contorno paralelo a una distancia en mm — para holguras, marcos o doble línea">⇲ Offset</button>':'')+'</div>';
  if(s.type==='text')h+='<div class="row"><button class="btn full" data-act="weld" title="Convierte el texto en contornos y suelda las letras que se tocan en una sola pieza — clave para letreros calados">⊕ Soldar letras</button></div>';
  h+='<div class="row"'+(ndBtn?'':' style="margin-top:8px"')+'>'+(mir?'<button class="btn" data-act="mh">↔ Espejo</button><button class="btn" data-act="mv">↕ Espejo</button>':'')+'</div>';
+ if(MODO==='laser'&&!s.perf&&(s.type==='rect'||s.type==='circle'||(s.type==='poly'&&s.closed))){
+  h+='<div class="row" title="Micro-puentes sin cortar para que la pieza no se caiga de la tabla al terminar: anchura de cada puente y cada cuántos mm va uno. Después se rompen con cúter y se lijan. 0 = sin puentes."><label>Puentes</label><input type="number" data-prop="tabW" value="'+(s.tabs&&s.tabs.w>0?N(s.tabs.w):0)+'" step="0.5" min="0" style="width:50px"><span style="color:var(--mut);font-size:10.5px">mm, cada</span><input type="number" data-prop="tabCada" value="'+(s.tabs?N(s.tabs.cada||50):50)+'" step="5" min="5" style="width:55px"><span style="color:var(--mut);font-size:10.5px">mm</span></div>';}
  if(s.type!=='dim'){h+='<div class="row"><label>Alinear</label><select id="alRef" style="width:84px"><option value="pieza">a la pieza</option><option value="mesa">a la mesa</option></select>'
   +'<button class="btn" data-act="al_izq" title="Borde izquierdo">⇤</button><button class="btn" data-act="al_chor" title="Centro (vertical)">⇹</button><button class="btn" data-act="al_der" title="Borde derecho">⇥</button>'
   +'<button class="btn" data-act="al_arr" title="Borde superior">⤒</button><button class="btn" data-act="al_cver" title="Centro (horizontal)">⇳</button><button class="btn" data-act="al_aba" title="Borde inferior">⤓</button></div>';}
@@ -787,6 +815,10 @@ function renderProps(){const el=$('#props');
  el.innerHTML=h;}
 $('#props').addEventListener('change',e=>{const s=shapes.find(x=>x.id===sel);if(!s)return;const prop=e.target.dataset.prop;if(!prop)return;pushUndo();
  if(prop==='layer'){s.layer=e.target.value;}
+ else if(prop==='tabW'){const v=parseFloat(e.target.value);
+  if(isNaN(v)||v<=0)delete s.tabs;else s.tabs=Object.assign({cada:50},s.tabs||{},{w:v});}
+ else if(prop==='tabCada'){const v=Math.max(5,parseFloat(e.target.value)||50);
+  if(s.tabs)s.tabs.cada=v;else s.tabs={w:0,cada:v};}
  else if(prop==='kerf'){s.kerf=e.target.value;}
  else if(prop==='closed'){s.closed=e.target.checked;}
  else if(prop==='text'){s.text=e.target.value;}
@@ -1499,6 +1531,7 @@ window.addEventListener('keydown',e=>{
  if(inInput)return;
  if(e.key==='Escape'){
   hideCtx();
+  if(SIM){cerrarSim();return;}
   if(regla){regla=null;$('#hint').textContent='';renderOverlay();return;}
   if(nodeEdit){exitNodeEdit();return;}
   if(imgEdit){finishImgEdit(false);return;}
@@ -1594,6 +1627,12 @@ function escAttr(v){return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;'
 function svgPathDe(s,col){ /* una forma → <path> de export (texto incluido) */
  if(s.type==='text'){let d='';for(const pl of textPolylines(s))d+='M '+pl.map(q=>N(q.x)+' '+N(q.y)).join(' L ')+(pl.closed?' Z ':' ');
   return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="0.1"/>':'';}
+ if(s.tabs&&s.tabs.w>0){ /* con puentes: tramos abiertos con los huecos ya hechos */
+  let d='';
+  for(const f0 of flattenShape(kerfAdjusted(s),0.1))
+   for(const f of aplicarTabs(f0,s.tabs))
+    d+='M '+f.pts.map(q=>N(q.x)+' '+N(q.y)).join(' L ')+(f.closed?' Z ':' ');
+  if(d)return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="0.1"/>';}
  const d=shapePathD(kerfAdjusted(s));
  return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="0.1"/>':'';}
 $('#bExp').onclick=()=>{const incCotas=$('#expCotas').checked;let out='';
@@ -2408,6 +2447,7 @@ function setModo(m){MODO=(m==='router')?'router':'laser';
  $('#fresasSec').style.display=MODO==='router'?'':'none';
  $('#bExp').style.display=MODO==='laser'?'':'none';
  $('#bLg').style.display=MODO==='laser'?'':'none';
+ $('#bSim').style.display=MODO==='laser'?'':'none';
  $('#bGc').style.display=MODO==='router'?'':'none';
  fillPresets();
  try{localStorage.setItem('pc_modo',MODO);}catch(e){}
@@ -2599,16 +2639,69 @@ try{const lc=JSON.parse(localStorage.getItem('pc_lasercfg_v1')||'null');
 function lgCfg(){return{smax:Math.max(1,parseFloat($('#lgSmax').value)||1000),modo:$('#lgModo').value==='M3'?'M3':'M4'};}
 ['lgSmax','lgModo'].forEach(id=>$('#'+id).addEventListener('change',()=>{
  try{localStorage.setItem('pc_lasercfg_v1',JSON.stringify(lgCfg()));}catch(e){}}));
-/* trabajos por capa, en orden de ejecución */
-function buildLaser(){const out=[];
+/* --- puentes (tabs): huecos sin cortar en caminos cerrados para que la pieza no se caiga --- */
+function ringPointAt(pts,per,d){const nn=pts.length;let acc=0;
+ for(let i=0;i<nn;i++){const a=pts[i],b=pts[(i+1)%nn];const L=dist(a,b);
+  if(acc+L>=d-1e-9){const t=L>0?(d-acc)/L:0;return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
+  acc+=L;}
+ return{x:pts[0].x,y:pts[0].y};}
+function subPath(pts,per,d0,d1){const out=[ringPointAt(pts,per,d0%per)];
+ const nn=pts.length;let acc=0;const verts=[];
+ for(let i=0;i<nn;i++){verts.push({p:pts[i],d:acc});acc+=dist(pts[i],pts[(i+1)%nn]);}
+ for(const v of verts.concat(verts.map(x=>({p:x.p,d:x.d+per}))))
+  if(v.d>d0+1e-9&&v.d<d1-1e-9)out.push({x:v.p.x,y:v.p.y});
+ out.push(ringPointAt(pts,per,d1%per));
+ return out;}
+function tabsN(per,tabs){return Math.max(1,Math.round(per/Math.max((tabs.w||2)*3,tabs.cada||50)));}
+function aplicarTabs(f,tabs){
+ if(!f||!f.closed||!tabs||!(tabs.w>0))return[f];
+ const pts=f.pts;const per=pathLen(pts,true);
+ const n=tabsN(per,tabs);const half=tabs.w/2;
+ if(per<=n*tabs.w*2)return[f];
+ const tramos=[];
+ for(let i=0;i<n;i++){ /* del final del hueco i al inicio del hueco i+1 (con vuelta) */
+  const ini=per*(i+0.5)/n+half;
+  const fin=per*(i+1.5)/n-half;
+  tramos.push(subPath(pts,per,ini,fin));}
+ return tramos.map(p=>({pts:p,closed:false})).filter(p=>p.pts.length>1&&pathLen(p.pts,false)>0.05);}
+/* --- orden de corte: interiores primero y vecino más cercano para viajar menos --- */
+function ordenarPaths(paths,pos,porDentro){
+ const info=paths.map(p=>({p:p,depth:0}));
+ if(porDentro)for(const a of info)for(const b of info){
+  if(a===b||!b.p.closed||b.p.pts.length<3)continue;
+  if(pointInPoly(a.p.pts[0],b.p.pts))a.depth++;}
+ const grupos=new Map();
+ for(const o of info){if(!grupos.has(o.depth))grupos.set(o.depth,[]);grupos.get(o.depth).push(o);}
+ const out=[];
+ for(const dep of [...grupos.keys()].sort((x,y)=>y-x)){const rest=grupos.get(dep).slice();
+  while(rest.length){let bi=0,bj=0,brev=false,bd=Infinity;
+   for(let i=0;i<rest.length;i++){const pts=rest[i].p.pts;
+    if(rest[i].p.closed){for(let j=0;j<pts.length;j++){const d=dist(pos,pts[j]);if(d<bd){bd=d;bi=i;bj=j;brev=false;}}}
+    else{const d0=dist(pos,pts[0]),d1=dist(pos,pts[pts.length-1]);
+     if(d0<bd){bd=d0;bi=i;bj=0;brev=false;}
+     if(d1<bd){bd=d1;bi=i;bj=0;brev=true;}}}
+   const o=rest.splice(bi,1)[0];let pts=o.p.pts;
+   if(o.p.closed&&bj>0)pts=pts.slice(bj).concat(pts.slice(0,bj));
+   if(brev)pts=pts.slice().reverse();
+   const np={pts:pts,closed:o.p.closed};out.push(np);
+   pos=np.closed?np.pts[0]:np.pts[np.pts.length-1];}}
+ return{paths:out,pos:pos};}
+/* trabajos por capa, en orden de ejecución (lo usan el G-code láser y la simulación) */
+function buildLaser(){const out=[];let pos={x:0,y:0};
+ const opt=$('#optNN')&&$('#optNN').checked,inner=$('#optInner')&&$('#optInner').checked;
  for(const c of capasOrden()){if(c.salida===false)continue;
   const its=shapes.filter(s=>capaDe(s)===c);if(!its.length)continue;
-  let len=0;const paths=[];
-  for(const s of its)for(const f of flattenShape(kerfAdjusted(s),0.1)){
-   if(!f.pts||f.pts.length<2)continue;
-   paths.push(f);len+=pathLen(f.pts,f.closed);}
+  let len=0;let paths=[];
+  for(const s of its)for(const f0 of flattenShape(kerfAdjusted(s),0.1)){
+   if(!f0.pts||f0.pts.length<2)continue;
+   for(const f of aplicarTabs(f0,s.tabs)){paths.push(f);len+=pathLen(f.pts,f.closed);}}
   if(!paths.length)continue;
-  out.push({c:c,n:its.length,paths:paths,len:len,min:len*Math.max(1,c.pasadas)/Math.max(1,c.vel)*1.1});}
+  if(opt){const r=ordenarPaths(paths,pos,inner);paths=r.paths;}
+  let travel=0;let p=pos;
+  for(const f of paths){travel+=dist(p,f.pts[0]);p=f.closed?f.pts[0]:f.pts[f.pts.length-1];}
+  pos=p;
+  out.push({c:c,n:its.length,paths:paths,len:len,travel:travel,
+   min:(len*Math.max(1,c.pasadas)/Math.max(1,c.vel)+travel/6000)*1.05});}
  return out;}
 function gcodeLaser(trabajos,o,nombre){
  let g='(Paracarpinteros - Laser GRBL - '+nombre+')\n('+o.modo+' Smax '+o.smax+' - Origen XY: esquina inferior izquierda)\n('+lzText(' - ').replace(/[()]/g,'')+')\nG21 G90\nM5\n';
@@ -2616,20 +2709,21 @@ function gcodeLaser(trabajos,o,nombre){
   const S=Math.round(Math.min(100,Math.max(0,c.pot))*o.smax/100),F=Math.max(1,c.vel);
   g+='\n(Capa '+c.k+' - '+c.nombre.replace(/[()]/g,'')+' - '+c.pot+'% S'+S+' - '+F+' mm/min - '+Math.max(1,c.pasadas)+' pasada(s))\n';
   if(c.modo!=='linea')g+='(capa de relleno: por ahora se trazan los contornos)\n';
-  for(let pas=0;pas<Math.max(1,c.pasadas);pas++){
-   if(c.pasadas>1)g+='(pasada '+(pas+1)+')\n';
-   for(const f of t.paths){
-    const pts=f.closed?f.pts.concat([f.pts[0]]):f.pts;
-    g+='G0 X'+gpx(pts[0])+' Y'+gpy(pts[0])+'\n'+o.modo+' S'+S+'\n';
-    for(let i=1;i<pts.length;i++)g+='G1 X'+gpx(pts[i])+' Y'+gpy(pts[i])+(i===1?' F'+gfmt(F):'')+'\n';
-    g+='M5\n';}}}
+  let fSet=false;
+  for(const f of t.paths){ /* cada camino completa SUS pasadas antes de saltar al siguiente */
+   const pts=f.closed?f.pts.concat([f.pts[0]]):f.pts;
+   g+='G0 X'+gpx(pts[0])+' Y'+gpy(pts[0])+'\n'+o.modo+' S'+S+'\n';
+   for(let pas=0;pas<Math.max(1,c.pasadas);pas++){
+    if(pas>0&&!f.closed)g+='G0 X'+gpx(pts[0])+' Y'+gpy(pts[0])+'\n';
+    for(let i=1;i<pts.length;i++){g+='G1 X'+gpx(pts[i])+' Y'+gpy(pts[i])+(fSet?'':' F'+gfmt(F))+'\n';fSet=true;}}
+   g+='M5\n';}}
  g+='\nG0 X0 Y0\nM2\n';return g;}
 $('#bLg').onclick=()=>{const ts=buildLaser();let h='';
  if(!ts.length)h='<span style="color:#ff8a8a">No hay nada que recorrer: dibujá formas (o revisá que sus capas tengan "Generar salida" activado).</span>';
- else{let tot=0;
-  for(const t of ts){tot+=t.min;
+ else{let tot=0,trv=0;
+  for(const t of ts){tot+=t.min;trv+=t.travel||0;
    h+='<div style="margin:3px 0"><b style="color:'+t.c.color+'">● '+t.c.k+' '+escAttr(t.c.nombre)+'</b> — '+t.n+' forma(s) · '+t.c.pot+'% · '+t.c.vel+' mm/min · '+Math.max(1,t.c.pasadas)+' pasada(s) · ≈ '+(t.min<1?'<1':Math.round(t.min))+' min</div>';}
-  h+='<div style="margin-top:4px;color:var(--mut)">Total estimado: ≈ '+(tot<1?'<1':Math.round(tot))+' min (sin contar desplazamientos)</div>';}
+  h+='<div style="margin-top:4px;color:var(--mut)">Total estimado: ≈ '+(tot<1?'<1':Math.round(tot))+' min · viajes en vacío: '+(trv>=1000?(trv/1000).toFixed(1)+' m':Math.round(trv)+' mm')+(($('#optNN')&&$('#optNN').checked)?' (orden optimizado)':'')+'</div>';}
  $('#lgResumen').innerHTML=h;$('#lgDlg').classList.add('show');};
 $('#lgCancel').onclick=()=>$('#lgDlg').classList.remove('show');
 $('#lgGo').onclick=()=>{const ts=buildLaser();
@@ -2637,6 +2731,83 @@ $('#lgGo').onclick=()=>{const ts=buildLaser();
  const nombre=($('#lgNombre').value.trim()||'laser').replace(/[^\wáéíóúñÁÉÍÓÚÑ\-]+/g,'_');
  download(nombre+'.nc',gcodeLaser(ts,lgCfg(),nombre),'text/plain');
  $('#lgDlg').classList.remove('show');};
+['optNN','optInner'].forEach(id=>$('#'+id).addEventListener('change',()=>{
+ try{localStorage.setItem('pc_optlaser_v1',JSON.stringify({nn:$('#optNN').checked,inner:$('#optInner').checked}));}catch(e){}}));
+try{const oc=JSON.parse(localStorage.getItem('pc_optlaser_v1')||'null');
+ if(oc){$('#optNN').checked=oc.nn!==false;$('#optInner').checked=oc.inner!==false;}}catch(e){}
+
+/* ================= Simulación del trabajo (botón ▶ Simular) ================= */
+let SIM=null,simRaf=0;
+const SIM_G0=6000; /* mm/min estimados de viaje en vacío (G0) */
+function simBuild(){const ts=buildLaser();if(!ts.length)return null;
+ const segs=[];let t=0,travel=0;let pos={x:0,y:0};
+ for(const tr of ts){const c=tr.c;const F=Math.max(1,c.vel);
+  for(const f of tr.paths){const pts=f.closed?f.pts.concat([f.pts[0]]):f.pts;
+   const d0=dist(pos,pts[0]);
+   if(d0>0.01){const dt=d0/SIM_G0*60;segs.push({a:pos,b:pts[0],t0:t,t1:t+dt,col:null});t+=dt;travel+=d0;}
+   for(let pas=0;pas<Math.max(1,c.pasadas);pas++){
+    if(pas>0&&!f.closed){const dr=dist(pts[pts.length-1],pts[0]);
+     if(dr>0.01){const dt=dr/SIM_G0*60;segs.push({a:pts[pts.length-1],b:pts[0],t0:t,t1:t+dt,col:null});t+=dt;travel+=dr;}}
+    for(let i=1;i<pts.length;i++){const L=dist(pts[i-1],pts[i]);if(L<1e-6)continue;
+     const dt=L/F*60;segs.push({a:pts[i-1],b:pts[i],t0:t,t1:t+dt,col:c.color});t+=dt;}}
+   pos=f.closed?pts[0]:pts[pts.length-1];}}
+ return{segs:segs,total:Math.max(0.001,t),travel:travel};}
+function simW2C(p){const cv2=$('#simCv');
+ return{x:(p.x-view.x)*cv2.width/view.w,y:(p.y-view.y)*cv2.height/view.h};}
+function simResize(){const cv2=$('#simCv');const r=window.devicePixelRatio||1;
+ cv2.width=Math.max(1,Math.round(cv2.clientWidth*r));cv2.height=Math.max(1,Math.round(cv2.clientHeight*r));}
+function fmtTiempo(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);}
+function simDraw(full){if(!SIM)return;const cv2=$('#simCv');const ctx=cv2.getContext('2d');
+ if(full){ctx.clearRect(0,0,cv2.width,cv2.height);SIM.lastIdx=0;}
+ ctx.lineWidth=Math.max(1.4,(window.devicePixelRatio||1)*1.4);ctx.lineCap='round';
+ let i=SIM.lastIdx;let head=null;
+ for(;i<SIM.segs.length;i++){const s=SIM.segs[i];
+  if(s.t0>SIM.t)break;
+  const done=s.t1<=SIM.t;
+  const k=done?1:(SIM.t-s.t0)/Math.max(1e-9,s.t1-s.t0);
+  const bx={x:s.a.x+(s.b.x-s.a.x)*k,y:s.a.y+(s.b.y-s.a.y)*k};
+  const a=simW2C(s.a),b=simW2C(bx);
+  ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+  if(s.col){ctx.setLineDash([]);ctx.strokeStyle=s.col;}
+  else{ctx.setLineDash([7,5]);ctx.strokeStyle='#ff3030';}
+  ctx.stroke();head=bx;
+  if(!done)break;}
+ SIM.lastIdx=Math.min(i,SIM.segs.length);
+ if(!head){const s0=SIM.segs[Math.min(SIM.lastIdx,SIM.segs.length-1)];head=SIM.t<=0?{x:0,y:0}:(s0?s0.a:{x:0,y:0});}
+ const hp=simW2C(head);const r=window.devicePixelRatio||1;
+ const dot=$('#simDot');dot.style.display='block';
+ dot.style.left=(hp.x/r)+'px';dot.style.top=(hp.y/r)+'px';}
+function simHud(){$('#simSlider').value=Math.round(SIM.t/SIM.total*1000);
+ $('#simTime').textContent=fmtTiempo(SIM.t)+' / '+fmtTiempo(SIM.total);}
+function simSeek(t){if(!SIM)return;SIM.t=Math.max(0,Math.min(SIM.total,t));simDraw(true);simHud();}
+function simLoop(){if(!SIM||!SIM.playing)return;
+ const now=performance.now();const dt=(now-SIM.lastNow)/1000;SIM.lastNow=now;
+ SIM.t+=dt*(+$('#simVel').value||10);
+ if(SIM.t>=SIM.total){SIM.t=SIM.total;simSetPlaying(false);}
+ simDraw(false);simHud();
+ if(SIM.playing)simRaf=requestAnimationFrame(simLoop);}
+function simSetPlaying(on){if(!SIM)return;SIM.playing=on;
+ $('#simPlay').textContent=on?'⏸':'▶';
+ cancelAnimationFrame(simRaf);
+ if(on){SIM.lastNow=performance.now();simRaf=requestAnimationFrame(simLoop);}}
+function abrirSim(){const b=simBuild();
+ if(!b){alert('No hay nada que simular — dibujá algo (y revisá que las capas tengan "Generar salida").');return;}
+ SIM=Object.assign(b,{t:0,playing:false,lastIdx:0,lastNow:0});
+ $('#simCv').classList.add('show');$('#simBar').classList.add('show');
+ $('#canvasWrap').classList.add('simOn');renderShapes();
+ simResize();simSeek(0);simSetPlaying(true);
+ $('#simInfo').textContent='en vacío (rojo): '+(SIM.travel>=1000?(SIM.travel/1000).toFixed(1)+' m':Math.round(SIM.travel)+' mm');}
+function cerrarSim(){if(!SIM)return;simSetPlaying(false);SIM=null;
+ $('#simCv').classList.remove('show');$('#simBar').classList.remove('show');$('#simDot').style.display='none';
+ $('#canvasWrap').classList.remove('simOn');renderShapes();}
+$('#bSim').onclick=abrirSim;
+$('#simX').onclick=cerrarSim;
+$('#simPlay').onclick=()=>{if(!SIM)return;
+ if(!SIM.playing&&SIM.t>=SIM.total)simSeek(0);
+ simSetPlaying(!SIM.playing);};
+$('#simSlider').addEventListener('input',()=>{if(!SIM)return;
+ simSetPlaying(false);simSeek(+$('#simSlider').value/1000*SIM.total);});
+window.addEventListener('resize',()=>{if(SIM){simResize();simDraw(true);}});
 
 /* ================= Vista 3D de la pieza resultante ================= */
 /* Contorno = la forma cerrada más grande de la capa corte. Cerradas dentro de él = agujeros pasantes.

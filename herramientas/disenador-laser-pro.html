@@ -73,6 +73,10 @@ input[type=checkbox]{accent-color:var(--acc)}
 #v3dBar{position:absolute;top:10px;left:10px;display:flex;gap:8px;align-items:center;background:rgba(22,22,22,.88);padding:6px 10px;border:1px solid var(--line);border-radius:8px;z-index:7}
 #v3dBar label{color:var(--mut);font-size:11px}
 #v3dMsg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#999;font-size:13px;text-align:center;max-width:420px;line-height:1.6}
+#v3dTip{position:fixed;z-index:40;background:var(--panel);border:1px solid var(--acc);border-radius:6px;padding:4px 8px;font-size:11px;display:none;pointer-events:none;max-width:260px;line-height:1.4}
+#v3dEdit{position:fixed;z-index:41;background:var(--panel);border:1px solid var(--acc);border-radius:8px;padding:8px 10px;display:none;width:230px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#v3dEdit.show{display:block}
+#v3dLeg{position:absolute;top:54px;right:10px;z-index:7;background:rgba(22,22,22,.88);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;max-width:250px;display:none;color:#ddd;line-height:1.5}
 #fresaLegend{position:absolute;top:10px;right:10px;z-index:4;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:11px;max-width:240px;display:none;box-shadow:0 3px 14px rgba(0,0,0,.35)}
 #fresaLegend>b{font-family:'Bebas Neue';letter-spacing:1.2px;color:var(--acc);font-weight:400;font-size:13px;display:block;margin-bottom:3px}
 .flItem{display:flex;align-items:center;gap:7px;padding:3px 4px;margin:1px -4px;border-radius:6px;cursor:pointer;line-height:1.35}
@@ -176,9 +180,18 @@ input[type=checkbox]{accent-color:var(--acc)}
       <div id="v3dBar">
         <button class="btn acc" id="v3dBack">← Volver a 2D</button>
         <label>Grosor</label><input type="number" id="v3dGrosor" value="6" min="0.5" step="0.5" style="width:55px"><label>mm</label>
-        <span style="color:var(--mut);font-size:11px">Arrastrá para girar · rueda para acercar</span>
+        <span style="color:var(--mut);font-size:11px">Girar: arrastrá · zoom: rueda · <b>pasá el ratón</b> por un mecanizado para ver qué es · <b>clic</b> para retocarlo · lo que cambies en el panel derecho se refleja al vuelo</span>
       </div>
+      <div id="v3dLeg"></div>
       <div id="v3dMsg" style="display:none"></div>
+      <div id="v3dTip"></div>
+      <div id="v3dEdit">
+        <div id="veLbl" style="font-size:11px;margin-bottom:6px;line-height:1.4"></div>
+        <div class="row" id="veRowProf"><label>Prof.</label><input type="number" id="veProf" step="0.5" min="0.1" style="width:62px"><span style="color:var(--mut);font-size:10.5px">mm</span></div>
+        <div class="row" id="veRowF"><label>Fresa</label><select id="veFresa" style="max-width:155px"></select></div>
+        <div id="veNota" style="color:var(--mut);font-size:10.5px;margin:2px 0"></div>
+        <div class="row" style="justify-content:flex-end"><button class="btn" id="veCerrar">Cerrar</button></div>
+      </div>
     </div>
     <div id="help">
       <b style="color:var(--acc);font-family:'Bebas Neue';letter-spacing:1px">ATAJOS</b><br>
@@ -746,7 +759,7 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  const s=shapes.find(x=>x.id===sel);
  if(s&&tool==='select'&&!nodeEdit){for(const h of getHandles(s))out+='<rect class="h" data-hi="'+h.i+'" x="'+(h.x-5*mm)+'" y="'+(h.y-5*mm)+'" width="'+(10*mm)+'" height="'+(10*mm)+'" fill="'+TH().handleFill+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
  gOverlay.innerHTML=out;}
-function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();renderCapas();guiaTick();autosave();}
+function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();renderCapas();guiaTick();v3dLive();autosave();}
 
 /* ================= Propiedades ================= */
 function propRow(lbl,prop,val,step){return '<div class="row"><label>'+lbl+'</label><input type="number" data-prop="'+prop+'" value="'+N(val)+'" step="'+(step||0.5)+'"></div>';}
@@ -1565,6 +1578,7 @@ window.addEventListener('keydown',e=>{
   if(offTargets){cerrarOff();return;}
   if(arrTarget){arrTarget=null;arrPrev=null;$('#arrDlg').classList.remove('show');renderOverlay();return;}
   if(distTarget){distTarget=null;$('#distDlg').classList.remove('show');return;}
+  if($('#v3dEdit').classList.contains('show')){$('#v3dEdit').classList.remove('show');veSid=null;return;}
   if($('#v3d').classList.contains('show')){cerrar3d();return;}
   if($('#tplDlg').classList.contains('show')){$('#tplDlg').classList.remove('show');return;}
   if($('#queDlg').classList.contains('show')){$('#queDlg').classList.remove('show');return;}
@@ -3091,15 +3105,33 @@ $('#rasOk').onclick=()=>{if(!rasCtx)return;pushUndo();
 let T3=null;
 function rings2d(){const cerrados=[],abiertos=[],grabado=[];
  const meta=(MODO==='router')?cncMeta():null;
+ const esp=meta?rtCfg().esp:0;
  for(const s of shapes){
   if(s.type==='image'||s.type==='dim'||s.layer==='cota')continue;
-  /* profundidad y ancho del surco de grabado: según fresa en router, fino en láser */
-  const m=meta?meta.get(s.id):undefined;
-  let gd=0.6,gw=0.35;
-  if(m&&m.op==='sobre'){gd=m.prof;const t=FRESAS[m.f];
-   gw=(t.tipo==='vbit')?Math.max(0.3,2*m.prof*Math.tan((t.ang||60)/2*Math.PI/180)):t.d;}
-  for(const f of flattenShape(s,0.05)){if(f.pts.length<2)continue;
-   if(esGrabado(s))grabado.push({pts:f.pts,closed:!!f.closed,fill:!!f.fill,depth:gd,width:gw});
+  const fls=flattenShape(s,0.05).filter(f=>f.pts.length>1);
+  if(meta){ /* router: cada operación se ve como lo que ES, con el color de su fresa */
+   const m=meta.get(s.id);if(!m)continue;
+   const t=FRESAS[m.f];const col=fcol(m.f);
+   const et=shapeLabel(s)+' — '+OPNAMES[m.op]+' · T'+(m.f+1)+' Ø'+t.d+' mm · prof '+N(m.prof)+' mm';
+   if(m.op==='sobre'){
+    const gw=(t.tipo==='vbit')?Math.max(0.3,2*m.prof*Math.tan((t.ang||60)/2*Math.PI/180)):t.d;
+    for(const f of fls)grabado.push({pts:f.pts,closed:!!f.closed,fill:!!f.fill,depth:m.prof,width:gw,col:col,label:et,sid:s.id});}
+   else if(m.op==='cajeado'||m.op==='vcarve'){ /* vaciado: la zona entera baja a su prof */
+    for(const f of fls){
+     if(f.closed&&f.pts.length>2)grabado.push({pts:f.pts,closed:true,fill:true,depth:m.prof,col:col,label:et,sid:s.id});
+     else abiertos.push(f);}}
+   else if(m.prof>=esp-0.01){ /* pasante: agujero o silueta de verdad */
+    for(const f of fls){
+     if(f.closed&&f.pts.length>2)cerrados.push({pts:f.pts,area:ringArea(f.pts)});
+     else abiertos.push(f);}}
+   else for(const f of fls) /* corte parcial: canal del ancho de la fresa */
+    grabado.push({pts:f.pts,closed:!!f.closed,fill:false,depth:m.prof,width:t.d,col:col,label:et+' (no atraviesa)',sid:s.id});
+   continue;}
+  /* láser: grabado fino con el color de su capa */
+  const cp=capaDe(s);const col=cp?cp.color:'#333';
+  const et=shapeLabel(s)+(cp?' — capa '+cp.nombre:'');
+  for(const f of fls){
+   if(esGrabado(s))grabado.push({pts:f.pts,closed:!!f.closed,fill:!!f.fill,depth:0.6,width:0.35,col:col,label:et+' (grabado)',sid:s.id});
    else if(f.closed&&f.pts.length>2)cerrados.push({pts:f.pts,area:ringArea(f.pts)});
    else abiertos.push(f);}}
  return{cerrados,abiertos,grabado};}
@@ -3115,23 +3147,29 @@ function buildSurcos(grabado,grosor){const out=[];
  const used=new Array(fills.length).fill(false);
  for(let i=0;i<fills.length;i++){if(used[i])continue;const f=fills[i];const hs=[];
   for(let j=i+1;j<fills.length;j++){if(used[j])continue;
-   if(pointInPoly(fills[j].pts[0],f.pts)){hs.push(fills[j].pts);used[j]=true;}}
-  out.push({outer:f.pts,holes:hs,depth:Math.max(0.15,Math.min(grosor-0.2,f.depth||0.6))});}
+   if(fills[j].sid===f.sid&&pointInPoly(fills[j].pts[0],f.pts)){hs.push(fills[j].pts);used[j]=true;}}
+  out.push({outer:f.pts,holes:hs,depth:Math.max(0.15,Math.min(grosor-0.2,f.depth||0.6)),col:f.col,label:f.label,sid:f.sid});}
  for(const g of grabado){if(g.fill&&g.closed)continue;
   const w=Math.max(0.3,g.width||0.35),depth=Math.max(0.15,Math.min(grosor-0.2,g.depth||0.6));
   if(g.closed){const o=offsetRing(g.pts,w/2),i2=offsetRing(g.pts,-w/2);
-   if(o)out.push({outer:o,holes:i2?[i2]:[],depth:depth});}
-  else{const rb=ribbonPts(g.pts,w);if(rb.length>3)out.push({outer:rb,holes:[],depth:depth});}}
+   if(o)out.push({outer:o,holes:i2?[i2]:[],depth:depth,col:g.col,label:g.label,sid:g.sid});}
+  else{const rb=ribbonPts(g.pts,w);if(rb.length>3)out.push({outer:rb,holes:[],depth:depth,col:g.col,label:g.label,sid:g.sid});}}
  return out;}
 function stop3d(){if(!T3)return;cancelAnimationFrame(T3.raf);T3.controls.dispose();T3.renderer.dispose();
  if(T3.renderer.domElement.parentNode)T3.renderer.domElement.parentNode.removeChild(T3.renderer.domElement);T3=null;}
-function cerrar3d(){$('#v3d').classList.remove('show');stop3d();}
+function cerrar3d(){$('#v3d').classList.remove('show');
+ $('#v3dTip').style.display='none';$('#v3dEdit').classList.remove('show');
+ stop3d();}
 function abrir3d(){$('#v3d').classList.add('show');
+ $('#v3dEdit').classList.remove('show');veSid=null;
  if(typeof THREE==='undefined'){stop3d();$('#v3dMsg').style.display='block';
   $('#v3dMsg').textContent='No se pudo cargar Three.js (revisá la conexión y recargá la página).';return;}
  render3d();}
-function render3d(){
+function render3d(keepCam){
+ let camSave=null;
+ if(keepCam&&T3){camSave={p:T3.camera.position.clone(),t:T3.controls.target.clone()};}
  stop3d();const msg=$('#v3dMsg');msg.style.display='none';
+ $('#v3dTip').style.display='none';
  const{cerrados,abiertos,grabado}=rings2d();
  if(!cerrados.length){msg.style.display='block';
   msg.innerHTML='Para ver la pieza en 3D dibujá su contorno: un <b>rectángulo, círculo o polilínea cerrada</b> en capa <b>Corte</b>.<br><br>Podés tener varias piezas a la vez en la misma tabla. Las cerradas interiores se descuentan como agujeros; el grabado se excava con su ancho y profundidad reales.';return;}
@@ -3151,29 +3189,38 @@ function render3d(){
  const matWood=new THREE.MeshStandardMaterial({color:0xb08850,roughness:0.85,metalness:0,side:THREE.DoubleSide});
  const matWoodSide=new THREE.MeshStandardMaterial({color:0x9b7440,roughness:0.9,metalness:0});
  const matHidden=new THREE.MeshBasicMaterial({visible:false});
- const matGroove=new THREE.MeshStandardMaterial({color:0x3a2913,roughness:1,metalness:0,side:THREE.DoubleSide});
- const matGrooveSide=new THREE.MeshStandardMaterial({color:0x2b1c0e,roughness:1,metalness:0});
+ /* cada mecanizado con el color de su fresa/capa: fondo teñido, paredes más oscuras */
+ const MATC={};
+ const matSurco=(col,k)=>{const key=(col||'x')+k;if(MATC[key])return MATC[key];
+  const c=new THREE.Color(col||'#3a2913');c.multiplyScalar(k==='b'?0.55:0.32);
+  return MATC[key]=new THREE.MeshStandardMaterial({color:c,roughness:1,metalness:0,side:THREE.DoubleSide});};
  const grp=new THREE.Group();
- const sideExtrude=(pts,depth,zo,mat)=>{const sh=new THREE.Shape(toV2(pts));
+ const pickables=[];const leg=new Map();
+ const sideExtrude=(pts,depth,zo,mat,ud)=>{const sh=new THREE.Shape(toV2(pts));
   const g=new THREE.ExtrudeGeometry(sh,{depth:depth,bevelEnabled:false,curveSegments:1});
-  const m=new THREE.Mesh(g,[matHidden,mat]);m.position.z=zo;grp.add(m);};
- const capMesh=(outerPts,holesArr,z,mat)=>{const sh=new THREE.Shape(toV2(outerPts));
+  const m=new THREE.Mesh(g,[matHidden,mat]);m.position.z=zo;grp.add(m);
+  if(ud){m.userData=ud;pickables.push(m);}return m;};
+ const capMesh=(outerPts,holesArr,z,mat,ud)=>{const sh=new THREE.Shape(toV2(outerPts));
   for(const h of holesArr)sh.holes.push(new THREE.Path(toV2(h)));
-  const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),mat);m.position.z=z;grp.add(m);};
+  const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),mat);m.position.z=z;grp.add(m);
+  if(ud){m.userData=ud;pickables.push(m);}return m;};
  try{
   const surcos=buildSurcos(grabado,grosor);
+  const udPieza={label:'Pieza — grosor '+grosor+' mm · los huecos son cortes pasantes'};
   for(const b of bodies){
    const bSurcos=surcos.filter(su=>pointInPoly(su.outer[0],b.outer.pts));
    const hPts=b.holes.map(h=>h.pts);
    sideExtrude(b.outer.pts,grosor,0,matWoodSide);
    for(const h of hPts)sideExtrude(h,grosor,0,matWoodSide);
    capMesh(b.outer.pts,hPts,0,matWood); /* cara inferior */
-   capMesh(b.outer.pts,hPts.concat(bSurcos.map(su=>su.outer)),grosor,matWood); /* cara superior con los surcos descontados */
+   capMesh(b.outer.pts,hPts.concat(bSurcos.map(su=>su.outer)),grosor,matWood,udPieza); /* cara superior */
    for(const su of bSurcos){
-    for(const isl of su.holes)capMesh(isl,[],grosor,matWood); /* islas (interior de una O, centro de un aro) */
-    capMesh(su.outer,su.holes,grosor-su.depth,matGroove);     /* fondo del surco a su profundidad */
-    sideExtrude(su.outer,su.depth,grosor-su.depth,matGrooveSide); /* paredes del surco */
-    for(const isl of su.holes)sideExtrude(isl,su.depth,grosor-su.depth,matGrooveSide);}}
+    const ud={label:su.label+(su.label&&su.label.indexOf('prof')<0?' · prof '+N(su.depth)+' mm':''),sid:su.sid};
+    if(su.col&&su.label&&!leg.has(su.col))leg.set(su.col,su.label.length>40?su.label.slice(0,40)+'…':su.label);
+    for(const isl of su.holes)capMesh(isl,[],grosor,matWood); /* islas (interior de una O) */
+    capMesh(su.outer,su.holes,grosor-su.depth,matSurco(su.col,'b'),ud); /* fondo a su profundidad */
+    sideExtrude(su.outer,su.depth,grosor-su.depth,matSurco(su.col,'w'),ud); /* paredes */
+    for(const isl of su.holes)sideExtrude(isl,su.depth,grosor-su.depth,matSurco(su.col,'w'),ud);}}
  }catch(e){ /* geometría conflictiva: caer al sólido simple de antes */
   while(grp.children.length)grp.remove(grp.children[0]);
   try{const b=bodies[0];const sh=new THREE.Shape(toV2(b.outer.pts));
@@ -3199,12 +3246,70 @@ function render3d(){
  camera.position.set(diag*0.55,diag*0.6,diag*0.85);
  const controls=new THREE.OrbitControls(camera,renderer.domElement);
  controls.enableDamping=true;
+ if(camSave){camera.position.copy(camSave.p);controls.target.copy(camSave.t);controls.update();}
+ /* leyenda de mecanizados (color de fresa/capa) */
+ const legEl=$('#v3dLeg');
+ if(leg.size){legEl.innerHTML='<b style="color:var(--acc);font-family:\'Bebas Neue\';letter-spacing:1px">MECANIZADOS</b>'+
+   [...leg.entries()].slice(0,8).map(e=>'<div><span class="dot" style="background:'+e[0]+';vertical-align:-2px"></span> '+escAttr(e[1])+'</div>').join('');
+  legEl.style.display='block';}
+ else legEl.style.display='none';
+ /* tooltip + clic para retocar */
+ const ray=new THREE.Raycaster();const mv=new THREE.Vector2();
+ const tip=$('#v3dTip');
+ const pick=ev=>{const r=renderer.domElement.getBoundingClientRect();
+  mv.x=((ev.clientX-r.left)/r.width)*2-1;mv.y=-((ev.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(mv,camera);
+  const hits=ray.intersectObjects(pickables,false);
+  return hits.length?hits[0].object.userData:null;};
+ renderer.domElement.addEventListener('pointermove',ev=>{const u=pick(ev);
+  if(u&&u.label){tip.textContent=u.label;tip.style.display='block';
+   tip.style.left=Math.min(ev.clientX+14,window.innerWidth-270)+'px';
+   tip.style.top=Math.min(ev.clientY+12,window.innerHeight-50)+'px';}
+  else tip.style.display='none';});
+ let pdown=null;
+ renderer.domElement.addEventListener('pointerdown',ev=>{pdown={x:ev.clientX,y:ev.clientY};});
+ renderer.domElement.addEventListener('pointerup',ev=>{
+  const moved=!pdown||Math.hypot(ev.clientX-pdown.x,ev.clientY-pdown.y)>5;pdown=null;
+  if(moved)return;
+  const u=pick(ev);
+  if(u&&u.sid!=null)abrirV3dEdit(u,ev.clientX,ev.clientY);
+  else $('#v3dEdit').classList.remove('show');});
  T3={renderer,scene,camera,controls,raf:0};
  const loop=()=>{if(!T3)return;T3.raf=requestAnimationFrame(loop);controls.update();renderer.render(scene,camera);};
  loop();}
+/* --- retocar en vivo: clic en un mecanizado abre su mini-editor --- */
+let veSid=null;
+function abrirV3dEdit(u,x,y){const s=shapes.find(o=>o.id===u.sid);if(!s)return;
+ veSid=u.sid;sel=u.sid;selGrp.clear();
+ $('#veLbl').textContent=u.label||shapeLabel(s);
+ const router=MODO==='router';
+ $('#veRowProf').style.display=router?'':'none';
+ $('#veRowF').style.display=router?'':'none';
+ if(router){const meta=cncMeta().get(s.id);
+  $('#veProf').value=meta?N(meta.prof):'';
+  $('#veFresa').innerHTML='<option value="-1">Por defecto</option>'+FRESAS.map((t,i)=>'<option value="'+i+'"'+((s.cnc&&s.cnc.fresa===i)?' selected':'')+'>T'+(i+1)+' '+t.nombre+'</option>').join('');
+  $('#veNota').textContent='Cambiá y mirá: la pieza se rehace al instante. Más opciones en Propiedades (panel derecho).';}
+ else $('#veNota').textContent='La profundidad real del grabado láser depende de potencia y pasadas — editá su capa en el panel derecho.';
+ const ed=$('#v3dEdit');ed.classList.add('show');
+ ed.style.left=Math.min(x+10,window.innerWidth-250)+'px';
+ ed.style.top=Math.min(y+10,window.innerHeight-180)+'px';
+ renderProps();}
+$('#veProf').addEventListener('change',()=>{const s=shapes.find(o=>o.id===veSid);if(!s)return;
+ const v=parseFloat($('#veProf').value);
+ pushUndo();s.cnc=s.cnc||{op:'auto',fresa:-1,prof:0};
+ s.cnc.prof=(isNaN(v)||v<=0)?0:v;refresh();});
+$('#veFresa').addEventListener('change',()=>{const s=shapes.find(o=>o.id===veSid);if(!s)return;
+ pushUndo();s.cnc=s.cnc||{op:'auto',fresa:-1,prof:0};
+ s.cnc.fresa=parseInt($('#veFresa').value);refresh();});
+$('#veCerrar').onclick=()=>{$('#v3dEdit').classList.remove('show');veSid=null;};
+/* --- refresco en vivo del 3D mientras está abierto (mantiene la cámara) --- */
+let v3dT=null;
+function v3dLive(){if(!$('#v3d').classList.contains('show'))return;
+ clearTimeout(v3dT);v3dT=setTimeout(()=>{
+  if($('#v3d').classList.contains('show')&&typeof THREE!=='undefined')render3d(true);},350);}
 $('#b3d').onclick=abrir3d;
 $('#v3dBack').onclick=cerrar3d;
-$('#v3dGrosor').addEventListener('change',()=>{if($('#v3d').classList.contains('show'))render3d();});
+$('#v3dGrosor').addEventListener('change',()=>{if($('#v3d').classList.contains('show'))render3d(true);});
 window.addEventListener('resize',()=>{if(T3){const ov=$('#v3d');const W=ov.clientWidth||800,H=ov.clientHeight||600;
  T3.camera.aspect=W/H;T3.camera.updateProjectionMatrix();T3.renderer.setSize(W,H);}});
 

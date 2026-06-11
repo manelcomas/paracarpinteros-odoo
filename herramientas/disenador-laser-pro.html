@@ -83,6 +83,10 @@ input[type=checkbox]{accent-color:var(--acc)}
 .queOpt{display:block;padding:8px 10px;border:1px solid var(--line);border-radius:7px;margin:6px 0;cursor:pointer}
 .queOpt:hover{border-color:var(--acc)}
 .queOpt span{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+#ctx{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 8px 26px rgba(0,0,0,.5);display:none;min-width:200px}
+#ctx button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);padding:6px 10px;border-radius:5px;cursor:pointer;font:12px Montserrat,sans-serif}
+#ctx button:hover{background:var(--panel2);color:var(--acc)}
+#ctx hr{border:none;border-top:1px solid var(--line);margin:3px 0}
 </style>
 </head>
 <body>
@@ -329,8 +333,10 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div class="row" title="Filos: cuántos labios de corte tiene la fresa. Pasada: cuánto baja en cada vuelta — pasadas finas cuidan la fresa y dan mejor acabado; en madera blanda, hasta la mitad del Ø de la fresa va bien."><label>Filos</label><input type="number" id="fdFilos" step="1" min="1" max="6" style="width:52px"><label>Pasada</label><input type="number" id="fdPaso" step="0.5" min="0.1" style="width:56px"><span style="color:var(--mut)">mm</span></div>
   <div class="row" title="Avance: velocidad a la que se mueve la fresa mientras corta. Z: velocidad al bajar en vertical. Si la madera se quema, subí el avance o bajá las RPM; si la máquina vibra o pierde pasos, bajá el avance."><label>Avance</label><input type="number" id="fdFxy" step="50" style="width:64px"><label>Z</label><input type="number" id="fdFz" step="50" style="width:60px"><span style="color:var(--mut)">mm/min</span></div>
   <div class="row" title="RPM: vueltas del husillo (la TTC450 llega a ~10.000). Solape: en cajeados, cuánto se pisa una pasada con la anterior — 40-50 % deja el fondo liso sin perder tiempo."><label>RPM</label><input type="number" id="fdRpm" step="500" style="width:70px"><label>Solape</label><input type="number" id="fdStep" step="5" min="10" max="90" style="width:52px"><span style="color:var(--mut)">% (cajeados)</span></div>
+  <div id="fdInfo" style="background:var(--inbg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:11px;line-height:1.55;margin-top:6px"></div>
   <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn" id="fdDel" style="color:#ff8a8a">Borrar</button><span><button class="btn" id="fdCancel">Cancelar</button> <button class="btn acc" id="fdOk">Guardar</button></span></div>
 </div>
+<div id="ctx"></div>
 <input type="file" id="fImg" accept="image/*" style="display:none">
 <input type="file" id="fOpen" accept=".json" style="display:none">
 <!-- Three.js + OrbitControls para la vista 3D. Viven junto a este HTML en /var/www/html/ del VPS. -->
@@ -553,7 +559,8 @@ $('#props').addEventListener('change',e=>{const s=shapes.find(x=>x.id===sel);if(
   else if(prop==='rot'){s.rot=v;}
   else{s[prop]=v;if((prop==='w'||prop==='h'||prop==='r'||prop==='size')&&s[prop]<=0)s[prop]=0.1;if(prop==='rx'&&s.rx<0)s.rx=0;}}
  refresh();});
-$('#props').addEventListener('click',e=>{const act=e.target.dataset.act;if(!act)return;const s=shapes.find(x=>x.id===sel);if(!s)return;
+$('#props').addEventListener('click',e=>{const act=e.target.dataset.act;if(act)propAction(act);});
+function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
  if(act==='del'){pushUndo();shapes=shapes.filter(x=>x.id!==sel);sel=null;refresh();}
  else if(act==='dup'){pushUndo();const c=JSON.parse(JSON.stringify(s));c.id=nextId++;translateShape(c,10,10);shapes.push(c);sel=c.id;refresh();}
  else if(act==='wand'||act==='erase'){if(imgEdit)return;openImgEdit(s,act==='wand'?'wand':'brush');}
@@ -581,14 +588,18 @@ $('#props').addEventListener('click',e=>{const act=e.target.dataset.act;if(!act)
   $('#dsM').value=N(Math.max(0,Math.min(s.cx-pr.x0,pr.x1-s.cx,s.cy-pr.y0,pr.y1-s.cy)));
   $('#distDlg').classList.add('show');}
  else if(act==='ch'||act==='cv'){pushUndo();const bb=bboxOf(s);
-  if(act==='ch')translateShape(s,area.w/2-(bb.x0+bb.x1)/2,0);else translateShape(s,0,area.h/2-(bb.y0+bb.y1)/2);refresh();}});
+  if(act==='ch')translateShape(s,area.w/2-(bb.x0+bb.x1)/2,0);else translateShape(s,0,area.h/2-(bb.y0+bb.y1)/2);refresh();}
+ else if(act==='pch'||act==='pcv'){const pr=pieceRef(s.id)||{x0:0,y0:0,x1:area.w,y1:area.h};
+  pushUndo();const bb=bboxOf(s);
+  if(act==='pch')translateShape(s,(pr.x0+pr.x1)/2-(bb.x0+bb.x1)/2,0);
+  else translateShape(s,0,(pr.y0+pr.y1)/2-(bb.y0+bb.y1)/2);refresh();}}
 
 /* ================= Herramientas / ratón ================= */
 function setTool(t){tool=t;draft=null;snapHit=null;$('#draftIn').classList.remove('show');
  $('#holeIn').classList.toggle('show',t==='hole');
  document.querySelectorAll('.tbtn[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
  svg.setAttribute('class','tool-'+t);
- const hints={select:'Clic: seleccionar · arrastra nodos · doble clic en línea: insertar nodo · Alt+clic en nodo: borrar',line:'Clic inicio, clic fin · Shift: 15° · escribe longitud + Enter',poly:'Clic por puntos · Enter termina · C cierra · doble clic termina',rect:'Clic esquina, clic esquina opuesta · o escribe An/Al + Enter',circle:'Clic centro, clic radio · o escribe radio + Enter',hole:'Clic coloca una perforación con el Ø de abajo · luego en Propiedades: distancia a bordes, espejo, 4 esquinas y repartir N',arc:'Clic centro → clic inicio → clic fin (sentido horario)',dim:'Clic en dos puntos para acotar',text:'Clic donde quieras colocar el texto (el punto es la línea base)',pan:'Arrastra para mover la vista'};
+ const hints={select:'Clic: seleccionar · botón derecho: centrar, espejo, duplicar… · doble clic en línea: insertar nodo · Alt+clic en nodo: borrar',line:'Clic inicio, clic fin · Shift: 15° · escribe longitud + Enter',poly:'Clic por puntos · Enter termina · C cierra · doble clic termina',rect:'Clic esquina, clic esquina opuesta · o escribe An/Al + Enter',circle:'Clic centro, clic radio · o escribe radio + Enter',hole:'Clic coloca una perforación con el Ø de abajo · botón derecho sobre ella: centrar, 4 esquinas, repartir N…',arc:'Clic centro → clic inicio → clic fin (sentido horario)',dim:'Clic en dos puntos para acotar',text:'Clic donde quieras colocar el texto (el punto es la línea base)',pan:'Arrastra para mover la vista'};
  $('#hint').textContent=hints[t]||'';renderOverlay();}
 document.querySelectorAll('.tbtn[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
 
@@ -678,7 +689,27 @@ svg.addEventListener('dblclick',e=>{e.preventDefault();
   if(best){pushUndo();if(s.type==='line'){s.type='poly';s.closed=false;}s.pts.splice(best.i+1,0,snapPt(best.q));sel=s.id;refresh();}}});
 svg.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY>0?1.12:1/1.12;const p=toWorld(e);
  view.x=p.x-(p.x-view.x)*f;view.y=p.y-(p.y-view.y)*f;view.w*=f;view.h*=f;refresh();},{passive:false});
-svg.addEventListener('contextmenu',e=>e.preventDefault());
+/* ================= Menú contextual (botón derecho sobre una forma) ================= */
+const ctxEl=$('#ctx');
+function hideCtx(){ctxEl.style.display='none';}
+function showCtx(x,y,s){const its=[];
+ its.push(['pch','◫ Centrar en la pieza ↔'],['pcv','⊟ Centrar en la pieza ↕'],['ch','Centrar en la mesa ↔'],['cv','Centrar en la mesa ↕'],null);
+ if(['line','poly','arc','image','text','dim'].includes(s.type))its.push(['mh','↔ Espejo'],['mv','↕ Espejo']);
+ if(s.type==='circle')its.push(['mirH','⧉↔ Copia espejada al otro lado'],['mirV','⧉↕ Copia espejada arriba/abajo'],['corners','▣ Copiar a las 4 esquinas'],['dist','⋯ Repartir N equidistantes']);
+ if(s.type==='image')its.push(null,['crop','✂ Recortar'],['vect','⟲ Vectorizar'],['wand','🪄 Quitar fondo']);
+ its.push(null,['dup','⧉ Duplicar'],['arr','▦ Repetir en rejilla'],['del','🗑 Borrar']);
+ ctxEl.innerHTML=its.map(it=>it?'<button data-act="'+it[0]+'">'+it[1]+'</button>':'<hr>').join('');
+ ctxEl.style.display='block';
+ ctxEl.style.left=Math.max(4,Math.min(x,window.innerWidth-ctxEl.offsetWidth-8))+'px';
+ ctxEl.style.top=Math.max(4,Math.min(y,window.innerHeight-ctxEl.offsetHeight-8))+'px';}
+ctxEl.addEventListener('click',e=>{const act=e.target.dataset.act;hideCtx();if(act)propAction(act);});
+window.addEventListener('mousedown',e=>{if(ctxEl.style.display==='block'&&!ctxEl.contains(e.target))hideCtx();});
+svg.addEventListener('contextmenu',e=>{e.preventDefault();
+ const g=e.target.closest&&e.target.closest('[data-id]');
+ if(!g){hideCtx();return;}
+ sel=+g.dataset.id;refresh();
+ const s=shapes.find(x=>x.id===sel);
+ if(s)showCtx(e.clientX,e.clientY,s);});
 
 /* ================= Teclado ================= */
 window.addEventListener('keydown',e=>{
@@ -688,6 +719,7 @@ window.addEventListener('keydown',e=>{
  if(e.ctrlKey&&!inInput){if(e.key.toLowerCase()==='z'){e.preventDefault();if(imgEdit){undoStep();return;}e.shiftKey?redo():undo();return;}if(e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}}
  if(inInput)return;
  if(e.key==='Escape'){
+  hideCtx();
   if(imgEdit){finishImgEdit(false);return;}
   if(txtPending){txtPending=null;$('#txtDlg').classList.remove('show');return;}
   if(arrTarget){arrTarget=null;$('#arrDlg').classList.remove('show');return;}
@@ -1374,8 +1406,23 @@ function openFresaDlg(i){fresaEdit=i;
  $('#fdRpm').value=t.rpm;$('#fdStep').value=t.step||40;
  $('#fdAngRow').style.display=t.tipo==='vbit'?'':'none';
  $('#fdDel').style.display=(i>=0&&FRESAS.length>1)?'':'none';
+ fdInfoUpd();
  $('#fresaDlg').classList.add('show');}
-$('#fdTipo').addEventListener('change',()=>{$('#fdAngRow').style.display=$('#fdTipo').value==='vbit'?'':'none';});
+/* resumen en cristiano de lo que hará la fresa con estos números */
+function fdInfoUpd(){const d=parseFloat($('#fdD').value)||0,paso=parseFloat($('#fdPaso').value)||0,fxy=parseFloat($('#fdFxy').value)||0;
+ const tipo=$('#fdTipo').value,esp=rtCfg().esp;
+ if(!d||!paso){$('#fdInfo').innerHTML='';return;}
+ const n=profSteps(Math.max(0.1,esp),paso).length;
+ let h='📐 <b>Qué va a hacer:</b> baja <b>'+paso+' mm en cada vuelta</b> → tu material de '+esp+' mm lo atraviesa en <b>'+n+' pasada'+(n>1?'s':'')+'</b>, avanzando a '+fxy+' mm/min.';
+ h+='<br>El trayecto se separa <b>'+N(d/2)+' mm</b> (medio Ø) del dibujo: la pieza sale con la medida exacta que dibujaste.';
+ h+='<br>Detalle mínimo: ranuras o agujeros menores de <b>'+d+' mm</b> no salen con esta fresa.';
+ if(tipo==='vbit')h+='<br><b>V-bit:</b> es para grabar líneas finas y letras, no para cortar pasante.';
+ else if(tipo==='downcut')h+='<br><b>Downcut:</b> empuja la viruta hacia abajo — cara superior limpia, ideal contrachapado.';
+ else if(tipo==='upcut')h+='<br><b>Upcut:</b> saca la viruta hacia arriba — corta rápido, puede astillar la cara de arriba.';
+ else if(tipo==='bola')h+='<br><b>Bola:</b> punta redonda para relieves y fondos suaves, no deja paredes rectas.';
+ $('#fdInfo').innerHTML=h;}
+['fdD','fdPaso','fdFxy'].forEach(id=>$('#'+id).addEventListener('input',fdInfoUpd));
+$('#fdTipo').addEventListener('change',()=>{$('#fdAngRow').style.display=$('#fdTipo').value==='vbit'?'':'none';fdInfoUpd();});
 $('#fdOk').onclick=()=>{const t={
  nombre:$('#fdNom').value.trim()||('Fresa Ø'+($('#fdD').value||'?')),tipo:$('#fdTipo').value,
  d:Math.max(0.1,parseFloat($('#fdD').value)||6),filos:Math.max(1,parseInt($('#fdFilos').value)||2),

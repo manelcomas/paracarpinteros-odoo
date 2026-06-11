@@ -36,8 +36,12 @@ main{flex:1;display:flex;min-height:0}
 #cv.tool-select{cursor:default}
 #cv.tool-pan{cursor:grab}
 #side{width:265px;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:10px}
-.sec{margin-bottom:12px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-.sec h3{font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:1.5px;font-size:15px;color:var(--acc);margin-bottom:6px}
+.sec{margin-bottom:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.sec h3{font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:1.5px;font-size:15px;color:var(--acc);margin-bottom:6px;cursor:pointer;user-select:none;display:flex;align-items:center}
+.sec h3::after{content:'▾';margin-left:auto;color:var(--mut);font-size:11px;transition:transform .15s}
+.sec.cerrada h3{margin-bottom:0}
+.sec.cerrada h3::after{transform:rotate(-90deg)}
+.sec.cerrada>*:not(h3){display:none}
 .row{display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap}
 .row label{color:var(--mut);font-size:11px;min-width:30px}
 input[type=number],input[type=text],select{background:var(--inbg);border:1px solid var(--line);color:var(--txt);border-radius:5px;padding:4px 6px;font-family:Montserrat;font-size:12px;width:64px}
@@ -72,8 +76,8 @@ input[type=checkbox]{accent-color:var(--acc)}
 </head>
 <body>
 <header>
-  <a href="https://www.paracarpinteros.com" target="_blank" title="Paracarpinteros — fanáticos de la carpintería" style="display:flex;align-items:center;text-decoration:none">
-    <img src="logo-paracarpinteros.webp" alt="Paracarpinteros" style="height:24px;display:block" onerror="this.onerror=null;this.src='https://www.paracarpinteros.com/web/image/website/3/logo/ParaCarpinteros'">
+  <a href="https://www.paracarpinteros.com" target="_blank" title="Paracarpinteros — fanáticos de la carpintería" style="display:flex;align-items:center;text-decoration:none;background:#f6f2ea;border-radius:6px;padding:3px 8px;border:1px solid var(--line)">
+    <img src="logo-paracarpinteros.webp" alt="Paracarpinteros" style="height:20px;display:block" onerror="this.onerror=null;this.src='https://www.paracarpinteros.com/web/image/website/3/logo/ParaCarpinteros'">
   </a>
   <h1>DISEÑADOR <span>PRO</span></h1>
   <span id="modeSw">
@@ -139,14 +143,14 @@ input[type=checkbox]{accent-color:var(--acc)}
     </div>
   </div>
   <div id="side">
-    <div class="sec"><h3>ÁREA DE TRABAJO</h3>
+    <div class="sec" id="areaSec"><h3>ÁREA DE TRABAJO</h3>
       <div class="row"><select id="preset" class="full" title="Elegí tu máquina y el lienzo toma el tamaño exacto de su mesa de trabajo. Si la tuya no está, usá Personalizado y escribí las medidas abajo.">
         <option value="custom">Personalizado…</option>
       </select></div>
       <div class="row"><label>An</label><input type="number" id="areaW" value="900" min="10"><label>Al</label><input type="number" id="areaH" value="600" min="10"><span style="color:var(--mut)">mm</span></div>
       <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4">Es el espacio real de tu máquina: lo que dibujés aquí cabe seguro en la mesa.</div>
     </div>
-    <div class="sec"><h3>REJILLA Y SNAP</h3>
+    <div class="sec" id="gridSec"><h3>REJILLA Y SNAP</h3>
       <div class="row"><label><input type="checkbox" id="gShow" checked> Mostrar rejilla</label>
         <select id="gStep"><option>5</option><option selected>10</option><option>25</option><option>50</option></select><span style="color:var(--mut)">mm</span></div>
       <div class="row"><label><input type="checkbox" id="gSnap" checked> Snap a</label>
@@ -154,7 +158,7 @@ input[type=checkbox]{accent-color:var(--acc)}
       <div class="row"><label><input type="checkbox" id="eSnap" checked> Imán a puntos/extremos</label></div>
       <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4">El "snap" atrae el cursor a medidas redondas y a las esquinas de lo ya dibujado: así todo queda exacto sin pulso de cirujano.</div>
     </div>
-    <div class="sec"><h3>CAPAS</h3>
+    <div class="sec" id="capasSec"><h3>CAPAS</h3>
       <div class="lyr"><input type="checkbox" id="vCorte" checked><span class="dot" style="background:var(--corte)"></span>Corte <span style="color:var(--mut);margin-left:auto">rojo</span></div>
       <div class="lyr"><input type="checkbox" id="vGrab" checked><span class="dot" style="background:var(--grab)"></span>Grabado línea <span style="color:var(--mut);margin-left:auto">negro</span></div>
       <div class="lyr"><input type="checkbox" id="vImg" checked><span class="dot" style="background:#4da3ff"></span>Imágenes <span style="color:var(--mut);margin-left:auto">grabado</span></div>
@@ -468,6 +472,7 @@ function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();rend
 function propRow(lbl,prop,val,step){return '<div class="row"><label>'+lbl+'</label><input type="number" data-prop="'+prop+'" value="'+N(val)+'" step="'+(step||0.5)+'"></div>';}
 function renderProps(){const el=$('#props');const s=shapes.find(x=>x.id===sel);
  if(!s){el.innerHTML='<span style="color:var(--mut)">Nada seleccionado</span>';return;}
+ $('#propSec').classList.remove('cerrada');
  let h='<div class="row"><label>Tipo</label><b>'+(s.perf?'Perforación':({line:'Línea',poly:'Polilínea',rect:'Rectángulo',circle:'Círculo',arc:'Arco',dim:'Cota',image:'Imagen',text:'Texto'})[s.type])+'</b></div>';
  if(s.type!=='dim'&&s.type!=='image'){h+='<div class="row"><label>Capa</label><select data-prop="layer"><option value="corte"'+(s.layer==='corte'?' selected':'')+'>Corte</option><option value="grabado"'+(s.layer==='grabado'?' selected':'')+'>Grabado</option><option value="cota"'+(s.layer==='cota'?' selected':'')+'>Cota</option></select></div>';}
  switch(s.type){
@@ -1544,6 +1549,15 @@ $('#v3dBack').onclick=cerrar3d;
 $('#v3dGrosor').addEventListener('change',()=>{if($('#v3d').classList.contains('show'))render3d();});
 window.addEventListener('resize',()=>{if(T3){const ov=$('#v3d');const W=ov.clientWidth||800,H=ov.clientHeight||600;
  T3.camera.aspect=W/H;T3.camera.updateProjectionMatrix();T3.renderer.setSize(W,H);}});
+
+/* ================= Secciones desplegables del panel ================= */
+document.querySelectorAll('#side .sec>h3').forEach(h=>{h.addEventListener('click',()=>{
+ const s=h.parentElement;s.classList.toggle('cerrada');
+ try{const st=JSON.parse(localStorage.getItem('pc_secs')||'{}');st[s.id]=s.classList.contains('cerrada');
+  localStorage.setItem('pc_secs',JSON.stringify(st));}catch(e){}});});
+(function(){let st=null;try{st=JSON.parse(localStorage.getItem('pc_secs')||'null');}catch(e){}
+ if(!st)st={gridSec:true,expSec:true}; /* primera visita: rejilla y exportación plegadas */
+ for(const id in st)if(st[id]){const el=document.getElementById(id);if(el)el.classList.add('cerrada');}})();
 
 /* ================= Init ================= */
 setTool('select');

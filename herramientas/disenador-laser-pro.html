@@ -77,6 +77,8 @@ input[type=checkbox]{accent-color:var(--acc)}
 #v3dEdit{position:fixed;z-index:41;background:var(--panel);border:1px solid var(--acc);border-radius:8px;padding:8px 10px;display:none;width:230px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
 #v3dEdit.show{display:block}
 #v3dLeg{position:absolute;top:54px;right:10px;z-index:7;background:rgba(22,22,22,.88);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;max-width:250px;display:none;color:#ddd;line-height:1.5}
+#v3dViews{position:absolute;top:54px;left:10px;z-index:7;display:flex;flex-direction:column;gap:4px}
+#v3dViews .btn{text-align:left;font-size:10.5px;padding:3px 8px}
 #fresaLegend{position:absolute;top:10px;right:10px;z-index:4;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:11px;max-width:240px;display:none;box-shadow:0 3px 14px rgba(0,0,0,.35)}
 #fresaLegend>b{font-family:'Bebas Neue';letter-spacing:1.2px;color:var(--acc);font-weight:400;font-size:13px;display:block;margin-bottom:3px}
 .flItem{display:flex;align-items:center;gap:7px;padding:3px 4px;margin:1px -4px;border-radius:6px;cursor:pointer;line-height:1.35}
@@ -179,8 +181,18 @@ input[type=checkbox]{accent-color:var(--acc)}
     <div id="v3d">
       <div id="v3dBar">
         <button class="btn acc" id="v3dBack">← Volver a 2D</button>
-        <label>Grosor</label><input type="number" id="v3dGrosor" value="6" min="0.5" step="0.5" style="width:55px"><label>mm</label>
-        <span style="color:var(--mut);font-size:11px">Girar: arrastrá · zoom: rueda · <b>pasá el ratón</b> por un mecanizado para ver qué es · <b>clic</b> para retocarlo · lo que cambies en el panel derecho se refleja al vuelo</span>
+        <label title="En modo Router es el Espesor del material (el mismo del panel FRESADO CNC): cambiarlo aquí lo cambia allá, y de él depende qué corte atraviesa y qué no.">Grosor</label><input type="number" id="v3dGrosor" value="6" min="0.5" step="0.5" style="width:55px"><label>mm</label>
+        <button class="btn" id="v3dModo" title="La MISMA pieza sale distinta según el modo: en Láser todo lo de capas modo Línea atraviesa; en Router manda la operación de cada forma (cajeados, profundidades, fresas). Compará sin salir del 3D."></button>
+        <span style="color:var(--mut);font-size:11px">Girar: arrastrá · zoom: rueda · <b>ratón encima</b>: qué es · <b>clic</b>: retocarlo · el panel derecho refresca al vuelo</span>
+      </div>
+      <div id="v3dViews">
+        <button class="btn" data-v="persp" title="Perspectiva (vista inicial)">⌂ 3D</button>
+        <button class="btn" data-v="arriba" title="Desde arriba (planta)">▣ Arriba</button>
+        <button class="btn" data-v="frontal" title="De frente">Frontal</button>
+        <button class="btn" data-v="atras" title="Desde atrás">Trasera</button>
+        <button class="btn" data-v="izq" title="Lado izquierdo">◀ Izq.</button>
+        <button class="btn" data-v="der" title="Lado derecho">Der. ▶</button>
+        <button class="btn" data-v="abajo" title="Desde abajo — ideal para comprobar que los cortes pasantes de verdad traspasan">▽ Abajo</button>
       </div>
       <div id="v3dLeg"></div>
       <div id="v3dMsg" style="display:none"></div>
@@ -244,6 +256,10 @@ input[type=checkbox]{accent-color:var(--acc)}
       <div class="row" title="Z seguro: altura a la que viaja la fresa entre corte y corte para no rozar la pieza ni las prensas. Rampa: en vez de clavarse en vertical como un taladro, la fresa baja en pendiente suave mientras avanza — sufre menos la punta y el material no se quema."><label style="min-width:62px">Z seguro</label><input type="number" id="rtZs" value="5" step="1" style="width:48px"><label>Rampa</label><input type="number" id="rtRampa" value="3" step="0.5" min="1" max="45" style="width:48px"><span style="color:var(--mut)">°</span></div>
       <div class="row" title="La fresa que usarán los cortes si no le asignás otra a una forma concreta en Propiedades."><label style="min-width:62px">Fresa corte</label><select id="rtFCorte" style="max-width:160px"></select></div>
       <div class="row" title="La fresa para los grabados (líneas y texto). Una V-bit da líneas finas y elegantes."><label style="min-width:62px">Fresa grab.</label><select id="rtFGrab" style="max-width:160px"></select></div>
+      <div class="row" title="Qué hay debajo de tu tabla. Si está apoyada DIRECTO en la mesa de la máquina, cualquier profundidad que sobrepase el material clava la fresa en la mesa (rotura casi segura). Con un tablero de sacrificio (MDF barato) o alzas, sobrepasar 0.3–0.5 mm es lo normal para que el corte suelte limpio."><label style="min-width:62px">Bajo la tabla</label><select id="rtCama" style="max-width:160px">
+        <option value="mesa">La mesa directa (¡cuidado!)</option>
+        <option value="sacrificio">Tablero de sacrificio / alzas</option>
+      </select></div>
       <div class="row" title="Tu máquina no cambia de fresa sola: hay que parar, cambiarla a mano y volver a tocar la altura cero. 'Uno por fresa' genera un archivo por cada fresa — el método seguro. 'Único con M0' mete pausas en un solo archivo: solo conviene si tenés sonda de altura Z."><label style="min-width:62px">Archivos</label><select id="rtModo" style="max-width:160px">
         <option value="porFresa">Uno por fresa (re-cero Z a mano)</option>
         <option value="m0">Único con pausas M0 (con sonda Z)</option>
@@ -2082,12 +2098,13 @@ function rtCfg(){return{
  rampa:Math.min(45,Math.max(1,parseFloat($('#rtRampa').value)||3)),
  fCorte:Math.max(0,Math.min(FRESAS.length-1,parseInt($('#rtFCorte').value)||0)),
  fGrab:Math.max(0,Math.min(FRESAS.length-1,parseInt($('#rtFGrab').value)||0)),
- modo:$('#rtModo').value,incG:$('#rtIncG').checked};}
+ modo:$('#rtModo').value,incG:$('#rtIncG').checked,cama:$('#rtCama').value};}
 function applyRtCfg(c){if(!c)return;
  if(c.esp!=null)$('#rtEsp').value=c.esp;if(c.grab!=null)$('#rtGrab').value=c.grab;
  if(c.zs!=null)$('#rtZs').value=c.zs;if(c.rampa!=null)$('#rtRampa').value=c.rampa;
  if(c.fCorte!=null)$('#rtFCorte').value=c.fCorte;if(c.fGrab!=null)$('#rtFGrab').value=c.fGrab;
- if(c.modo)$('#rtModo').value=c.modo;if(c.incG!=null)$('#rtIncG').checked=!!c.incG;}
+ if(c.modo)$('#rtModo').value=c.modo;if(c.incG!=null)$('#rtIncG').checked=!!c.incG;
+ if(c.cama)$('#rtCama').value=c.cama;}
 
 /* --- qué operación le toca a cada forma --- */
 function autoOp(s){
@@ -2363,9 +2380,17 @@ function gcodeJob(job,t,cfg){const s=job.s,m=job.m,j=job.j;
  return g;}
 
 /* --- armado de programas por fresa --- */
-function buildRouter(){const cfg=rtCfg();const meta=cncMeta();const warns=[];const grupos=new Map();
+function buildRouter(){const cfg=rtCfg();const meta=cncMeta();const warns=[];const peligros=[];const grupos=new Map();
+ let rasMesa=false;
  for(const s of shapes){const m=meta.get(s.id);if(!m)continue;
   if(!cfg.incG&&m.op==='sobre'&&esGrabado(s))continue;
+  /* seguridad: profundidades que pasan del material */
+  const sobre=m.prof-cfg.esp;
+  if(sobre>0.01){
+   if(cfg.cama==='mesa')peligros.push(shapeLabel(s)+': profundidad '+N(m.prof)+' mm con material de '+cfg.esp+' mm — la fresa se clavaría '+N(sobre)+' mm EN LA MESA. Poné un tablero de sacrificio/alzas (y marcalo en "Bajo la tabla") o bajá la profundidad.');
+   else warns.push(shapeLabel(s)+': sobrepasa el material '+N(sobre)+' mm — bien con tablero de sacrificio, pero revisá que de verdad esté puesto.');}
+  else if(sobre>-0.01&&cfg.cama==='mesa'&&(m.op==='fuera'||m.op==='dentro'||m.op==='taladro')&&!rasMesa){rasMesa=true;
+   warns.push('Hay cortes JUSTO al ras de la mesa ('+cfg.esp+' mm): lo seguro es un tablero de sacrificio y dar 0.3–0.5 mm de más para que la pieza suelte limpia sin rayar la máquina.');}
   const t=FRESAS[m.f];const j=jobPaths(s,m,t);
   if(j.warn)warns.push(j.warn);
   if(j.empty){warns.push(shapeLabel(s)+': '+j.empty);continue;}
@@ -2378,7 +2403,7 @@ function buildRouter(){const cfg=rtCfg();const meta=cncMeta();const warns=[];con
   const jobs=grupos.get(fi);
   jobs.sort((a,b)=>OPORD[a.m.op]-OPORD[b.m.op]||areaOf(a.s)-areaOf(b.s));
   progs.push({fi:fi,t:FRESAS[fi],jobs:jobs});}
- return{cfg:cfg,progs:progs,warns:warns};}
+ return{cfg:cfg,progs:progs,warns:warns,peligros:peligros};}
 function jobLen(job,t){const passes=profSteps(job.m.prof,t.paso).length;let L=0;
  const step=Math.max(0.4,t.d*(t.step||40)/100);
  if(job.j.kind==='paths'){for(const p of job.j.paths)if(p.pts&&p.pts.length>1)L+=pathLen(p.pts,p.closed)*(p.closed?passes:2*passes);}
@@ -2411,11 +2436,13 @@ $('#bGc').onclick=()=>{const b=buildRouter();let h='';
  if(!b.progs.length)h='<span style="color:#ff8a8a">No hay formas que mecanizar. Dibujá el contorno de la pieza en capa Corte (o revisá que no esté todo en "No mecanizar").</span>';
  else b.progs.forEach((p,i)=>{const min=p.jobs.reduce((acc,j)=>acc+jobLen(j,p.t),0)/p.t.fxy*1.25;
   h+='<div style="margin:3px 0"><b style="color:'+fcol(p.fi)+'">● T'+(p.fi+1)+' '+p.t.nombre+'</b> — '+p.jobs.length+' operación(es) · ≈ '+(min<1?'<1':Math.round(min))+' min<br><span style="color:var(--mut)">'+p.jobs.map(j=>OPNAMES[j.m.op]+' ('+shapeLabel(j.s)+')').join(' · ')+'</span></div>';});
+ if(b.peligros&&b.peligros.length)h+='<div style="color:#ff5252;margin-top:4px;font-weight:600">⛔ '+b.peligros.join('<br>⛔ ')+'</div>';
  if(b.warns.length)h+='<div style="color:#ffb74d;margin-top:4px">⚠ '+b.warns.join('<br>⚠ ')+'</div>';
  $('#gcResumen').innerHTML=h;$('#gcDlg').classList.add('show');};
 $('#gcCancel').onclick=()=>$('#gcDlg').classList.remove('show');
 $('#gcGo').onclick=()=>{const nombre=($('#gcNombre').value.trim()||'pieza').replace(/[^\wáéíóúñÁÉÍÓÚÑ\-]+/g,'_');
  const b=buildRouter();if(!b.progs.length){alert('No hay formas que mecanizar.');return;}
+ if(b.peligros.length&&!confirm('⛔ PELIGRO DE ROTURA DE FRESA:\n\n- '+b.peligros.join('\n- ')+'\n\n¿Generar el G-code igualmente?'))return;
  if(b.cfg.modo==='m0')download(nombre+'.nc',gcodeUnico(b,nombre),'text/plain');
  else b.progs.forEach((p,i)=>setTimeout(()=>download(fileNameNc(nombre,p),gcodeFresa(p,b.cfg,nombre),'text/plain'),i*500));
  $('#gcDlg').classList.remove('show');
@@ -2477,6 +2504,7 @@ function hojaRuta(){const b=buildRouter();
   +'Las operaciones van numeradas (#) en el orden exacto en que las ejecuta cada archivo.<br>'
   +(cfg.modo==='m0'?'<b>Archivo único</b> con pausas M0: re-zerear Z con sonda en cada pausa.':'<b>Un archivo por fresa</b>: ejecutalos en orden, re-zereando Z al cambiar.')
   +' Compensación de radio incluida — no apliques offset extra en el control.</div>'
+  +(b.peligros&&b.peligros.length?'<div class="warn" style="background:#ffe0dd;border-color:#e07060">⛔ '+b.peligros.join('<br>⛔ ')+'</div>':'')
   +(b.warns.length?'<div class="warn">⚠ '+b.warns.join('<br>⚠ ')+'</div>':'')
   +cards
   +'<button onclick="print()">🖨 Imprimir</button>'
@@ -2587,7 +2615,7 @@ function setModo(m){MODO=(m==='router')?'router':'laser';
  refresh();}
 $('#mLaser').onclick=()=>setModo('laser');
 $('#mRouter').onclick=()=>setModo('router');
-['rtEsp','rtGrab','rtZs','rtRampa','rtFCorte','rtFGrab','rtModo','rtIncG'].forEach(id=>$('#'+id).addEventListener('change',()=>{
+['rtEsp','rtGrab','rtZs','rtRampa','rtFCorte','rtFGrab','rtModo','rtIncG','rtCama'].forEach(id=>$('#'+id).addEventListener('change',()=>{
  try{localStorage.setItem('pc_routercfg_v1',JSON.stringify(rtCfg()));}catch(e){}refresh();}));
 
 /* ================= Colocar texto ================= */
@@ -3179,7 +3207,9 @@ function render3d(keepCam){
  for(const r of cerrados){
   const padre=bodies.find(b=>pointInPoly(r.pts[0],b.outer.pts));
   if(padre)padre.holes.push(r);else bodies.push({outer:r,holes:[]});}
- const grosor=Math.max(0.5,parseFloat($('#v3dGrosor').value)||6);
+ const grosor=grosor3d();
+ if(MODO==='router')$('#v3dGrosor').value=N(grosor); /* en router el grosor ES el espesor del material */
+ $('#v3dModo').textContent=MODO==='router'?'Viendo: 🌀 Router — ver como 🔦 Láser':'Viendo: 🔦 Láser — ver como 🌀 Router';
  const ov=$('#v3d');const W=ov.clientWidth||800,H=ov.clientHeight||600;
  const renderer=new THREE.WebGLRenderer({antialias:true});
  renderer.setSize(W,H);renderer.setPixelRatio(window.devicePixelRatio||1);
@@ -3274,7 +3304,7 @@ function render3d(keepCam){
   const u=pick(ev);
   if(u&&u.sid!=null)abrirV3dEdit(u,ev.clientX,ev.clientY);
   else $('#v3dEdit').classList.remove('show');});
- T3={renderer,scene,camera,controls,raf:0};
+ T3={renderer,scene,camera,controls,raf:0,diag:diag};
  const loop=()=>{if(!T3)return;T3.raf=requestAnimationFrame(loop);controls.update();renderer.render(scene,camera);};
  loop();}
 /* --- retocar en vivo: clic en un mecanizado abre su mini-editor --- */
@@ -3307,9 +3337,27 @@ let v3dT=null;
 function v3dLive(){if(!$('#v3d').classList.contains('show'))return;
  clearTimeout(v3dT);v3dT=setTimeout(()=>{
   if($('#v3d').classList.contains('show')&&typeof THREE!=='undefined')render3d(true);},350);}
+function grosor3d(){return MODO==='router'?rtCfg().esp:Math.max(0.5,parseFloat($('#v3dGrosor').value)||6);}
+/* posicionador de vistas: clic y la cámara va a esa cara, encajando la pieza */
+function setVista(v){if(!T3)return;const D=(T3.diag||100)*1.35;
+ const P=({persp:[D*0.45,D*0.5,D*0.7],arriba:[0,D,D*0.001],abajo:[0,-D,D*0.001],
+  frontal:[0,D*0.12,D],atras:[0,D*0.12,-D],izq:[-D,D*0.12,0],der:[D,D*0.12,0]})[v];
+ if(!P)return;
+ T3.controls.target.set(0,0,0);
+ T3.camera.position.set(P[0],P[1],P[2]);
+ T3.controls.update();}
+$('#v3dViews').addEventListener('click',e=>{const v=e.target.dataset.v;if(v)setVista(v);});
+$('#v3dModo').onclick=()=>{setModo(MODO==='router'?'laser':'router');
+ $('#hint').textContent='Modo cambiado a '+(MODO==='router'?'Router':'Láser')+' — la pieza se rehace: cada modo fabrica distinto (en Láser las capas Línea atraviesan; en Router manda la operación de cada forma)';};
 $('#b3d').onclick=abrir3d;
 $('#v3dBack').onclick=cerrar3d;
-$('#v3dGrosor').addEventListener('change',()=>{if($('#v3d').classList.contains('show'))render3d(true);});
+$('#v3dGrosor').addEventListener('change',()=>{
+ if(MODO==='router'){ /* editar el grosor aquí = editar el Espesor del material */
+  const v=Math.max(0.5,parseFloat($('#v3dGrosor').value)||6);
+  $('#rtEsp').value=v;
+  try{localStorage.setItem('pc_routercfg_v1',JSON.stringify(rtCfg()));}catch(e){}
+  refresh();return;}
+ if($('#v3d').classList.contains('show'))render3d(true);});
 window.addEventListener('resize',()=>{if(T3){const ov=$('#v3d');const W=ov.clientWidth||800,H=ov.clientHeight||600;
  T3.camera.aspect=W/H;T3.camera.updateProjectionMatrix();T3.renderer.setSize(W,H);}});
 

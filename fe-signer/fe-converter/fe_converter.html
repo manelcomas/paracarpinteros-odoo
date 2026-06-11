@@ -1318,11 +1318,18 @@ body{font-family:'Hanken Grotesk',-apple-system,'Segoe UI',sans-serif !important
 // === Clave del servicio de firma/buzón: NO hardcodear en el HTML (la página es pública).
 // Se guarda en localStorage del navegador y se pide una sola vez. Para cambiarla:
 // localStorage.removeItem('fe.signer_api_key') y recargar.
+function _feSanitizeKey(s) {
+  // Limpia espacios y comillas/apóstrofos que se cuelan al pegar (p.ej. "...294e'").
+  return (s || '').trim().replace(/^['"`]+|['"`]+$/g, '').trim();
+}
 function _feApiKey() {
-  let k = localStorage.getItem('fe.signer_api_key') || '';
+  let k = _feSanitizeKey(localStorage.getItem('fe.signer_api_key'));
   if (!k) {
-    k = (window.prompt('Clave del servicio de firma (X-API-Key del fe-signer):') || '').trim();
+    k = _feSanitizeKey(window.prompt('Clave del servicio de firma (X-API-Key del fe-signer):'));
     if (k) localStorage.setItem('fe.signer_api_key', k);
+  } else {
+    // Re-guarda saneada por si la versión guardada traía comillas.
+    localStorage.setItem('fe.signer_api_key', k);
   }
   return k;
 }

@@ -379,6 +379,22 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div id="fdInfo" style="background:var(--inbg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:11px;line-height:1.55;margin-top:6px"></div>
   <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn" id="fdDel" style="color:#ff8a8a">Borrar</button><span><button class="btn" id="fdCancel">Cancelar</button> <button class="btn acc" id="fdOk">Guardar</button></span></div>
 </div>
+<div id="offDlg" class="dlg" style="width:310px">
+  <h3>OFFSET / CONTORNO PARALELO</h3>
+  <div class="row"><label>Distancia</label><input type="number" id="ofD" value="3" step="0.5" min="0.05"><span style="color:var(--mut)">mm</span></div>
+  <div class="row"><label>Dirección</label><select id="ofDir">
+    <option value="fuera">Hacia fuera (más grande)</option>
+    <option value="dentro">Hacia dentro (más chico)</option>
+    <option value="ambos">Ambos lados</option>
+  </select></div>
+  <div class="row" title="Redondeadas: el contorno rodea las esquinas con un arco (paralelo de verdad). Rectas: las esquinas siguen en punta (inglete)."><label>Esquinas</label><select id="ofEsq">
+    <option value="redonda">Redondeadas</option>
+    <option value="recta">Rectas (en punta)</option>
+  </select></div>
+  <div class="row"><label><input type="checkbox" id="ofDel"> Borrar la forma original</label></div>
+  <div style="color:var(--mut);font-size:11px;line-height:1.45">El contorno nuevo sale paralelo a esa distancia — para holguras de encaje, marcos o doble línea. La vista previa punteada se actualiza al cambiar los números. Funciona con varias formas a la vez.</div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="ofCancel">Cancelar</button><button class="btn acc" id="ofGo">Crear</button></div>
+</div>
 <div id="capaDlg" class="dlg" style="width:330px">
   <h3 id="cdTitle">CAPA</h3>
   <div class="row"><span class="dot" id="cdSw" style="width:16px;height:16px"></span><input type="text" id="cdNom" style="flex:1;width:auto" maxlength="24" placeholder="Nombre de la capa"></div>
@@ -640,6 +656,7 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  if(drag&&drag.kind==='crop'&&drag.b){const a=drag.a,b=drag.b;out+='<rect x="'+Math.min(a.x,b.x)+'" y="'+Math.min(a.y,b.y)+'" width="'+Math.abs(b.x-a.x)+'" height="'+Math.abs(b.y-a.y)+'" fill="rgba(77,163,255,.12)" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';}
  if(drag&&drag.kind==='band'&&drag.b){const a=drag.a,b=drag.b;out+='<rect x="'+Math.min(a.x,b.x)+'" y="'+Math.min(a.y,b.y)+'" width="'+Math.abs(b.x-a.x)+'" height="'+Math.abs(b.y-a.y)+'" fill="rgba(232,168,0,.08)" stroke="#E8A800" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';}
  if(snapHit)out+='<circle cx="'+snapHit.x+'" cy="'+snapHit.y+'" r="'+(6*mm)+'" fill="none" stroke="#4dff88" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
+ if(offPrev)for(const d of offPrev)out+='<path d="'+d+'" fill="none" stroke="#E8A800" stroke-width="1.6" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';
  if(nodeEdit){const ns=ndShape();
   if(!ns){nodeEdit=null;$('#nodeBar').classList.remove('show');}
   else out+=ndMarkup(ns,mm);}
@@ -654,6 +671,9 @@ function renderProps(){const el=$('#props');
  if(selGrp.size>1){$('#propSec').classList.remove('cerrada');
   el.innerHTML='<div class="row"><b>'+selGrp.size+' formas seleccionadas</b></div>'
   +'<div style="color:var(--mut);font-size:11px;margin:2px 0 6px">Arrastrá cualquiera de ellas y se mueve el grupo entero (las distancias entre sí no cambian). Tocá un color de la barra de abajo para mandarlas todas a esa capa.</div>'
+  +'<div class="row"><button class="btn" data-act="grp_b_union" title="Une las formas en una sola pieza — lo que se toca se suelda">⊕ Soldar</button><button class="btn" data-act="grp_b_resta" title="La forma de ARRIBA (la última dibujada) se quita de las demás">⊖ Restar</button></div>'
+  +'<div class="row"><button class="btn" data-act="grp_b_inter" title="Queda solo la zona donde las formas se superponen">⊗ Intersección</button><button class="btn" data-act="grp_b_xor" title="Queda todo menos la zona compartida">⊘ Exclusión</button></div>'
+  +'<div class="row"><button class="btn full" data-act="grp_off">⇲ Offset / contorno paralelo…</button></div>'
   +'<div class="row"><button class="btn" data-act="grp_ch">Centrar grupo H</button><button class="btn" data-act="grp_cv">Centrar grupo V</button></div>'
   +'<div class="row"><button class="btn" data-act="grp_dup">⧉ Duplicar grupo</button><button class="btn" data-act="grp_del">🗑 Borrar grupo</button></div>';
   return;}
@@ -704,7 +724,10 @@ function renderProps(){const el=$('#props');
  const mir=['line','poly','arc','image','text','dim'].includes(s.type);
  const ndBtn=(s.type==='poly'||s.type==='line')?'<button class="btn" data-act="nodes" title="Mover, añadir y borrar los puntos del camino — también con doble clic sobre la forma">✎ Editar nodos</button>':
   (['rect','circle','arc','text'].includes(s.type)?'<button class="btn" data-act="topath" title="Convierte la forma en un camino de nodos editables (pierde sus medidas de '+({rect:'rectángulo',circle:'círculo',arc:'arco',text:'texto'})[s.type]+')">⤳ Convertir a trazado</button>':'');
- if(ndBtn)h+='<div class="row" style="margin-top:8px">'+ndBtn+'</div>';
+ const offOk=s.type==='circle'||s.type==='rect'||(s.type==='poly'&&s.closed)||s.type==='text';
+ if(ndBtn||offOk)h+='<div class="row" style="margin-top:8px">'+ndBtn
+  +(offOk?'<button class="btn" data-act="off" title="Contorno paralelo a una distancia en mm — para holguras, marcos o doble línea">⇲ Offset</button>':'')+'</div>';
+ if(s.type==='text')h+='<div class="row"><button class="btn full" data-act="weld" title="Convierte el texto en contornos y suelda las letras que se tocan en una sola pieza — clave para letreros calados">⊕ Soldar letras</button></div>';
  h+='<div class="row"'+(ndBtn?'':' style="margin-top:8px"')+'>'+(mir?'<button class="btn" data-act="mh">↔ Espejo</button><button class="btn" data-act="mv">↕ Espejo</button>':'')+'</div>';
  h+='<div class="row"><button class="btn" data-act="arr">▦ Repetir</button><button class="btn" data-act="ch">Centrar H</button><button class="btn" data-act="cv">Centrar V</button></div>';
  h+='<div class="row"><button class="btn" data-act="dup">Duplicar</button><button class="btn" data-act="del">Borrar</button></div>';
@@ -732,6 +755,8 @@ $('#props').addEventListener('change',e=>{const s=shapes.find(x=>x.id===sel);if(
 $('#props').addEventListener('click',e=>{const act=e.target.dataset.act;if(!act)return;
  if(act.indexOf('grp_')===0){grpAction(act);return;}propAction(act);});
 function grpAction(act){const items=shapes.filter(x=>selGrp.has(x.id));if(!items.length)return;
+ if(act.indexOf('grp_b_')===0)return shapesBool(act.slice(6));
+ if(act==='grp_off')return openOffDlg();
  if(act==='grp_del'){pushUndo();shapes=shapes.filter(x=>!selGrp.has(x.id));selGrp.clear();sel=null;refresh();}
  else if(act==='grp_dup'){pushUndo();const nsel=new Set();
   for(const it of items){const c=JSON.parse(JSON.stringify(it));c.id=nextId++;translateShape(c,12,12);shapes.push(c);nsel.add(c.id);}
@@ -749,6 +774,8 @@ function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
  else if(act==='vect'){openVect(s);}
  else if(act==='nodes'){if(s.type==='line'){pushUndo();s.type='poly';s.closed=false;}
   if(s.type==='poly')enterNodeEdit(s.id);}
+ else if(act==='weld'){soldarTexto(s);}
+ else if(act==='off'){openOffDlg();}
  else if(act==='topath'){
   const nom={rect:'rectángulo',circle:'círculo',arc:'arco',text:'texto'}[s.type]||s.type;
   if(!confirm('¿Convertir este '+nom+' a trazado editable por nodos?\nPierde sus medidas de '+nom+' (y el ajuste de kerf si lo tenía). Ctrl+Z lo deshace.'))return;
@@ -920,6 +947,8 @@ function showCtx(x,y,s){const its=[];
  its.push(['pch','◫ Centrar en la pieza ↔'],['pcv','⊟ Centrar en la pieza ↕'],['ch','Centrar en la mesa ↔'],['cv','Centrar en la mesa ↕'],null);
  if(s.type==='poly'||s.type==='line')its.push(['nodes','✎ Editar nodos']);
  if(['rect','circle','arc','text'].includes(s.type))its.push(['topath','⤳ Convertir a trazado (nodos)']);
+ if(s.type==='text')its.push(['weld','⊕ Soldar letras (unirlas en una pieza)']);
+ if(s.type==='circle'||s.type==='rect'||(s.type==='poly'&&s.closed)||s.type==='text')its.push(['off','⇲ Offset / contorno paralelo…']);
  if(['line','poly','arc','image','text','dim'].includes(s.type))its.push(['mh','↔ Espejo'],['mv','↕ Espejo']);
  if(s.type==='circle')its.push(['mirH','⧉↔ Copia espejada al otro lado'],['mirV','⧉↕ Copia espejada arriba/abajo'],['corners','▣ Copiar a las 4 esquinas'],['dist','⋯ Repartir N equidistantes']);
  if(s.type==='image')its.push(null,['crop','✂ Recortar'],['vect','⟲ Vectorizar'],['wand','🪄 Quitar fondo']);
@@ -928,13 +957,30 @@ function showCtx(x,y,s){const its=[];
  ctxEl.style.display='block';
  ctxEl.style.left=Math.max(4,Math.min(x,window.innerWidth-ctxEl.offsetWidth-8))+'px';
  ctxEl.style.top=Math.max(4,Math.min(y,window.innerHeight-ctxEl.offsetHeight-8))+'px';}
-ctxEl.addEventListener('click',e=>{const act=e.target.dataset.act;hideCtx();if(act)propAction(act);});
+function showCtxGrp(x,y){const its=[
+ ['b_union','⊕ Soldar (unión)'],
+ ['b_resta','⊖ Restar (la de arriba quita a las demás)'],
+ ['b_inter','⊗ Intersección (solo la zona común)'],
+ ['b_xor','⊘ Exclusión (zonas no compartidas)'],null,
+ ['off','⇲ Offset / contorno paralelo…'],null,
+ ['grp_dup','⧉ Duplicar grupo'],['grp_del','🗑 Borrar grupo']];
+ ctxEl.innerHTML=its.map(it=>it?'<button data-act="'+it[0]+'">'+it[1]+'</button>':'<hr>').join('');
+ ctxEl.style.display='block';
+ ctxEl.style.left=Math.max(4,Math.min(x,window.innerWidth-ctxEl.offsetWidth-8))+'px';
+ ctxEl.style.top=Math.max(4,Math.min(y,window.innerHeight-ctxEl.offsetHeight-8))+'px';}
+ctxEl.addEventListener('click',e=>{const act=e.target.dataset.act;hideCtx();if(!act)return;
+ if(act.indexOf('b_')===0)return shapesBool(act.slice(2));
+ if(act==='off')return openOffDlg();
+ if(act.indexOf('grp_')===0)return grpAction(act);
+ propAction(act);});
 window.addEventListener('mousedown',e=>{if(ctxEl.style.display==='block'&&!ctxEl.contains(e.target))hideCtx();});
 svg.addEventListener('contextmenu',e=>{e.preventDefault();
  if(nodeEdit){hideCtx();return;}
  const g=e.target.closest&&e.target.closest('[data-id]');
  if(!g){hideCtx();return;}
- sel=+g.dataset.id;refresh();
+ const id=+g.dataset.id;
+ if(selGrp.size>1&&selGrp.has(id)){showCtxGrp(e.clientX,e.clientY);return;}
+ sel=id;selGrp.clear();refresh();
  const s=shapes.find(x=>x.id===sel);
  if(s)showCtx(e.clientX,e.clientY,s);});
 
@@ -1120,6 +1166,176 @@ function toPath(s){const base={layer:capaKey(s.layer)==='cota'?'cota':capaKey(s.
   return replaceWith(s,polys.map(pl=>Object.assign({type:'poly',pts:pl.map(q=>({x:q.x,y:q.y})),closed:!!pl.closed},base)));}
  return null;}
 
+/* ================= Booleanas (unión / resta / intersección / exclusión) =================
+   Recorte de polígonos por fragmentos: se cortan todas las aristas de A contra las de B,
+   cada fragmento se clasifica muestreando un pelito a cada lado (número de vueltas,
+   con anillos normalizados exterior/agujero), y se re-ensamblan los anillos.
+   Maneja agujeros (letras), varias piezas y bordes coincidentes sin librerías. */
+function segInt(a,b,c,d){const rx=b.x-a.x,ry=b.y-a.y,sx=d.x-c.x,sy=d.y-c.y;
+ const den=rx*sy-ry*sx;if(Math.abs(den)<1e-12)return null;
+ const t=((c.x-a.x)*sy-(c.y-a.y)*sx)/den,u=((c.x-a.x)*ry-(c.y-a.y)*rx)/den;
+ if(t<-1e-9||t>1+1e-9||u<-1e-9||u>1+1e-9)return null;
+ return Math.min(1,Math.max(0,t));}
+function normalizarAnillos(rings){return rings.map((r,i)=>{
+ let depth=0;for(let j=0;j<rings.length;j++){if(j===i)continue;if(pointInPoly(r[0],rings[j]))depth++;}
+ const ccw=ringSigned(r)>0;
+ return (ccw===(depth%2===0))?r:r.slice().reverse();});}
+function ringWinding(p,r){let w=0;
+ for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[j],b=r[i];
+  const cr=(b.x-a.x)*(p.y-a.y)-(p.x-a.x)*(b.y-a.y);
+  if(a.y<=p.y){if(b.y>p.y&&cr>0)w++;}
+  else{if(b.y<=p.y&&cr<0)w--;}}
+ return w;}
+function windingInside(p,rings){let w=0;for(const r of rings)w+=ringWinding(p,r);return w!==0;}
+function ringsEdges(rings){const E=[];
+ for(const r of rings)for(let i=0;i<r.length;i++)E.push([r[i],r[(i+1)%r.length]]);
+ return E;}
+function fragmentarEdges(EA,EB,VB){const out=[];
+ for(const [a,b] of EA){const ts=[0,1];
+  for(const [c,d] of EB){const t=segInt(a,b,c,d);if(t!==null)ts.push(t);}
+  /* también partir donde un vértice ajeno cae SOBRE la arista (bordes colineales/T) */
+  const L=dist(a,b)||1e-9;
+  for(const v of VB){const r=distSeg(v,a,b);if(r.d<1e-6&&r.t>1e-9&&r.t<1-1e-9)ts.push(r.t);}
+  ts.sort((x,y)=>x-y);
+  for(let i=1;i<ts.length;i++){if(ts[i]-ts[i-1]<1e-9)continue;
+   const p={x:a.x+(b.x-a.x)*ts[i-1],y:a.y+(b.y-a.y)*ts[i-1]};
+   const q={x:a.x+(b.x-a.x)*ts[i],y:a.y+(b.y-a.y)*ts[i]};
+   if(dist(p,q)>1e-6)out.push([p,q]);}}
+ return out;}
+function ensamblarAnillos(frags){
+ const key=p=>Math.round(p.x*1000)+'_'+Math.round(p.y*1000);
+ /* quitar fragmentos duplicados (bordes coincidentes que sobrevivieron por ambos lados) */
+ const seen=new Set();const fs=[];
+ for(const f of frags){const k1=key(f[0]),k2=key(f[1]);const kk=k1<k2?k1+'|'+k2:k2+'|'+k1;
+  if(seen.has(kk))continue;seen.add(kk);fs.push(f);}
+ const adj=new Map();
+ fs.forEach((f,i)=>{for(const e of [key(f[0]),key(f[1])]){if(!adj.has(e))adj.set(e,[]);adj.get(e).push(i);}});
+ const used=new Array(fs.length).fill(false);const rings=[];
+ for(let i=0;i<fs.length;i++){if(used[i])continue;used[i]=true;
+  const ring=[fs[i][0],fs[i][1]];let guard=fs.length*2+4;
+  while(guard-->0){const kk=key(ring[ring.length-1]);
+   if(ring.length>2&&kk===key(ring[0]))break;
+   const cands=(adj.get(kk)||[]).filter(j=>!used[j]);if(!cands.length)break;
+   const j=cands[0];used[j]=true;
+   ring.push(key(fs[j][0])===kk?fs[j][1]:fs[j][0]);}
+  if(ring.length>3&&key(ring[0])===key(ring[ring.length-1])){ring.pop();
+   if(ringArea(ring)>0.005)rings.push(limpiarAnillo(ring));}}
+ return rings;}
+function limpiarAnillo(r){ /* quita puntos colineales y casi-duplicados */
+ const out=[];const n=r.length;
+ for(let i=0;i<n;i++){const b=r[i];
+  const a=out.length?out[out.length-1]:r[(i-1+n)%n];
+  if(dist(a,b)<0.002)continue;
+  out.push(b);}
+ const fin=[];const m=out.length;
+ for(let i=0;i<m;i++){const a=fin.length?fin[fin.length-1]:out[(i-1+m)%m],b=out[i],c=out[(i+1)%m];
+  if(distSeg(b,a,c).d<0.004)continue;
+  fin.push(b);}
+ return fin.length>2?fin:out;}
+function clipRings(A,B,op){
+ A=normalizarAnillos(A);B=normalizarAnillos(B||[]);
+ const VA=A.flat(),VB=B.flat();
+ const frags=fragmentarEdges(ringsEdges(A),ringsEdges(B),VB)
+  .concat(fragmentarEdges(ringsEdges(B),ringsEdges(A),VA));
+ const dentro=p=>{const ia=windingInside(p,A),ib=windingInside(p,B);
+  return op==='union'?(ia||ib):op==='inter'?(ia&&ib):op==='resta'?(ia&&!ib):(ia!==ib);};
+ const keep=[];
+ for(const f of frags){const mx=(f[0].x+f[1].x)/2,my=(f[0].y+f[1].y)/2;
+  let nx=-(f[1].y-f[0].y),ny=f[1].x-f[0].x;const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;
+  const e=0.002;
+  if(dentro({x:mx+nx*e,y:my+ny*e})!==dentro({x:mx-nx*e,y:my-ny*e}))keep.push(f);}
+ return ensamblarAnillos(keep);}
+function ringsDe(s){return flattenShape(s,0.08).filter(f=>f.closed&&f.pts.length>2).map(f=>f.pts);}
+function shapesBool(op){
+ const ids=selGrp.size?[...selGrp]:[];
+ if(ids.length<2){alert('Seleccioná dos o más formas (banda elástica o Shift no hace falta: arrastrá en vacío sobre ellas) y repetí la operación.');return;}
+ const items=shapes.filter(s=>ids.includes(s.id)&&s.type!=='image'&&s.type!=='dim');
+ const sets=[];let abiertas=0;
+ for(const s of items){const rs=ringsDe(s);if(rs.length)sets.push({s:s,rings:rs});else abiertas++;}
+ if(sets.length<2){alert('Hacen falta al menos dos formas CERRADAS (rectángulo, círculo, polilínea cerrada o texto con grosor). Las líneas y arcos abiertos no cuentan.');return;}
+ sets.sort((a,b)=>shapes.indexOf(a.s)-shapes.indexOf(b.s));
+ let acc;
+ if(op==='resta'){ /* la de más arriba (la última dibujada) muerde a las demás */
+  let base=sets[0].rings;
+  for(let i=1;i<sets.length-1;i++)base=clipRings(base,sets[i].rings,'union');
+  acc=clipRings(base,sets[sets.length-1].rings,'resta');}
+ else{acc=sets[0].rings;
+  for(let i=1;i<sets.length;i++)acc=clipRings(acc,sets[i].rings,op);}
+ if(!acc.length){alert(op==='inter'?'Las formas no comparten ninguna zona.':'La operación no dejó nada.');return;}
+ pushUndo();
+ const layer=capaKey(sets[0].s.layer);const usadas=new Set(sets.map(x=>x.s.id));
+ shapes=shapes.filter(x=>!usadas.has(x.id));
+ const nsel=new Set();
+ for(const r of acc){const c={id:nextId++,type:'poly',pts:r.map(q=>({x:N(q.x),y:N(q.y)})),closed:true,layer:layer,kerf:'no'};
+  shapes.push(c);nsel.add(c.id);}
+ if(nsel.size>1){selGrp=nsel;sel=null;}else{sel=[...nsel][0];selGrp.clear();}
+ refresh();
+ $('#hint').textContent=({union:'Formas soldadas en una',resta:'Resta hecha — la forma de arriba (la última dibujada) le comió a las demás',inter:'Quedó solo la zona común',xor:'Quedaron las zonas NO compartidas'})[op]+' · '+acc.length+' contorno(s)'+(abiertas?' · '+abiertas+' forma(s) abierta(s) ignorada(s)':'');}
+/* Soldar texto: las letras con grosor que se tocan pasan a ser un solo contorno */
+function soldarTexto(s){
+ if((s.font||'hershey')==='hershey'){alert('El trazo fino (1 línea) no tiene grosor que soldar — usá Bebas, Poppins, Archivo… y volvé a probar.');return;}
+ const cerr=textPolylines(s).filter(p=>p.closed&&p.length>2).map(p=>p.map(q=>({x:q.x,y:q.y})));
+ if(!cerr.length){alert('La fuente todavía se está cargando — esperá un segundo y probá de nuevo.');return;}
+ const acc=clipRings(cerr,[],'union'); /* auto-unión: borde de la zona rellena */
+ if(!acc.length){alert('No se pudo soldar este texto.');return;}
+ pushUndo();
+ const idx=shapes.indexOf(s);const layer=capaKey(s.layer);
+ const ns=acc.map(r=>({id:nextId++,type:'poly',pts:r.map(q=>({x:N(q.x),y:N(q.y)})),closed:true,layer:layer,kerf:'no'}));
+ shapes.splice(idx,1,...ns);
+ if(ns.length>1){selGrp=new Set(ns.map(c=>c.id));sel=null;}else{sel=ns[0].id;selGrp.clear();}
+ refresh();
+ $('#hint').textContent='Texto soldado: '+ns.length+' contorno(s). Las letras que se tocaban ya son una sola pieza (ideal para letreros calados).';}
+
+/* ================= Offset / contorno paralelo con diálogo ================= */
+let offTargets=null,offPrev=null;
+function offsetDeShape(s,d,esq){ /* d>0 fuera, d<0 dentro → [{circle}|{rect}|{poly}] */
+ if(s.type==='circle'){const r=s.r+d;return r>0.05?[{circle:{cx:s.cx,cy:s.cy,r:r}}]:[];}
+ if(s.type==='rect'){const w=s.w+2*d,h=s.h+2*d;if(w<0.05||h<0.05)return[];
+  let rx=s.rx||0;
+  rx=d>0?(esq==='redonda'?rx+d:rx):Math.max(0,rx+d);
+  return[{rect:{x:s.x-d,y:s.y-d,w:w,h:h,rx:rx}}];}
+ const out=[];
+ for(const r of ringsDe(s)){const o=offsetRing(r,d,esq);if(o)out.push({poly:o});}
+ return out;}
+function ofParams(){return{
+ d:Math.max(0.05,parseFloat($('#ofD').value)||3),
+ dir:$('#ofDir').value,esq:$('#ofEsq').value,del:$('#ofDel').checked};}
+function ofCompute(){if(!offTargets)return null;
+ const p=ofParams();const res=[];
+ for(const id of offTargets){const s=shapes.find(x=>x.id===id);if(!s)continue;
+  const ds=p.dir==='ambos'?[p.d,-p.d]:[p.dir==='dentro'?-p.d:p.d];
+  for(const d of ds)for(const e of offsetDeShape(s,d,p.esq))res.push({src:s,mk:e});}
+ return res;}
+function ofPreview(){const res=ofCompute();
+ offPrev=res?res.map(r=>{
+  const t=r.mk.circle?Object.assign({type:'circle'},r.mk.circle):
+        r.mk.rect?Object.assign({type:'rect'},r.mk.rect):
+        {type:'poly',pts:r.mk.poly,closed:true};
+  return shapePathD(t);}):null;
+ renderOverlay();}
+function openOffDlg(){
+ const ids=selGrp.size?[...selGrp]:(sel!=null?[sel]:[]);
+ const ok=ids.filter(id=>{const s=shapes.find(x=>x.id===id);
+  return s&&(s.type==='circle'||s.type==='rect'||(s.type==='poly'&&s.closed)||s.type==='text');});
+ if(!ok.length){alert('Seleccioná al menos una forma cerrada (rectángulo, círculo, polilínea cerrada o texto con grosor).');return;}
+ offTargets=ok;$('#offDlg').classList.add('show');ofPreview();}
+function cerrarOff(){offTargets=null;offPrev=null;$('#offDlg').classList.remove('show');renderOverlay();}
+['ofD','ofDir','ofEsq'].forEach(id=>$('#'+id).addEventListener('input',ofPreview));
+$('#ofCancel').onclick=cerrarOff;
+$('#ofGo').onclick=()=>{const res=ofCompute();if(!res||!res.length){
+  $('#hint').textContent='Con esa distancia no queda contorno (¿demasiado grande hacia dentro?)';return;}
+ const p=ofParams();pushUndo();
+ const nsel=new Set();
+ for(const r of res){const layer=capaKey(r.src.layer);let c;
+  if(r.mk.circle)c=Object.assign({id:nextId++,type:'circle',layer:layer,kerf:'no'},r.mk.circle);
+  else if(r.mk.rect)c=Object.assign({id:nextId++,type:'rect',layer:layer,kerf:'no'},r.mk.rect);
+  else c={id:nextId++,type:'poly',pts:r.mk.poly.map(q=>({x:N(q.x),y:N(q.y)})),closed:true,layer:layer,kerf:'no'};
+  shapes.push(c);nsel.add(c.id);}
+ if(p.del){const del=new Set(offTargets);shapes=shapes.filter(x=>!del.has(x.id));}
+ if(nsel.size>1){selGrp=nsel;sel=null;}else{sel=[...nsel][0];selGrp.clear();}
+ cerrarOff();refresh();
+ $('#hint').textContent=nsel.size+' contorno(s) nuevo(s) a '+p.d+' mm';};
+
 /* ================= Teclado ================= */
 window.addEventListener('keydown',e=>{
  if(e.key==='Shift')shiftDown=true;
@@ -1132,6 +1348,7 @@ window.addEventListener('keydown',e=>{
   if(nodeEdit){exitNodeEdit();return;}
   if(imgEdit){finishImgEdit(false);return;}
   if(txtPending){txtPending=null;$('#txtDlg').classList.remove('show');return;}
+  if(offTargets){cerrarOff();return;}
   if(arrTarget){arrTarget=null;$('#arrDlg').classList.remove('show');return;}
   if(distTarget){distTarget=null;$('#distDlg').classList.remove('show');return;}
   if($('#v3d').classList.contains('show')){cerrar3d();return;}
@@ -1599,7 +1816,7 @@ function profSteps(prof,paso){const a=[];for(let d=paso;d<prof-0.001;d+=paso)a.p
 
 /* --- offset de contornos cerrados (compensación de radio de fresa) --- */
 function ringSigned(pts){let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];a+=p.x*q.y-q.x*p.y;}return a/2;}
-function offsetRing(pts,d){let P=pts.slice();if(P.length<3)return null;
+function offsetRing(pts,d,esq){let P=pts.slice();if(P.length<3)return null;
  if(ringSigned(P)<0)P=P.reverse();
  const n=P.length;
  const e0={x:P[1].x-P[0].x,y:P[1].y-P[0].y},L0=Math.hypot(e0.x,e0.y)||1e-9;
@@ -1613,11 +1830,17 @@ function offsetRing(pts,d){let P=pts.slice();if(P.length<3)return null;
   const n1={x:sgn*e1.y/l1,y:-sgn*e1.x/l1},n2={x:sgn*e2.y/l2,y:-sgn*e2.x/l2};
   const p1={x:b.x+n1.x*d,y:b.y+n1.y*d},p2={x:b.x+n2.x*d,y:b.y+n2.y*d};
   const cross=e1.x*e2.y-e1.y*e2.x;
-  if(sgn*cross*d>1e-9){ /* esquina que se abre: arco de radio |d| alrededor del vértice */
-   let a1=Math.atan2(p1.y-b.y,p1.x-b.x),a2=Math.atan2(p2.y-b.y,p2.x-b.x),da=a2-a1;
-   while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
-   const k=arcSteps(Math.abs(d),Math.abs(da),0.1);
-   for(let j=0;j<=k;j++){const aa=a1+da*j/k;out.push({x:b.x+Math.abs(d)*Math.cos(aa),y:b.y+Math.abs(d)*Math.sin(aa)});}}
+  if(sgn*cross*d>1e-9){ /* esquina que se abre: arco redondeado o inglete recto según esq */
+   if(esq==='recta'){const den=e1.x*e2.y-e1.y*e2.x;
+    if(Math.abs(den)<1e-9)out.push(p1);
+    else{const q1={x:a.x+n1.x*d,y:a.y+n1.y*d};
+     const tI=((p2.x-q1.x)*e2.y-(p2.y-q1.y)*e2.x)/den;
+     const ip={x:q1.x+e1.x*tI,y:q1.y+e1.y*tI};
+     if(dist(ip,b)>Math.abs(d)*4+l1+l2){out.push(p1);out.push(p2);}else out.push(ip);}}
+   else{let a1=Math.atan2(p1.y-b.y,p1.x-b.x),a2=Math.atan2(p2.y-b.y,p2.x-b.x),da=a2-a1;
+    while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
+    const k=arcSteps(Math.abs(d),Math.abs(da),0.1);
+    for(let j=0;j<=k;j++){const aa=a1+da*j/k;out.push({x:b.x+Math.abs(d)*Math.cos(aa),y:b.y+Math.abs(d)*Math.sin(aa)});}}}
   else{const den=e1.x*e2.y-e1.y*e2.x;
    if(Math.abs(den)<1e-9)out.push(p1);
    else{const q1={x:a.x+n1.x*d,y:a.y+n1.y*d};

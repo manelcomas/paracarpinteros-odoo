@@ -169,6 +169,9 @@ input[type=checkbox]{accent-color:var(--acc)}
       <span class="kbd">Shift</span> al dibujar: ángulos de 15° · al escalar imagen: libre<br>
       <span class="kbd">Doble clic</span> en una forma: <b>editar sus nodos</b> (clic en la línea añade, <span class="kbd">Supr</span> borra, <span class="kbd">S</span> esquina↔suave, <span class="kbd">Esc</span> sale)<br>
       <span class="kbd">Enter</span> termina polilínea · <span class="kbd">C</span> la cierra<br>
+      <span class="kbd">M</span> regla de medir (clic-clic, no crea nada) · <span class="kbd">F</span> encajar vista<br>
+      <span class="kbd">Flechas</span> mueven la selección 1 mm (<span class="kbd">Shift</span> 10 · <span class="kbd">Alt</span> 0.1)<br>
+      <span class="kbd">Ctrl+G</span> agrupa · <span class="kbd">Ctrl+Shift+G</span> desagrupa · <span class="kbd">Ctrl+D</span> duplica · <span class="kbd">Ctrl+C/V</span> copia y pega<br>
       Mientras dibujas, escribe la <b>longitud</b> en la barra inferior y pulsa <span class="kbd">Enter</span><br>
       Rueda: zoom · Botón central o espacio: mover vista<br>Imagen seleccionada → <b>Recortar</b>, <b>Vectorizar</b>, <b>Quitar fondo</b> (varita por color) o <b>Borrador</b> (pincel) en Propiedades
       <br><br><b style="color:var(--acc);font-family:'Bebas Neue';letter-spacing:1px">PALABRAS QUE VAS A VER</b><br>
@@ -318,11 +321,25 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div style="color:var(--mut);font-size:11px;line-height:1.45">El trazo fino graba en una pasada rápida. Las letras con grosor son contorno cerrado: grabalas, vaciálas con fresa, o ponelas en capa Corte para <b>letras caladas</b>. Acentos se simplifican (á→a); la ñ sale.</div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="txtCancel">Cancelar</button><button class="btn acc" id="txtGo">Colocar</button></div>
 </div>
-<div id="arrDlg" class="dlg">
-  <h3>REPETIR EN REJILLA</h3>
-  <div class="row"><label>Columnas</label><input type="number" id="arC" value="3" min="1" max="100"><label>Filas</label><input type="number" id="arR" value="1" min="1" max="100"></div>
-  <div class="row"><label>Paso X</label><input type="number" id="arX" value="50" step="1"><label>Paso Y</label><input type="number" id="arY" value="50" step="1"><span style="color:var(--mut)">mm</span></div>
-  <div style="color:var(--mut);font-size:11px">Paso = distancia entre el origen de cada copia.</div>
+<div id="arrDlg" class="dlg" style="width:330px">
+  <h3>REPETIR / MATRIZ</h3>
+  <div class="row"><label>Tipo</label><select id="arTipo">
+    <option value="rejilla">Rejilla (filas × columnas)</option>
+    <option value="circular">Circular (alrededor de un punto)</option>
+  </select></div>
+  <div id="arGrid">
+    <div class="row"><label>Columnas</label><input type="number" id="arC" value="3" min="1" max="100"><label>Filas</label><input type="number" id="arR" value="1" min="1" max="100"></div>
+    <div class="row"><label>Paso X</label><input type="number" id="arX" value="50" step="1"><label>Paso Y</label><input type="number" id="arY" value="50" step="1"><span style="color:var(--mut)">mm</span></div>
+    <div style="color:var(--mut);font-size:11px">Paso = distancia entre el origen de cada copia.</div>
+  </div>
+  <div id="arCirc" style="display:none">
+    <div class="row"><label>Copias</label><input type="number" id="acN" value="6" min="2" max="200"><label>Ángulo</label><input type="number" id="acA" value="360" step="5"><span style="color:var(--mut)">° total</span></div>
+    <div class="row"><label>Centro X</label><input type="number" id="acX" value="0" step="1"><label>Y</label><input type="number" id="acY" value="0" step="1"></div>
+    <div class="row"><button class="btn" id="acPieza">◎ Usar el centro de la pieza</button></div>
+    <div class="row"><label><input type="checkbox" id="acRot" checked> Girar cada copia alrededor del centro</label></div>
+    <div style="color:var(--mut);font-size:11px">Trazados, líneas, arcos e imágenes giran de verdad; rectángulos y textos solo se recolocan (no giran sobre sí).</div>
+  </div>
+  <div style="color:var(--mut);font-size:11px;margin-top:4px">La vista previa punteada se actualiza al cambiar los números.</div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="arCancel">Cancelar</button><button class="btn acc" id="arGo">Generar</button></div>
 </div>
 <div id="distDlg" class="dlg">
@@ -441,6 +458,7 @@ let undoStack=[],redoStack=[];
 let view={x:0,y:0,w:1000,h:700};
 let mouseW={x:0,y:0},rawW={x:0,y:0},snapHit=null,shiftDown=false,spaceDown=false;
 let cropMode=null,vecCtx=null,imgEdit=null,liveT=0,txtPending=null,arrTarget=null,distTarget=null,nodeEdit=null;
+let regla=null,arrPrev=null,CLIP=null,pasteN=0,lastArrowT=0;
 /* Tema oscuro = paneles oscuros con CAMA CLARA (estilo LightBurn): el dibujo se ve como sobre la tabla */
 const THEMES={
  dark:{disp:{corte:'#e53935',grabado:'#222222',cota:'#a07900'},areaFill:'#f7f4ee',gridMinor:'#e6e1d6',gridMajor:'#d2cbbd',label:'#8a857a',handleFill:'#ffffff'},
@@ -564,6 +582,7 @@ function getHandles(s){switch(s.type){
  case 'dim':return [{x:s.p1.x,y:s.p1.y,i:0},{x:s.p2.x,y:s.p2.y,i:1}];
  case 'image':return imgCorners(s).map((p,i)=>({x:p.x,y:p.y,i}));
  case 'text':{const hs=[{x:s.x,y:s.y,i:0}];
+  if(s.curvaId)return hs; /* pegado a un camino: solo el ancla (ajustá Desfase) */
   const bb=polysBBox(textPolylines(s));
   if(bb.x1>bb.x0+0.01){
    hs.push({x:bb.x1,y:(bb.y0+bb.y1)/2,i:1}); /* lateral: estirar/condensar ancho */
@@ -601,6 +620,16 @@ function translateShape(s,dx,dy){switch(s.type){
  case 'circle':case 'arc':s.cx+=dx;s.cy+=dy;break;
  case 'dim':s.p1={x:s.p1.x+dx,y:s.p1.y+dy};s.p2={x:s.p2.x+dx,y:s.p2.y+dy};break;
 }}
+function rotateShapeAround(s,c,ang){
+ if(s.type==='poly'||s.type==='line'){s.pts=s.pts.map(p=>{const q=Object.assign({},p,rotPt(p,c,ang));
+  if(p.cin)q.cin=rotPt(p.cin,c,ang);if(p.cout)q.cout=rotPt(p.cout,c,ang);return q;});return;}
+ if(s.type==='circle'){const q=rotPt({x:s.cx,y:s.cy},c,ang);s.cx=q.x;s.cy=q.y;return;}
+ if(s.type==='arc'){const q=rotPt({x:s.cx,y:s.cy},c,ang);s.cx=q.x;s.cy=q.y;s.a1+=ang;s.a2+=ang;return;}
+ if(s.type==='image'){const ctr={x:s.x+s.w/2,y:s.y+s.h/2};const q=rotPt(ctr,c,ang);
+  s.x+=q.x-ctr.x;s.y+=q.y-ctr.y;s.rot=((s.rot||0)+ang*180/Math.PI)%360;return;}
+ /* rect / texto / cota: se recolocan sin girar sobre sí mismos */
+ const b=bboxOf(s);const ctr={x:(b.x0+b.x1)/2,y:(b.y0+b.y1)/2};const q=rotPt(ctr,c,ang);
+ translateShape(s,q.x-ctr.x,q.y-ctr.y);}
 function layerVisible(s){if(s.type==='image')return $('#vImg').checked;if(s.type==='dim'||s.layer==='cota')return $('#vCota').checked;const c=capaDe(s);return c?c.visible!==false:true;}
 
 /* ================= Render ================= */
@@ -657,6 +686,13 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  if(drag&&drag.kind==='band'&&drag.b){const a=drag.a,b=drag.b;out+='<rect x="'+Math.min(a.x,b.x)+'" y="'+Math.min(a.y,b.y)+'" width="'+Math.abs(b.x-a.x)+'" height="'+Math.abs(b.y-a.y)+'" fill="rgba(232,168,0,.08)" stroke="#E8A800" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';}
  if(snapHit)out+='<circle cx="'+snapHit.x+'" cy="'+snapHit.y+'" r="'+(6*mm)+'" fill="none" stroke="#4dff88" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
  if(offPrev)for(const d of offPrev)out+='<path d="'+d+'" fill="none" stroke="#E8A800" stroke-width="1.6" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>';
+ if(arrPrev)for(const d of arrPrev)out+='<path d="'+d+'" fill="none" stroke="#E8A800" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.8" vector-effect="non-scaling-stroke"/>';
+ if(regla&&regla.a){const b=regla.b||mouseW;const L=dist(regla.a,b);
+  const ang=Math.atan2(b.y-regla.a.y,b.x-regla.a.x)*180/Math.PI;
+  out+='<line x1="'+N(regla.a.x)+'" y1="'+N(regla.a.y)+'" x2="'+N(b.x)+'" y2="'+N(b.y)+'" stroke="#0a9f4a" stroke-width="1.6" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>'
+   +'<circle cx="'+N(regla.a.x)+'" cy="'+N(regla.a.y)+'" r="'+(3*mm)+'" fill="#0a9f4a"/>'
+   +'<circle cx="'+N(b.x)+'" cy="'+N(b.y)+'" r="'+(3*mm)+'" fill="#0a9f4a"/>'
+   +'<text x="'+N((regla.a.x+b.x)/2)+'" y="'+N((regla.a.y+b.y)/2-8*mm)+'" font-size="'+(12*mm)+'" fill="#0a7a3a" text-anchor="middle" font-family="Montserrat" font-weight="600">'+L.toFixed(2)+' mm · '+(Math.round(ang*10)/10)+'°</text>';}
  if(nodeEdit){const ns=ndShape();
   if(!ns){nodeEdit=null;$('#nodeBar').classList.remove('show');}
   else out+=ndMarkup(ns,mm);}
@@ -669,11 +705,22 @@ function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();rend
 function propRow(lbl,prop,val,step){return '<div class="row"><label>'+lbl+'</label><input type="number" data-prop="'+prop+'" value="'+N(val)+'" step="'+(step||0.5)+'"></div>';}
 function renderProps(){const el=$('#props');
  if(selGrp.size>1){$('#propSec').classList.remove('cerrada');
+  let curvaBtn='';
+  if(selGrp.size===2){const two=[...selGrp].map(id=>shapes.find(x=>x.id===id)).filter(Boolean);
+   const tx2=two.find(x=>x.type==='text'),pa2=two.find(x=>['poly','line','arc','circle','rect'].includes(x.type));
+   if(tx2&&pa2)curvaBtn='<div class="row"><button class="btn full" data-act="grp_curva" title="El texto se dobla siguiendo el camino — después lo corrés con Desfase en sus Propiedades">〰 Texto en curva (sobre el camino)</button></div>';}
+  const agrupado=shapes.some(x=>selGrp.has(x.id)&&x.grp);
   el.innerHTML='<div class="row"><b>'+selGrp.size+' formas seleccionadas</b></div>'
-  +'<div style="color:var(--mut);font-size:11px;margin:2px 0 6px">Arrastrá cualquiera de ellas y se mueve el grupo entero (las distancias entre sí no cambian). Tocá un color de la barra de abajo para mandarlas todas a esa capa.</div>'
+  +'<div style="color:var(--mut);font-size:11px;margin:2px 0 6px">Arrastrá cualquiera y se mueve todo junto · flechas del teclado mueven 1 mm (Shift 10 · Alt 0.1) · un color de la barra de abajo las cambia de capa.</div>'
+  +'<div class="row"><label>Alinear</label><select id="alRef" style="width:84px" title="Respecto a qué se alinean"><option value="sel">entre sí</option><option value="pieza">a la pieza</option><option value="mesa">a la mesa</option></select>'
+  +'<button class="btn" data-act="al_izq" title="Bordes izquierdos">⇤</button><button class="btn" data-act="al_chor" title="Centros (vertical)">⇹</button><button class="btn" data-act="al_der" title="Bordes derechos">⇥</button>'
+  +'<button class="btn" data-act="al_arr" title="Bordes superiores">⤒</button><button class="btn" data-act="al_cver" title="Centros (horizontal)">⇳</button><button class="btn" data-act="al_aba" title="Bordes inferiores">⤓</button></div>'
+  +'<div class="row"><button class="btn" data-act="dist_h" title="Mismo aire entre formas, en horizontal — las de los extremos no se mueven">⋯ Repartir ↔</button><button class="btn" data-act="dist_v" title="Mismo aire entre formas, en vertical">⋮ Repartir ↕</button></div>'
   +'<div class="row"><button class="btn" data-act="grp_b_union" title="Une las formas en una sola pieza — lo que se toca se suelda">⊕ Soldar</button><button class="btn" data-act="grp_b_resta" title="La forma de ARRIBA (la última dibujada) se quita de las demás">⊖ Restar</button></div>'
   +'<div class="row"><button class="btn" data-act="grp_b_inter" title="Queda solo la zona donde las formas se superponen">⊗ Intersección</button><button class="btn" data-act="grp_b_xor" title="Queda todo menos la zona compartida">⊘ Exclusión</button></div>'
   +'<div class="row"><button class="btn full" data-act="grp_off">⇲ Offset / contorno paralelo…</button></div>'
+  +curvaBtn
+  +'<div class="row"><button class="btn" data-act="grp_agr" title="Ctrl+G — quedan pegadas: clic en una selecciona todas (Ctrl+clic elige una sola)">⛓ Agrupar</button>'+(agrupado?'<button class="btn" data-act="grp_des" title="Ctrl+Shift+G">⛓✂ Desagrupar</button>':'')+'</div>'
   +'<div class="row"><button class="btn" data-act="grp_ch">Centrar grupo H</button><button class="btn" data-act="grp_cv">Centrar grupo V</button></div>'
   +'<div class="row"><button class="btn" data-act="grp_dup">⧉ Duplicar grupo</button><button class="btn" data-act="grp_del">🗑 Borrar grupo</button></div>';
   return;}
@@ -708,7 +755,10 @@ function renderProps(){const el=$('#props');
    const fopts=[['hershey','Trazo fino (1 línea)'],['bebas','Bebas — condensada'],['poppins','Poppins — fina'],['poppinsb','Poppins NEGRITA'],['archivo','Archivo Black — muy gruesa'],['pacifico','Pacifico — cursiva'],['abril','Abril Fatface — serif']];
    h+='<div class="row"><label>Letra</label><select data-prop="font" style="max-width:160px">'+fopts.map(o=>'<option value="'+o[0]+'"'+((s.font||'hershey')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>';
    h+=propRow('X','x',s.x)+propRow('Y','y',s.y)+propRow('Altura','size',s.size,1)+propRow('Ancho %','wsc',(s.wscale||1)*100,5);
-   h+='<div style="color:var(--mut);font-size:10.5px;margin:1px 0 3px">Ancho: 100 = natural · &lt;100 condensa · &gt;100 estira. También arrastrando el tirador lateral del texto; el de la esquina cambia el tamaño entero.</div>';break;}
+   if(s.curvaId){h+=propRow('Desfase','curvaOff',s.curvaOff||0,1);
+    h+='<div class="row"><button class="btn" data-act="uncurve">〰✂ Quitar del camino</button></div>';
+    h+='<div style="color:var(--mut);font-size:10.5px;margin:1px 0 3px">El texto va pegado al camino: corrélo con <b>Desfase</b> (mm a lo largo). ↕ Espejo lo pasa al otro lado de la línea. Si el camino es solo guía, ponelo en capa Cota para que no se corte.</div>';}
+   else h+='<div style="color:var(--mut);font-size:10.5px;margin:1px 0 3px">Ancho: 100 = natural · &lt;100 condensa · &gt;100 estira. También arrastrando el tirador lateral del texto; el de la esquina cambia el tamaño entero.</div>';break;}
  }
  if(MODO==='router'&&s.type!=='dim'&&s.type!=='image'&&s.layer!=='cota'){
   const cnc=s.cnc||{op:'auto',fresa:-1,prof:0};
@@ -729,6 +779,9 @@ function renderProps(){const el=$('#props');
   +(offOk?'<button class="btn" data-act="off" title="Contorno paralelo a una distancia en mm — para holguras, marcos o doble línea">⇲ Offset</button>':'')+'</div>';
  if(s.type==='text')h+='<div class="row"><button class="btn full" data-act="weld" title="Convierte el texto en contornos y suelda las letras que se tocan en una sola pieza — clave para letreros calados">⊕ Soldar letras</button></div>';
  h+='<div class="row"'+(ndBtn?'':' style="margin-top:8px"')+'>'+(mir?'<button class="btn" data-act="mh">↔ Espejo</button><button class="btn" data-act="mv">↕ Espejo</button>':'')+'</div>';
+ if(s.type!=='dim'){h+='<div class="row"><label>Alinear</label><select id="alRef" style="width:84px"><option value="pieza">a la pieza</option><option value="mesa">a la mesa</option></select>'
+  +'<button class="btn" data-act="al_izq" title="Borde izquierdo">⇤</button><button class="btn" data-act="al_chor" title="Centro (vertical)">⇹</button><button class="btn" data-act="al_der" title="Borde derecho">⇥</button>'
+  +'<button class="btn" data-act="al_arr" title="Borde superior">⤒</button><button class="btn" data-act="al_cver" title="Centro (horizontal)">⇳</button><button class="btn" data-act="al_aba" title="Borde inferior">⤓</button></div>';}
  h+='<div class="row"><button class="btn" data-act="arr">▦ Repetir</button><button class="btn" data-act="ch">Centrar H</button><button class="btn" data-act="cv">Centrar V</button></div>';
  h+='<div class="row"><button class="btn" data-act="dup">Duplicar</button><button class="btn" data-act="del">Borrar</button></div>';
  el.innerHTML=h;}
@@ -748,15 +801,28 @@ $('#props').addEventListener('change',e=>{const s=shapes.find(x=>x.id===sel);if(
   else if(prop==='ebL'||prop==='ebR'||prop==='ebT'||prop==='ebB'){const pr=pieceRef(s.id,{x:s.cx,y:s.cy});if(!pr)return;
    if(prop==='ebL')s.cx=pr.x0+v;else if(prop==='ebR')s.cx=pr.x1-v;else if(prop==='ebT')s.cy=pr.y0+v;else s.cy=pr.y1-v;}
   else if(prop==='wsc'){s.wscale=Math.min(10,Math.max(0.1,v/100));}
+  else if(prop==='curvaOff'){s.curvaOff=v;}
   else if(prop==='a1'||prop==='a2'){s[prop]=v*Math.PI/180;}
   else if(prop==='rot'){s.rot=v;}
   else{s[prop]=v;if((prop==='w'||prop==='h'||prop==='r'||prop==='size')&&s[prop]<=0)s[prop]=0.1;if(prop==='rx'&&s.rx<0)s.rx=0;}}
  refresh();});
 $('#props').addEventListener('click',e=>{const act=e.target.dataset.act;if(!act)return;
+ if(act.indexOf('al_')===0)return alinear(act.slice(3),($('#alRef')&&$('#alRef').value)||'sel');
+ if(act==='dist_h')return distribuir('h');
+ if(act==='dist_v')return distribuir('v');
  if(act.indexOf('grp_')===0){grpAction(act);return;}propAction(act);});
 function grpAction(act){const items=shapes.filter(x=>selGrp.has(x.id));if(!items.length)return;
  if(act.indexOf('grp_b_')===0)return shapesBool(act.slice(6));
  if(act==='grp_off')return openOffDlg();
+ if(act==='grp_agr')return agrupar();
+ if(act==='grp_des')return desagrupar();
+ if(act==='grp_curva'){const two=[...selGrp].map(id=>shapes.find(x=>x.id===id)).filter(Boolean);
+  const tx2=two.find(x=>x.type==='text'),pa2=two.find(x=>['poly','line','arc','circle','rect'].includes(x.type));
+  if(!tx2||!pa2)return;
+  pushUndo();tx2.curvaId=pa2.id;tx2.curvaOff=tx2.curvaOff||0;
+  sel=tx2.id;selGrp.clear();refresh();
+  $('#hint').textContent='Texto pegado al camino — corrélo con "Desfase" en Propiedades. Tip: si el camino es solo guía, mandalo a capa Cota para que no se corte.';
+  return;}
  if(act==='grp_del'){pushUndo();shapes=shapes.filter(x=>!selGrp.has(x.id));selGrp.clear();sel=null;refresh();}
  else if(act==='grp_dup'){pushUndo();const nsel=new Set();
   for(const it of items){const c=JSON.parse(JSON.stringify(it));c.id=nextId++;translateShape(c,12,12);shapes.push(c);nsel.add(c.id);}
@@ -776,6 +842,8 @@ function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
   if(s.type==='poly')enterNodeEdit(s.id);}
  else if(act==='weld'){soldarTexto(s);}
  else if(act==='off'){openOffDlg();}
+ else if(act==='uncurve'){pushUndo();delete s.curvaId;delete s.curvaOff;refresh();
+  $('#hint').textContent='Texto despegado del camino — vuelve a quedar derecho';}
  else if(act==='topath'){
   const nom={rect:'rectángulo',circle:'círculo',arc:'arco',text:'texto'}[s.type]||s.type;
   if(!confirm('¿Convertir este '+nom+' a trazado editable por nodos?\nPierde sus medidas de '+nom+' (y el ajuste de kerf si lo tenía). Ctrl+Z lo deshace.'))return;
@@ -783,7 +851,11 @@ function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
   if(ids.length>1)$('#hint').textContent=ids.length+' caminos creados — doble clic en cualquiera para editar sus nodos';
   else enterNodeEdit(ids[0]);}
  else if(act==='mh'||act==='mv'){pushUndo();mirrorShape(s,act==='mh'?'h':'v');refresh();}
- else if(act==='arr'){arrTarget=s.id;$('#arrDlg').classList.add('show');}
+ else if(act==='arr'){arrTarget=s.id;
+  const bb=bboxOf(s);
+  const pr=pieceRef(s.id,{x:(bb.x0+bb.x1)/2,y:(bb.y0+bb.y1)/2})||{x0:0,y0:0,x1:area.w,y1:area.h};
+  $('#acX').value=N((pr.x0+pr.x1)/2);$('#acY').value=N((pr.y0+pr.y1)/2);
+  $('#arrDlg').classList.add('show');arrPreviewUpd();}
  else if(act==='mirH'||act==='mirV'){const pr=pieceRef(s.id,{x:s.cx,y:s.cy});
   if(!pr){alert('Dibujá primero el contorno de la pieza: un rectángulo, círculo o polilínea cerrada en capa Corte.');return;}
   pushUndo();const c=JSON.parse(JSON.stringify(s));c.id=nextId++;
@@ -867,6 +939,9 @@ svg.addEventListener('mousedown',e=>{const raw=toWorld(e);
  if(cropMode&&e.button===0){drag={kind:'crop',a:raw,b:raw};e.preventDefault();return;}
  if(e.button===1||spaceDown||tool==='pan'){drag={kind:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};e.preventDefault();return;}
  if(e.button!==0)return;
+ if(regla){const p=snapPt(raw);
+  if(!regla.a||regla.b)regla={a:p,b:null};else regla.b=p;
+  renderOverlay();return;}
  if(nodeEdit){ndMouseDown(e,raw);return;}
  if(tool==='select'){
   if(e.target.classList&&e.target.classList.contains('h')){const i=+e.target.dataset.hi;const s=shapes.find(x=>x.id===sel);if(!s)return;
@@ -876,6 +951,11 @@ svg.addEventListener('mousedown',e=>{const raw=toWorld(e);
   if(g){const id=+g.dataset.id;
    if(selGrp.size>1&&selGrp.has(id)){ /* arrastrar el grupo entero */
     drag={kind:'gmove',last:snapPt(raw),pre:snapshot(),moved:false};return;}
+   const sh=shapes.find(x=>x.id===id);
+   if(sh&&sh.grp&&!e.ctrlKey){ /* grupo persistente: clic en una selecciona todas (Ctrl+clic elige una) */
+    const gids=shapes.filter(x=>x.grp===sh.grp).map(x=>x.id);
+    if(gids.length>1){selGrp=new Set(gids);sel=null;
+     drag={kind:'gmove',last:snapPt(raw),pre:snapshot(),moved:false};refresh();return;}}
    selGrp.clear();sel=id;drag={kind:'move',last:snapPt(raw,{exclude:sel}),pre:snapshot(),moved:false};refresh();return;}
   /* clic en vacío: banda elástica para seleccionar varias */
   sel=null;selGrp.clear();drag={kind:'band',a:raw,b:raw};refresh();return;}
@@ -923,6 +1003,9 @@ window.addEventListener('mouseup',()=>{
   if(x1-x0>1||y1-y0>1){const ids=[];
    for(const s of shapes){if(!layerVisible(s))continue;const bb=bboxOf(s);
     if(bb.x1>=x0&&bb.x0<=x1&&bb.y1>=y0&&bb.y0<=y1)ids.push(s.id);}
+   /* si tocó un grupo persistente, entra el grupo completo */
+   const gset=new Set();for(const id of ids){const s2=shapes.find(x=>x.id===id);if(s2&&s2.grp)gset.add(s2.grp);}
+   if(gset.size)for(const s2 of shapes)if(s2.grp&&gset.has(s2.grp)&&!ids.includes(s2.id))ids.push(s2.id);
    if(ids.length===1){sel=ids[0];selGrp.clear();}
    else if(ids.length>1){selGrp=new Set(ids);sel=null;
     $('#hint').textContent=ids.length+' formas seleccionadas — arrastrá cualquiera para mover el grupo · Supr borra · Esc deselecciona';}
@@ -962,7 +1045,8 @@ function showCtxGrp(x,y){const its=[
  ['b_resta','⊖ Restar (la de arriba quita a las demás)'],
  ['b_inter','⊗ Intersección (solo la zona común)'],
  ['b_xor','⊘ Exclusión (zonas no compartidas)'],null,
- ['off','⇲ Offset / contorno paralelo…'],null,
+ ['off','⇲ Offset / contorno paralelo…'],
+ ['grp_agr','⛓ Agrupar (Ctrl+G)'],['grp_des','⛓✂ Desagrupar (Ctrl+Shift+G)'],null,
  ['grp_dup','⧉ Duplicar grupo'],['grp_del','🗑 Borrar grupo']];
  ctxEl.innerHTML=its.map(it=>it?'<button data-act="'+it[0]+'">'+it[1]+'</button>':'<hr>').join('');
  ctxEl.style.display='block';
@@ -1336,20 +1420,91 @@ $('#ofGo').onclick=()=>{const res=ofCompute();if(!res||!res.length){
  cerrarOff();refresh();
  $('#hint').textContent=nsel.size+' contorno(s) nuevo(s) a '+p.d+' mm';};
 
+/* ================= Productividad: alinear, distribuir, grupos, portapapeles ================= */
+function seleccionActual(){return shapes.filter(x=>selGrp.has(x.id)||x.id===sel);}
+function alinear(modo,ref){
+ const list=seleccionActual();if(!list.length)return;
+ let R;
+ if(ref==='sel'&&list.length>1){R={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9};
+  for(const s of list){const b=bboxOf(s);R.x0=Math.min(R.x0,b.x0);R.y0=Math.min(R.y0,b.y0);R.x1=Math.max(R.x1,b.x1);R.y1=Math.max(R.y1,b.y1);}}
+ else if(ref==='pieza'){const pr=pieceRef();
+  if(!pr){alert('No hay pieza de referencia: dibujá primero el contorno (forma cerrada en capa de corte).');return;}R=pr;}
+ else R={x0:0,y0:0,x1:area.w,y1:area.h};
+ pushUndo();
+ for(const s of list){const b=bboxOf(s);let dx=0,dy=0;
+  if(modo==='izq')dx=R.x0-b.x0;else if(modo==='der')dx=R.x1-b.x1;else if(modo==='chor')dx=(R.x0+R.x1)/2-(b.x0+b.x1)/2;
+  else if(modo==='arr')dy=R.y0-b.y0;else if(modo==='aba')dy=R.y1-b.y1;else if(modo==='cver')dy=(R.y0+R.y1)/2-(b.y0+b.y1)/2;
+  translateShape(s,dx,dy);}
+ refresh();}
+function distribuir(eje){
+ const items=shapes.filter(x=>selGrp.has(x.id));
+ if(items.length<3){$('#hint').textContent='Para repartir con espaciado igual hacen falta 3 o más formas seleccionadas';return;}
+ const k0=eje==='h'?'x0':'y0',k1=eje==='h'?'x1':'y1';
+ const arr=items.map(s=>({s:s,b:bboxOf(s)})).sort((a,b)=>(a.b[k0]+a.b[k1])-(b.b[k0]+b.b[k1]));
+ const tot=arr[arr.length-1].b[k1]-arr[0].b[k0];
+ const suma=arr.reduce((acc,o)=>acc+(o.b[k1]-o.b[k0]),0);
+ const gap=(tot-suma)/(arr.length-1);
+ pushUndo();
+ let cur=arr[0].b[k1];
+ for(let i=1;i<arr.length-1;i++){const o=arr[i];const d=(cur+gap)-o.b[k0];
+  eje==='h'?translateShape(o.s,d,0):translateShape(o.s,0,d);
+  cur=cur+gap+(o.b[k1]-o.b[k0]);}
+ refresh();
+ $('#hint').textContent='Repartidas con el mismo aire entre ellas (las de los extremos no se mueven)';}
+/* grupos persistentes: clic en una selecciona el grupo entero; Ctrl+clic elige una sola */
+function agrupar(){if(selGrp.size<2){$('#hint').textContent='Seleccioná varias formas (banda elástica) y Ctrl+G las agrupa';return;}
+ pushUndo();const gid=shapes.reduce((m,s)=>Math.max(m,s.grp||0),0)+1;
+ for(const s of shapes)if(selGrp.has(s.id))s.grp=gid;
+ refresh();
+ $('#hint').textContent='Grupo creado — clic en cualquiera lo selecciona entero · Ctrl+clic elige una sola · Ctrl+Shift+G desagrupa';}
+function desagrupar(){const list=seleccionActual();
+ const gids=new Set(list.map(s=>s.grp).filter(Boolean));
+ if(!gids.size){$('#hint').textContent='Esas formas no estaban agrupadas';return;}
+ pushUndo();for(const s of shapes)if(gids.has(s.grp))delete s.grp;
+ refresh();$('#hint').textContent='Grupo deshecho — cada forma vuelve a ir por su cuenta';}
+function duplicarSel(off){const items=seleccionActual();if(!items.length)return;
+ pushUndo();const nsel=new Set();const gmap=new Map();
+ let gMax=shapes.reduce((m,s)=>Math.max(m,s.grp||0),0);
+ for(const it of items){const c=JSON.parse(JSON.stringify(it));c.id=nextId++;
+  if(c.grp){if(!gmap.has(c.grp))gmap.set(c.grp,++gMax);c.grp=gmap.get(c.grp);}
+  translateShape(c,off,off);shapes.push(c);nsel.add(c.id);}
+ if(nsel.size>1){selGrp=nsel;sel=null;}else{sel=[...nsel][0];selGrp.clear();}
+ refresh();}
+function copiarSel(){const items=seleccionActual();
+ if(!items.length){$('#hint').textContent='Nada seleccionado que copiar';return;}
+ CLIP=JSON.stringify(items);pasteN=0;
+ $('#hint').textContent=items.length+' forma(s) copiadas — Ctrl+V pega';}
+function pegarClip(){if(!CLIP){$('#hint').textContent='Nada copiado todavía — Ctrl+C primero';return;}
+ pushUndo();pasteN++;
+ const items=JSON.parse(CLIP);const nsel=new Set();const gmap=new Map();
+ let gMax=shapes.reduce((m,s)=>Math.max(m,s.grp||0),0);
+ for(const it of items){const c=Object.assign({},it);c.id=nextId++;
+  if(c.grp){if(!gmap.has(c.grp))gmap.set(c.grp,++gMax);c.grp=gmap.get(c.grp);}
+  translateShape(c,5*pasteN,5*pasteN);shapes.push(c);nsel.add(c.id);}
+ if(nsel.size>1){selGrp=nsel;sel=null;}else{sel=[...nsel][0];selGrp.clear();}
+ refresh();}
+
 /* ================= Teclado ================= */
 window.addEventListener('keydown',e=>{
  if(e.key==='Shift')shiftDown=true;
  if(e.code==='Space'&&document.activeElement.tagName!=='INPUT'){spaceDown=true;e.preventDefault();}
  const inInput=['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName);
- if(e.ctrlKey&&!inInput){if(e.key.toLowerCase()==='z'){e.preventDefault();if(imgEdit){undoStep();return;}e.shiftKey?redo():undo();return;}if(e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}}
+ if(e.ctrlKey&&!inInput){const k=e.key.toLowerCase();
+  if(k==='z'){e.preventDefault();if(imgEdit){undoStep();return;}e.shiftKey?redo():undo();return;}
+  if(k==='y'){e.preventDefault();redo();return;}
+  if(k==='d'){e.preventDefault();duplicarSel(5);return;}
+  if(k==='c'){e.preventDefault();copiarSel();return;}
+  if(k==='v'){e.preventDefault();pegarClip();return;}
+  if(k==='g'){e.preventDefault();e.shiftKey?desagrupar():agrupar();return;}}
  if(inInput)return;
  if(e.key==='Escape'){
   hideCtx();
+  if(regla){regla=null;$('#hint').textContent='';renderOverlay();return;}
   if(nodeEdit){exitNodeEdit();return;}
   if(imgEdit){finishImgEdit(false);return;}
   if(txtPending){txtPending=null;$('#txtDlg').classList.remove('show');return;}
   if(offTargets){cerrarOff();return;}
-  if(arrTarget){arrTarget=null;$('#arrDlg').classList.remove('show');return;}
+  if(arrTarget){arrTarget=null;arrPrev=null;$('#arrDlg').classList.remove('show');renderOverlay();return;}
   if(distTarget){distTarget=null;$('#distDlg').classList.remove('show');return;}
   if($('#v3d').classList.contains('show')){cerrar3d();return;}
   if($('#tplDlg').classList.contains('show')){$('#tplDlg').classList.remove('show');return;}
@@ -1365,6 +1520,20 @@ window.addEventListener('keydown',e=>{
   if(e.key.toLowerCase()==='s'){ndSmooth();return;}}
  if((e.key==='Delete'||e.key==='Backspace')&&selGrp.size){pushUndo();shapes=shapes.filter(x=>!selGrp.has(x.id));selGrp.clear();sel=null;refresh();return;}
  if((e.key==='Delete'||e.key==='Backspace')&&sel!=null){pushUndo();shapes=shapes.filter(x=>x.id!==sel);sel=null;refresh();return;}
+ if(e.key.toLowerCase()==='f'&&!draft){fitView();return;}
+ if(e.key.toLowerCase()==='m'&&!draft){regla=regla?null:{a:null,b:null};
+  $('#hint').textContent=regla?'Regla: clic en el primer punto, clic en el segundo — M o Esc para salir':'';
+  renderOverlay();return;}
+ if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&(sel!=null||selGrp.size)){
+  e.preventDefault();
+  const st=e.shiftKey?10:(e.altKey?0.1:1);
+  const dx=e.key==='ArrowLeft'?-st:e.key==='ArrowRight'?st:0;
+  const dy=e.key==='ArrowUp'?-st:e.key==='ArrowDown'?st:0;
+  const now=Date.now();
+  if(now-lastArrowT>900)pushUndo(); /* pulsaciones seguidas = un solo paso de deshacer */
+  lastArrowT=now;
+  for(const s of shapes)if(s.id===sel||selGrp.has(s.id))translateShape(s,dx,dy);
+  refresh();return;}
  if(draft&&draft.pts.length){if(e.key.toLowerCase()==='c'&&tool==='poly'){finishPoly(true);return;}
   if(/^[0-9.]$/.test(e.key)){$('#inLen').focus();return;}
   return;}
@@ -1645,6 +1814,26 @@ function textPolylines(s){const fk=s.font||'hershey';let out;
  if(ws!==1)for(const pl of out)for(const q of pl)q.x=s.x+(q.x-s.x)*ws;
  if(s.flipH||s.flipV){const bb=polysBBox(out);const mx=(bb.x0+bb.x1)/2,my=(bb.y0+bb.y1)/2;
   for(const pl of out)for(const q of pl){if(s.flipH)q.x=2*mx-q.x;if(s.flipV)q.y=2*my-q.y;}}
+ /* texto en curva: doblar los puntos siguiendo el camino al que está pegado */
+ if(s.curvaId){const ps=shapes.find(x=>x.id===s.curvaId);
+  if(ps&&['poly','line','arc','circle','rect'].includes(ps.type)){
+   const fl=flattenShape(ps,0.1)[0];
+   if(fl&&fl.pts&&fl.pts.length>1){
+    let P=fl.pts.slice();if(fl.closed)P=P.concat([P[0]]);
+    const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+dist(P[i-1],P[i]));
+    const tot=cum[cum.length-1]||1e-9;
+    const ev=d=>{let ext=0;
+     if(fl.closed)d=((d%tot)+tot)%tot;
+     if(d<0){ext=d;d=0;}else if(d>tot){ext=d-tot;d=tot;}
+     let i=1;while(i<cum.length-1&&cum[i]<d)i++;
+     const a=P[i-1],b=P[i];const seg=cum[i]-cum[i-1]||1e-9;
+     const t=(d-cum[i-1])/seg;
+     const tx=(b.x-a.x)/seg,ty=(b.y-a.y)/seg;
+     return{x:a.x+(b.x-a.x)*t+tx*ext,y:a.y+(b.y-a.y)*t+ty*ext,tx:tx,ty:ty};};
+    for(const pl of out)for(const q of pl){
+     const d=(q.x-s.x)+(s.curvaOff||0),dy=q.y-s.y;
+     const e2=ev(d);
+     q.x=e2.x-e2.ty*dy;q.y=e2.y+e2.tx*dy;}}}}
  return out;}
 
 /* ================= BBox / Espejo / Centrar / Repetir ================= */
@@ -1691,16 +1880,52 @@ function mirrorShape(s,ax){
  if(s.type==='dim'){s.p1=rf(s.p1);s.p2=rf(s.p2);return;}
  if(s.pts)s.pts=s.pts.map(p=>{const q=Object.assign({},p,rf(p));
   if(p.cin)q.cin=rf(p.cin);if(p.cout)q.cout=rf(p.cout);return q;});}
-$('#arCancel').onclick=()=>{arrTarget=null;$('#arrDlg').classList.remove('show');};
-$('#arGo').onclick=()=>{const s=shapes.find(x=>x.id===arrTarget);
- $('#arrDlg').classList.remove('show');if(!s){arrTarget=null;return;}
- const C=Math.max(1,Math.min(100,+$('#arC').value|0)),R=Math.max(1,Math.min(100,+$('#arR').value|0));
- const px=+$('#arX').value||0,py=+$('#arY').value||0;
- if(C*R>400){alert('Demasiadas copias (máx. 400)');return;}
- pushUndo();
- for(let j=0;j<R;j++)for(let i=0;i<C;i++){if(!i&&!j)continue;
-  const c=JSON.parse(JSON.stringify(s));c.id=nextId++;translateShape(c,i*px,j*py);shapes.push(c);}
- arrTarget=null;refresh();};
+function arrCompute(){const s=shapes.find(x=>x.id===arrTarget);if(!s)return null;
+ const list=[];
+ if($('#arTipo').value==='rejilla'){
+  const C=Math.max(1,Math.min(100,+$('#arC').value|0)),R=Math.max(1,Math.min(100,+$('#arR').value|0));
+  const px=+$('#arX').value||0,py=+$('#arY').value||0;
+  for(let j=0;j<R;j++)for(let i=0;i<C;i++){if(!i&&!j)continue;list.push({dx:i*px,dy:j*py});}}
+ else{const n=Math.max(2,Math.min(200,+$('#acN').value|0));
+  const Adeg=+$('#acA').value||360;const A=Adeg*Math.PI/180;
+  const c={x:+$('#acX').value||0,y:+$('#acY').value||0};
+  const rot=$('#acRot').checked;
+  const step=Adeg>=360?A/n:A/Math.max(1,n-1);
+  for(let k=1;k<n;k++)list.push({ang:k*step,c:c,rot:rot});}
+ return{s:s,list:list};}
+function arrAplicarA(c,it){
+ if(it.ang!==undefined){
+  if(it.rot)rotateShapeAround(c,it.c,it.ang);
+  else{const b=bboxOf(c);const ctr={x:(b.x0+b.x1)/2,y:(b.y0+b.y1)/2};
+   const q=rotPt(ctr,it.c,it.ang);translateShape(c,q.x-ctr.x,q.y-ctr.y);}}
+ else translateShape(c,it.dx,it.dy);}
+function arrPathD(c){
+ if(c.type==='text'){let d='';for(const pl of textPolylines(c))d+='M '+pl.map(q=>N(q.x)+' '+N(q.y)).join(' L ')+(pl.closed?' Z ':' ');return d;}
+ if(c.type==='dim'||c.type==='image'){const b=bboxOf(c);
+  return 'M '+N(b.x0)+' '+N(b.y0)+' H '+N(b.x1)+' V '+N(b.y1)+' H '+N(b.x0)+' Z';}
+ return shapePathD(c);}
+function arrPreviewUpd(){const r=arrCompute();arrPrev=null;
+ if(r&&r.list.length<=400){arrPrev=[];
+  for(const it of r.list){const c=JSON.parse(JSON.stringify(r.s));arrAplicarA(c,it);arrPrev.push(arrPathD(c));}}
+ renderOverlay();}
+$('#arTipo').addEventListener('change',()=>{const circ=$('#arTipo').value==='circular';
+ $('#arGrid').style.display=circ?'none':'';$('#arCirc').style.display=circ?'':'none';arrPreviewUpd();});
+['arC','arR','arX','arY','acN','acA','acX','acY','acRot'].forEach(id=>$('#'+id).addEventListener('input',arrPreviewUpd));
+$('#acPieza').onclick=()=>{const s=shapes.find(x=>x.id===arrTarget);
+ const bb=s?bboxOf(s):null;
+ const pr=(bb?pieceRef(arrTarget,{x:(bb.x0+bb.x1)/2,y:(bb.y0+bb.y1)/2}):pieceRef())||{x0:0,y0:0,x1:area.w,y1:area.h};
+ $('#acX').value=N((pr.x0+pr.x1)/2);$('#acY').value=N((pr.y0+pr.y1)/2);arrPreviewUpd();};
+$('#arCancel').onclick=()=>{arrTarget=null;arrPrev=null;$('#arrDlg').classList.remove('show');renderOverlay();};
+$('#arGo').onclick=()=>{const r=arrCompute();
+ $('#arrDlg').classList.remove('show');arrPrev=null;
+ if(!r){arrTarget=null;renderOverlay();return;}
+ if(r.list.length>400){alert('Demasiadas copias (máx. 400)');arrTarget=null;renderOverlay();return;}
+ pushUndo();const nsel=new Set([r.s.id]);
+ for(const it of r.list){const c=JSON.parse(JSON.stringify(r.s));c.id=nextId++;delete c.grp;
+  arrAplicarA(c,it);shapes.push(c);nsel.add(c.id);}
+ if(nsel.size>1){selGrp=nsel;sel=null;}
+ arrTarget=null;refresh();
+ $('#hint').textContent=r.list.length+' copias creadas — quedaron seleccionadas por si querés agruparlas (Ctrl+G)';};
 
 /* ================= Repartir perforaciones equidistantes ================= */
 $('#dsCancel').onclick=()=>{distTarget=null;$('#distDlg').classList.remove('show');};

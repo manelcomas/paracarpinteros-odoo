@@ -104,6 +104,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   <button class="btn" id="bOpen">Abrir</button>
   <button class="btn" id="bSave">Guardar</button>
   <button class="btn" id="bImg">+ Imagen / Logo</button>
+  <button class="btn" id="bTpl" title="Proyectos listos para empezar: caja con encajes, posavasos, letrero, llavero — los ajustás con tus medidas">🧩 Plantillas</button>
   <span class="spacer"></span>
   <button class="btn" id="b3d" title="Ver la pieza resultante en 3D">⬛ Ver 3D</button>
   <button class="btn" id="bTheme" title="Tema claro / oscuro">🌓 Tema</button>
@@ -126,6 +127,8 @@ input[type=checkbox]{accent-color:var(--acc)}
     <button class="tbtn" id="bZin" title="Acercar">＋</button>
     <button class="tbtn" id="bZout" title="Alejar">－</button>
     <button class="tbtn" id="bFit" title="Ajustar vista">⛶</button>
+    <button class="tbtn" id="bUndo" title="Deshacer (Ctrl+Z) — todo tiene vuelta atrás, probá sin miedo">↶</button>
+    <button class="tbtn" id="bRedo" title="Rehacer (Ctrl+Y)">↷</button>
   </div>
   <div id="canvasWrap">
     <svg id="cv" class="tool-select" xmlns="http://www.w3.org/2000/svg">
@@ -310,6 +313,13 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div class="row"><label>Pieza</label><input type="text" id="gcNombre" value="pieza" style="width:150px"><span style="color:var(--mut);font-size:10.5px">nombre de archivo</span></div>
   <div style="color:var(--mut);font-size:10.5px;margin:4px 0;line-height:1.4">Compensación de radio de fresa incluida (exterior/interior) · entrada en rampa · taladros en hélice. Hacé el cero de pieza (X0 Y0 Z0 con la <b>primera</b> fresa) antes de ejecutar, y probá la primera vez en el aire (Z alto).</div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="gcCancel">Cancelar</button><button class="btn" id="gcHoja">📋 Hoja de ruta</button><button class="btn acc" id="gcGo">Generar</button></div>
+</div>
+<div id="tplDlg" class="dlg" style="width:340px">
+  <h3>PLANTILLAS — PRIMEROS PROYECTOS</h3>
+  <div class="row"><select id="tplSel" class="full"></select></div>
+  <div id="tplDesc" style="color:var(--mut);font-size:11px;margin:4px 0;line-height:1.45"></div>
+  <div id="tplParams"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn" id="tplCancel">Cancelar</button><button class="btn acc" id="tplGo">Añadir al lienzo</button></div>
 </div>
 <div id="queDlg" class="dlg" style="width:340px">
   <h3>¿QUÉ QUERÉS HACER?</h3>
@@ -496,7 +506,7 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  const s=shapes.find(x=>x.id===sel);
  if(s&&tool==='select'){for(const h of getHandles(s))out+='<rect class="h" data-hi="'+h.i+'" x="'+(h.x-5*mm)+'" y="'+(h.y-5*mm)+'" width="'+(10*mm)+'" height="'+(10*mm)+'" fill="'+TH().handleFill+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
  gOverlay.innerHTML=out;}
-function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();guiaTick();}
+function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();guiaTick();autosave();}
 
 /* ================= Propiedades ================= */
 function propRow(lbl,prop,val,step){return '<div class="row"><label>'+lbl+'</label><input type="number" data-prop="'+prop+'" value="'+N(val)+'" step="'+(step||0.5)+'"></div>';}
@@ -726,6 +736,7 @@ window.addEventListener('keydown',e=>{
   if(arrTarget){arrTarget=null;$('#arrDlg').classList.remove('show');return;}
   if(distTarget){distTarget=null;$('#distDlg').classList.remove('show');return;}
   if($('#v3d').classList.contains('show')){cerrar3d();return;}
+  if($('#tplDlg').classList.contains('show')){$('#tplDlg').classList.remove('show');return;}
   if($('#queDlg').classList.contains('show')){$('#queDlg').classList.remove('show');return;}
   if($('#fresaDlg').classList.contains('show')){$('#fresaDlg').classList.remove('show');return;}
   if($('#gcDlg').classList.contains('show')){$('#gcDlg').classList.remove('show');return;}
@@ -1684,6 +1695,105 @@ $('#queCancel').onclick=()=>$('#queDlg').classList.remove('show');
 $('#queDlg').addEventListener('click',e=>{const o=e.target.closest('.queOpt');if(!o)return;
  $('#queDlg').classList.remove('show');GUIA={key:o.dataset.g,idx:0};renderGuia();guiaTick();});
 
+/* ================= Plantillas (primeros proyectos) ================= */
+/* Encajes de dedos: ambas piezas onduladas hacia DENTRO con fases complementarias
+   (dedos donde la otra tiene muescas); aristas que se emparejan tienen la misma
+   longitud → mismo nº de dedos. Dimensiones = exteriores de la caja. */
+function fingerEdge(A,B,inw,phase,T,fTarget){const L=dist(A,B);
+ let n=Math.round(L/Math.max(2,fTarget));if(n<3)n=3;if(n%2===0)n++;
+ const f=L/n,dir={x:(B.x-A.x)/L,y:(B.y-A.y)/L};
+ const at=(t,d)=>({x:A.x+dir.x*t+inw.x*d,y:A.y+dir.y*t+inw.y*d});
+ const pts=[];
+ for(let i=0;i<n;i++){const d=(i%2===phase)?0:T;pts.push(at(i*f,d));pts.push(at((i+1)*f,d));}
+ return pts;}
+function panelFingers(w,h,T,fw,conf){
+ const E=[{A:{x:0,y:0},B:{x:w,y:0},inw:{x:0,y:1},c:conf.top},
+          {A:{x:w,y:0},B:{x:w,y:h},inw:{x:-1,y:0},c:conf.right},
+          {A:{x:w,y:h},B:{x:0,y:h},inw:{x:0,y:-1},c:conf.bottom},
+          {A:{x:0,y:h},B:{x:0,y:0},inw:{x:1,y:0},c:conf.left}];
+ const lists=E.map(e=>({
+  pts:(e.c!==null&&e.c!==undefined)?fingerEdge(e.A,e.B,e.inw,e.c,T,fw):[{x:e.A.x,y:e.A.y},{x:e.B.x,y:e.B.y}],
+  d:(e.c===1)?T:0, /* fase 1 arranca y termina rebajada T */
+  inw:e.inw,A:e.A}));
+ /* esquina real del material: la esquina nominal desplazada hacia dentro según
+    qué aristas llegan rebajadas — evita espigas y trayectos que doblan sobre sí mismos */
+ for(let k=0;k<4;k++){const cur=lists[k],pv=lists[(k+3)%4];
+  if(cur.d>0||pv.d>0){pv.pts.pop();cur.pts.shift();
+   cur.pts.unshift({x:cur.A.x+cur.inw.x*cur.d+pv.inw.x*pv.d,y:cur.A.y+cur.inw.y*cur.d+pv.inw.y*pv.d});}}
+ let pts=[];for(const l of lists)pts=pts.concat(l.pts);
+ const out=[];for(const p of pts){const q=out[out.length-1];
+  if(!q||Math.abs(q.x-p.x)>1e-6||Math.abs(q.y-p.y)>1e-6)out.push(p);}
+ if(out.length>1&&Math.abs(out[0].x-out[out.length-1].x)<1e-6&&Math.abs(out[0].y-out[out.length-1].y)<1e-6)out.pop();
+ return out;}
+function tplTexto(tx,cx,cy,size){return{type:'text',text:tx,x:cx-String(tx).length*size*0.36,y:cy+size*0.35,size:size,layer:'grabado',flipH:false,flipV:false};}
+function tplCaja(v){const L=v.L,W=v.W,H=v.H,T=v.T,fw=Math.max(T*1.5,v.F),g=10;
+ const wall0={top:null,right:0,bottom:0,left:0};   /* frente/atrás: fase 0 */
+ const side1={top:null,right:1,bottom:0,left:1};   /* lados: verticales fase 1 */
+ const base1={top:1,right:1,bottom:1,left:1};      /* base: todo fase 1 */
+ const piezas=[];
+ const P=(w,h,conf,x,y,label)=>{
+  piezas.push({type:'poly',pts:panelFingers(w,h,T,fw,conf).map(p=>({x:p.x+x,y:p.y+y})),closed:true,layer:'corte',kerf:'no'});
+  if(v.ROT)piezas.push(tplTexto(label,x+w/2,y+h/2,Math.min(10,h/4)));};
+ let y=10;
+ P(L,H,wall0,10,y,'FRENTE');P(L,H,wall0,10+L+g,y,'ATRAS');y+=H+g;
+ P(W,H,side1,10,y,'LADO');P(W,H,side1,10+W+g,y,'LADO');y+=H+g;
+ P(L,W,base1,10,y,'BASE');
+ return{piezas,needW:Math.max(10+L+g+L,10+W+g+W)+10,needH:y+W+10};}
+function tplPosavasos(v){const D=v.D,cx=10+D/2,cy=10+D/2;
+ return{piezas:[
+  {type:'circle',cx:cx,cy:cy,r:D/2,layer:'corte',kerf:'ext'},
+  {type:'circle',cx:cx,cy:cy,r:D/2-5,layer:'grabado',kerf:'no'},
+  tplTexto(v.TX,cx,cy,v.S)],needW:D+20,needH:D+20};}
+function tplLetrero(v){const w=v.W,h=v.H;
+ return{piezas:[
+  {type:'rect',x:10,y:10,w:w,h:h,rx:8,layer:'corte',kerf:'no'},
+  {type:'circle',cx:10+15,cy:10+15,r:2.5,layer:'corte',kerf:'int',perf:true},
+  {type:'circle',cx:10+w-15,cy:10+15,r:2.5,layer:'corte',kerf:'int',perf:true},
+  tplTexto(v.TX,10+w/2,10+h/2+5,v.S)],needW:w+20,needH:h+20};}
+function tplLlavero(v){const w=Math.max(55,28+String(v.TX).length*v.S*0.75),h=Math.max(24,v.S+14);
+ return{piezas:[
+  {type:'rect',x:10,y:10,w:w,h:h,rx:h/3,layer:'corte',kerf:'no'},
+  {type:'circle',cx:10+9,cy:10+h/2,r:2.5,layer:'corte',kerf:'int',perf:true},
+  tplTexto(v.TX,10+9+(w-9)/2,10+h/2,v.S)],needW:w+20,needH:h+20};}
+const TPLS={
+ caja:{n:'📦 Caja abierta con encajes de dedos',fn:tplCaja,
+  d:'Bandeja que se arma a presión: 5 piezas con dientes que encajan entre sí. El clásico primer proyecto. Medidas EXTERIORES; el ancho de diente se ajusta solo a múltiplos de la arista.',
+  p:[['L','Largo',200],['W','Ancho',120],['H','Alto',60],['T','Espesor del material',6],['F','Ancho de diente ≈',15],['ROT','Rotular piezas (grabado)',true]]},
+ posavasos:{n:'☕ Posavasos con nombre',fn:tplPosavasos,
+  d:'Círculo de corte con aro decorativo y texto grabado en el centro.',
+  p:[['D','Diámetro',90],['TX','Texto','MI CASA'],['S','Altura del texto',12]]},
+ letrero:{n:'🪧 Letrero con agujeros para colgar',fn:tplLetrero,
+  d:'Placa con esquinas redondeadas, dos perforaciones arriba y el nombre grabado.',
+  p:[['W','Ancho',300],['H','Alto',100],['TX','Texto','MI TALLER'],['S','Altura del texto',38]]},
+ llavero:{n:'🔑 Llavero',fn:tplLlavero,
+  d:'Chapita redondeada con agujero para la argolla; el tamaño se adapta al texto.',
+  p:[['TX','Texto','ANA'],['S','Altura del texto',12]]}};
+function tplRenderParams(){const t=TPLS[$('#tplSel').value];$('#tplDesc').textContent=t.d;
+ $('#tplParams').innerHTML=t.p.map(p=>{
+  if(typeof p[2]==='boolean')return '<div class="row"><label style="min-width:130px">'+p[1]+'</label><input type="checkbox" data-tp="'+p[0]+'"'+(p[2]?' checked':'')+'></div>';
+  if(typeof p[2]==='string')return '<div class="row"><label style="min-width:130px">'+p[1]+'</label><input type="text" data-tp="'+p[0]+'" value="'+p[2]+'" style="width:120px" maxlength="40"></div>';
+  return '<div class="row"><label style="min-width:130px">'+p[1]+'</label><input type="number" data-tp="'+p[0]+'" value="'+p[2]+'" step="1" min="1"><span style="color:var(--mut)">mm</span></div>';}).join('');}
+$('#bTpl').onclick=()=>{if(!$('#tplSel').options.length){
+  $('#tplSel').innerHTML=Object.keys(TPLS).map(k=>'<option value="'+k+'">'+TPLS[k].n+'</option>').join('');
+  $('#tplSel').addEventListener('change',tplRenderParams);}
+ tplRenderParams();$('#tplDlg').classList.add('show');};
+$('#tplCancel').onclick=()=>$('#tplDlg').classList.remove('show');
+$('#tplGo').onclick=()=>{const t=TPLS[$('#tplSel').value];const v={};
+ document.querySelectorAll('#tplParams [data-tp]').forEach(i=>{
+  v[i.dataset.tp]=i.type==='checkbox'?i.checked:(i.type==='text'?i.value.trim():Math.max(1,parseFloat(i.value)||1));});
+ const r=t.fn(v);
+ if(area.w<r.needW||area.h<r.needH){area={w:Math.max(area.w,Math.ceil(r.needW)),h:Math.max(area.h,Math.ceil(r.needH))};
+  $('#areaW').value=area.w;$('#areaH').value=area.h;$('#preset').value='custom';}
+ pushUndo();for(const s of r.piezas){s.id=nextId++;shapes.push(s);}
+ sel=null;$('#tplDlg').classList.remove('show');fitView();
+ $('#hint').textContent='Plantilla lista — movela, cambiá medidas en Propiedades, y cuando te guste: exportá. Ctrl+Z la quita entera.';};
+
+/* ================= Autoguardado + deshacer visible ================= */
+let autoT=null;
+function autosave(){clearTimeout(autoT);autoT=setTimeout(()=>{
+ try{localStorage.setItem('pc_autosave',JSON.stringify({area,shapes,nextId,modo:MODO}));}catch(e){}},1200);}
+$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
+
 /* ================= Diálogos arrastrables por su título ================= */
 document.querySelectorAll('.dlg').forEach(d=>{const h=d.querySelector('h3');if(!h)return;
  h.addEventListener('mousedown',e=>{
@@ -1711,6 +1821,12 @@ document.querySelectorAll('#side .sec>h3').forEach(h=>{h.addEventListener('click
 setTool('select');
 renderFresas();
 try{applyRtCfg(JSON.parse(localStorage.getItem('pc_routercfg_v1')||'null'));}catch(e){}
+/* recuperar el último diseño sin guardar (autosave) */
+try{const d=JSON.parse(localStorage.getItem('pc_autosave')||'null');
+ if(d&&d.shapes&&d.shapes.length){shapes=d.shapes;area=d.area||area;
+  nextId=Math.max(d.nextId||1,shapes.reduce((m,s)=>Math.max(m,s.id||0),0)+1);
+  $('#areaW').value=area.w;$('#areaH').value=area.h;
+  setTimeout(()=>{$('#hint').textContent='Recuperamos tu último diseño automáticamente — "Nuevo" para empezar de cero.';},300);}}catch(e){}
 setModo((function(){try{return localStorage.getItem('pc_modo');}catch(e){return 'laser';}})());
 requestAnimationFrame(()=>{fitView();});
 </script>

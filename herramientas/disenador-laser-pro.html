@@ -416,6 +416,27 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div id="fdInfo" style="background:var(--inbg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:11px;line-height:1.55;margin-top:6px"></div>
   <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn" id="fdDel" style="color:#ff8a8a">Borrar</button><span><button class="btn" id="fdCancel">Cancelar</button> <button class="btn acc" id="fdOk">Guardar</button></span></div>
 </div>
+<div id="rasDlg" class="dlg" style="width:330px">
+  <h3>GRABADO RASTER (IMAGEN)</h3>
+  <canvas id="rasPrev"></canvas>
+  <div class="row"><label>Tramado</label><select id="rasModo" style="max-width:190px">
+    <option value="fs">Floyd-Steinberg — fotos</option>
+    <option value="atkinson">Atkinson — suave, estilo retro</option>
+    <option value="jarvis">Jarvis — grano más fino</option>
+    <option value="umbral">Umbral — blanco y negro puro</option>
+    <option value="gris">Grises — potencia variable</option>
+  </select></div>
+  <div class="row" id="rasThrRow"><label>Umbral</label><input type="range" id="rasThr" min="1" max="254" value="128"><b id="rasThrV">128</b></div>
+  <div class="row"><label>Brillo</label><input type="range" id="rasBri" min="-100" max="100" value="0"><b id="rasBriV">0</b></div>
+  <div class="row"><label>Contraste</label><input type="range" id="rasCon" min="-100" max="100" value="0"><b id="rasConV">0</b></div>
+  <div class="row"><label>Gamma</label><input type="range" id="rasGam" min="0.2" max="3" step="0.05" value="1"><b id="rasGamV">1</b></div>
+  <div class="row"><label><input type="checkbox" id="rasNeg"> Negativo (claro quema, oscuro no)</label></div>
+  <div class="row" title="Cuántas líneas graba el láser por milímetro. 4–6 va bien en madera; 10 es muy fino (y mucho más lento)."><label>Líneas</label><input type="number" id="rasLpm" value="5" min="1" max="20" step="0.5" style="width:55px"><span style="color:var(--mut)">por mm</span></div>
+  <div class="row"><label>Potencia</label><input type="number" id="rasPot" min="0" max="100" step="1" style="width:55px"><span style="color:var(--mut)">%</span><label>Vel.</label><input type="number" id="rasVel" min="1" step="100" style="width:64px"><span style="color:var(--mut)">mm/min</span></div>
+  <div class="row" title="El cabezal se pasa estos mm de cada lado de la fila ANTES de encender el láser, para grabar siempre a velocidad constante (sin marcas oscuras en los bordes)."><label>Overscan</label><input type="number" id="rasOver" value="3" min="0" step="0.5" style="width:55px"><span style="color:var(--mut)">mm a cada lado</span></div>
+  <div class="row"><label><input type="checkbox" id="rasOn" checked> Incluir en el G-code láser y la simulación</label></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="rasCancel">Cancelar</button><button class="btn acc" id="rasOk">Guardar</button></div>
+</div>
 <div id="offDlg" class="dlg" style="width:310px">
   <h3>OFFSET / CONTORNO PARALELO</h3>
   <div class="row"><label>Distancia</label><input type="number" id="ofD" value="3" step="0.5" min="0.05"><span style="color:var(--mut)">mm</span></div>
@@ -775,7 +796,10 @@ function renderProps(){const el=$('#props');
   case 'arc':{h+=propRow('Cx','cx',s.cx)+propRow('Cy','cy',s.cy)+propRow('R','r',s.r)+propRow('Áng. 1','a1',s.a1*180/Math.PI,1)+propRow('Áng. 2','a2',s.a2*180/Math.PI,1);break;}
   case 'image':{h+=propRow('X','x',s.x)+propRow('Y','y',s.y)+propRow('An','w',s.w)+propRow('Al','h',s.h)+propRow('Rot°','rot',s.rot||0,1);
    h+='<div class="row" style="margin-top:6px"><button class="btn" data-act="crop">✂ Recortar</button><button class="btn" data-act="vect">⟲ Vectorizar</button></div>';
-   h+='<div class="row"><button class="btn" data-act="wand">🪄 Quitar fondo</button><button class="btn" data-act="erase">🖌 Borrador</button></div>';break;}
+   h+='<div class="row"><button class="btn" data-act="wand">🪄 Quitar fondo</button><button class="btn" data-act="erase">🖌 Borrador</button></div>';
+   if(MODO==='laser'){h+='<div class="row"><button class="btn full" data-act="raster" title="Graba la imagen línea a línea como una impresora: elegí tramado, brillo/contraste y líneas por mm">▦ Grabado raster…</button></div>';
+    if(s.raster&&s.raster.on!==false)h+='<div style="color:var(--mut);font-size:10.5px;margin:1px 0 3px">Raster activo: '+(s.raster.modo||'fs')+' · '+(s.raster.lpm||5)+' lín/mm · '+(s.raster.pot||0)+'% · '+(s.raster.vel||3000)+' mm/min — entra en el G-code y la simulación.</div>';}
+   break;}
   case 'dim':{h+='<div class="row"><label>Medida</label><b>'+dist(s.p1,s.p2).toFixed(2)+' mm</b></div>';break;}
   case 'text':{h+='<div class="row"><label>Texto</label><input type="text" data-prop="text" value="'+String(s.text||'').replace(/"/g,'&quot;')+'" style="width:150px"></div>';
    const fopts=[['hershey','Trazo fino (1 línea)'],['bebas','Bebas — condensada'],['poppins','Poppins — fina'],['poppinsb','Poppins NEGRITA'],['archivo','Archivo Black — muy gruesa'],['pacifico','Pacifico — cursiva'],['abril','Abril Fatface — serif']];
@@ -870,6 +894,7 @@ function propAction(act){const s=shapes.find(x=>x.id===sel);if(!s)return;
  else if(act==='wand'||act==='erase'){if(imgEdit)return;openImgEdit(s,act==='wand'?'wand':'brush');}
  else if(act==='crop'){if(imgEdit)return;cropMode={id:s.id};svg.classList.add('cropping');$('#hint').textContent='Arrastra un rectángulo sobre la imagen para quedarte solo con esa parte · Esc cancela';}
  else if(act==='vect'){openVect(s);}
+ else if(act==='raster'){openRaster(s);}
  else if(act==='nodes'){if(s.type==='line'){pushUndo();s.type='poly';s.closed=false;}
   if(s.type==='poly')enterNodeEdit(s.id);}
  else if(act==='weld'){soldarTexto(s);}
@@ -1066,7 +1091,7 @@ function showCtx(x,y,s){const its=[];
  if(s.type==='circle'||s.type==='rect'||(s.type==='poly'&&s.closed)||s.type==='text')its.push(['off','⇲ Offset / contorno paralelo…']);
  if(['line','poly','arc','image','text','dim'].includes(s.type))its.push(['mh','↔ Espejo'],['mv','↕ Espejo']);
  if(s.type==='circle')its.push(['mirH','⧉↔ Copia espejada al otro lado'],['mirV','⧉↕ Copia espejada arriba/abajo'],['corners','▣ Copiar a las 4 esquinas'],['dist','⋯ Repartir N equidistantes']);
- if(s.type==='image')its.push(null,['crop','✂ Recortar'],['vect','⟲ Vectorizar'],['wand','🪄 Quitar fondo']);
+ if(s.type==='image')its.push(null,['crop','✂ Recortar'],['vect','⟲ Vectorizar'],['wand','🪄 Quitar fondo'],['raster','▦ Grabado raster…']);
  its.push(null,['dup','⧉ Duplicar'],['arr','▦ Repetir en rejilla'],['del','🗑 Borrar']);
  ctxEl.innerHTML=its.map(it=>it?'<button data-act="'+it[0]+'">'+it[1]+'</button>':'<hr>').join('');
  ctxEl.style.display='block';
@@ -1536,6 +1561,7 @@ window.addEventListener('keydown',e=>{
   if(nodeEdit){exitNodeEdit();return;}
   if(imgEdit){finishImgEdit(false);return;}
   if(txtPending){txtPending=null;$('#txtDlg').classList.remove('show');return;}
+  if(rasCtx){rasCtx=null;$('#rasDlg').classList.remove('show');return;}
   if(offTargets){cerrarOff();return;}
   if(arrTarget){arrTarget=null;arrPrev=null;$('#arrDlg').classList.remove('show');renderOverlay();return;}
   if(distTarget){distTarget=null;$('#distDlg').classList.remove('show');return;}
@@ -2703,8 +2729,9 @@ function buildLaser(){const out=[];let pos={x:0,y:0};
   out.push({c:c,n:its.length,paths:paths,len:len,travel:travel,
    min:(len*Math.max(1,c.pasadas)/Math.max(1,c.vel)+travel/6000)*1.05});}
  return out;}
-function gcodeLaser(trabajos,o,nombre){
+function gcodeLaser(trabajos,o,nombre,rasterG){
  let g='(Paracarpinteros - Laser GRBL - '+nombre+')\n('+o.modo+' Smax '+o.smax+' - Origen XY: esquina inferior izquierda)\n('+lzText(' - ').replace(/[()]/g,'')+')\nG21 G90\nM5\n';
+ if(rasterG)g+='\n(== GRABADO RASTER (primero, antes de cortar) ==)\n'+rasterG;
  for(const t of trabajos){const c=t.c;
   const S=Math.round(Math.min(100,Math.max(0,c.pot))*o.smax/100),F=Math.max(1,c.vel);
   g+='\n(Capa '+c.k+' - '+c.nombre.replace(/[()]/g,'')+' - '+c.pot+'% S'+S+' - '+F+' mm/min - '+Math.max(1,c.pasadas)+' pasada(s))\n';
@@ -2718,18 +2745,23 @@ function gcodeLaser(trabajos,o,nombre){
     for(let i=1;i<pts.length;i++){g+='G1 X'+gpx(pts[i])+' Y'+gpy(pts[i])+(fSet?'':' F'+gfmt(F))+'\n';fSet=true;}}
    g+='M5\n';}}
  g+='\nG0 X0 Y0\nM2\n';return g;}
-$('#bLg').onclick=()=>{const ts=buildLaser();let h='';
- if(!ts.length)h='<span style="color:#ff8a8a">No hay nada que recorrer: dibujá formas (o revisá que sus capas tengan "Generar salida" activado).</span>';
+$('#bLg').onclick=()=>{const ts=buildLaser();const ras=rasterShapes();let h='';
+ if(!ts.length&&!ras.length)h='<span style="color:#ff8a8a">No hay nada que recorrer: dibujá formas (o revisá que sus capas tengan "Generar salida" activado).</span>';
  else{let tot=0,trv=0;
+  for(const s of ras){const gm=rasterGeom(s);tot+=gm.min;
+   h+='<div style="margin:3px 0"><b style="color:#777">▦ Imagen raster</b> — '+s.raster.modo+' · '+gm.lpm+' lín/mm · '+s.raster.pot+'% · '+s.raster.vel+' mm/min · ≈ '+(gm.min<1?'<1':Math.round(gm.min))+' min</div>';}
   for(const t of ts){tot+=t.min;trv+=t.travel||0;
    h+='<div style="margin:3px 0"><b style="color:'+t.c.color+'">● '+t.c.k+' '+escAttr(t.c.nombre)+'</b> — '+t.n+' forma(s) · '+t.c.pot+'% · '+t.c.vel+' mm/min · '+Math.max(1,t.c.pasadas)+' pasada(s) · ≈ '+(t.min<1?'<1':Math.round(t.min))+' min</div>';}
   h+='<div style="margin-top:4px;color:var(--mut)">Total estimado: ≈ '+(tot<1?'<1':Math.round(tot))+' min · viajes en vacío: '+(trv>=1000?(trv/1000).toFixed(1)+' m':Math.round(trv)+' mm')+(($('#optNN')&&$('#optNN').checked)?' (orden optimizado)':'')+'</div>';}
  $('#lgResumen').innerHTML=h;$('#lgDlg').classList.add('show');};
 $('#lgCancel').onclick=()=>$('#lgDlg').classList.remove('show');
-$('#lgGo').onclick=()=>{const ts=buildLaser();
- if(!ts.length){alert('No hay nada que recorrer.');return;}
+$('#lgGo').onclick=async()=>{const ts=buildLaser();const ras=rasterShapes();
+ if(!ts.length&&!ras.length){alert('No hay nada que recorrer.');return;}
  const nombre=($('#lgNombre').value.trim()||'laser').replace(/[^\wáéíóúñÁÉÍÓÚÑ\-]+/g,'_');
- download(nombre+'.nc',gcodeLaser(ts,lgCfg(),nombre),'text/plain');
+ const o=lgCfg();let rg='';
+ for(const s of ras){const bmp=await cargarBitmap(s);
+  rg+=bmp?gcodeRasterDe(s,bmp,o):'(una imagen no cargo - se omite su raster)\n';}
+ download(nombre+'.nc',gcodeLaser(ts,o,nombre,rg),'text/plain');
  $('#lgDlg').classList.remove('show');};
 ['optNN','optInner'].forEach(id=>$('#'+id).addEventListener('change',()=>{
  try{localStorage.setItem('pc_optlaser_v1',JSON.stringify({nn:$('#optNN').checked,inner:$('#optInner').checked}));}catch(e){}}));
@@ -2739,8 +2771,20 @@ try{const oc=JSON.parse(localStorage.getItem('pc_optlaser_v1')||'null');
 /* ================= Simulación del trabajo (botón ▶ Simular) ================= */
 let SIM=null,simRaf=0;
 const SIM_G0=6000; /* mm/min estimados de viaje en vacío (G0) */
-function simBuild(){const ts=buildLaser();if(!ts.length)return null;
+function simBuild(){const ts=buildLaser();const ras=rasterShapes();
+ if(!ts.length&&!ras.length)return null;
  const segs=[];let t=0,travel=0;let pos={x:0,y:0};
+ /* el raster va primero: barridos fila a fila (aprox. ancho completo) */
+ for(const s of ras){const gm=rasterGeom(s);const r=s.raster;
+  const F=Math.max(1,r.vel||3000);const over=r.over||0;
+  let dir=1;
+  for(let i=0;i<gm.rows;i++){const y=gm.y0+(i+0.5)/gm.lpm;
+   const xa=gm.x0-over,xb=gm.x0+gm.W+over;
+   const a={x:dir>0?xa:xb,y:y},b={x:dir>0?xb:xa,y:y};
+   const d0=dist(pos,a);
+   if(d0>0.01){const dt=d0/SIM_G0*60;segs.push({a:pos,b:a,t0:t,t1:t+dt,col:null});t+=dt;travel+=d0;}
+   const dt=dist(a,b)/F*60;segs.push({a:a,b:b,t0:t,t1:t+dt,col:'#666'});t+=dt;
+   pos=b;dir=-dir;}}
  for(const tr of ts){const c=tr.c;const F=Math.max(1,c.vel);
   for(const f of tr.paths){const pts=f.closed?f.pts.concat([f.pts[0]]):f.pts;
    const d0=dist(pos,pts[0]);
@@ -2808,6 +2852,145 @@ $('#simPlay').onclick=()=>{if(!SIM)return;
 $('#simSlider').addEventListener('input',()=>{if(!SIM)return;
  simSetPlaying(false);simSeek(+$('#simSlider').value/1000*SIM.total);});
 window.addEventListener('resize',()=>{if(SIM){simResize();simDraw(true);}});
+
+/* ================= Grabado raster de imágenes (tramados estilo LightBurn) ================= */
+function ajustarGris(v,r){ /* 0=negro 255=blanco, con brillo/contraste/gamma/negativo */
+ v+=(r.brillo||0)*1.275;
+ v=(v-128)*(((r.contraste||0)+100)/100)+128;
+ v=Math.min(255,Math.max(0,v));
+ const g=Math.max(0.2,r.gamma||1);
+ v=255*Math.pow(v/255,1/g);
+ if(r.neg)v=255-v;
+ return Math.min(255,Math.max(0,v));}
+function ditherGris(gray,w,h,r){ /* → Uint8 1=quemar · null si modo "gris" (potencia variable) */
+ const m=r.modo||'fs';
+ if(m==='gris')return null;
+ const out=new Uint8Array(w*h);
+ if(m==='umbral'){const thr=r.umbral||128;
+  for(let i=0;i<w*h;i++)out[i]=gray[i]<thr?1:0;return out;}
+ const g=Float32Array.from(gray);
+ const kern=m==='atkinson'?{div:8,pts:[[1,0,1],[2,0,1],[-1,1,1],[0,1,1],[1,1,1],[0,2,1]]}:
+  m==='jarvis'?{div:48,pts:[[1,0,7],[2,0,5],[-2,1,3],[-1,1,5],[0,1,7],[1,1,5],[2,1,3],[-2,2,1],[-1,2,3],[0,2,5],[1,2,3],[2,2,1]]}:
+  {div:16,pts:[[1,0,7],[-1,1,3],[0,1,5],[1,1,1]]}; /* Floyd-Steinberg */
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;
+  const old=g[i];const nv=old<128?0:255;
+  out[i]=nv===0?1:0;
+  const err=old-nv;
+  for(const k of kern.pts){const xx=x+k[0],yy=y+k[1];
+   if(xx<0||xx>=w||yy>=h)continue;
+   g[yy*w+xx]+=err*k[2]/kern.div;}}
+ return out;}
+function rasterShapes(){return shapes.filter(s=>s.type==='image'&&s.raster&&s.raster.on!==false&&(s.raster.pot||0)>0&&layerVisible(s));}
+function rasterGeom(s){const cs=imgCorners(s);
+ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+ for(const p of cs){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
+ const r=s.raster;const lpm=Math.min(20,Math.max(1,r.lpm||5));
+ const W=x1-x0,H=y1-y0;const rows=Math.max(1,Math.round(H*lpm));
+ const min=rows*((W+2*(r.over||0))/Math.max(1,r.vel||3000))*1.05;
+ return{x0:x0,y0:y0,W:W,H:H,rows:rows,lpm:lpm,min:min};}
+/* emisión pura del barrido: bidireccional, con overscan y saltos por filas vacías */
+function emitRaster(gray,pw,ph,res,x0,y0,r,o){
+ const S=Math.round(Math.min(100,Math.max(0,r.pot||40))*o.smax/100);
+ const F=Math.max(1,r.vel||3000),over=r.over!=null?Math.max(0,r.over):3;
+ const bin=ditherGris(gray,pw,ph,r);
+ /* grises: 32 niveles de potencia, conservando el 100% en negro puro */
+ const quant=v=>{const raw=(255-Math.min(255,Math.max(0,v)))/255*S;
+  return Math.round(Math.round(raw/S*32)*S/32);};
+ let g='(Grabado raster: '+pw+'x'+ph+' celdas - '+N(res)+'/mm - '+(r.modo||'fs')+' - '+(r.pot||40)+'% - F'+gfmt(F)+' - overscan '+over+'mm)\n'+o.modo+' S0\n';
+ let fSet=false,dir=1,filas=0;
+ for(let row=0;row<ph;row++){
+  const runs=[];
+  if(bin){let a=-1;
+   for(let x=0;x<pw;x++){if(bin[row*pw+x]){if(a<0)a=x;}
+    else if(a>=0){runs.push({a:a,b:x,S:S});a=-1;}}
+   if(a>=0)runs.push({a:a,b:pw,S:S});}
+  else{let a=-1,cur=0;
+   for(let x=0;x<pw;x++){const sv=quant(gray[row*pw+x]);
+    if(a<0){if(sv>0){a=x;cur=sv;}}
+    else if(sv!==cur){runs.push({a:a,b:x,S:cur});if(sv>0){a=x;cur=sv;}else a=-1;}}
+   if(a>=0)runs.push({a:a,b:pw,S:cur});}
+  if(!runs.length)continue;filas++;
+  const y=RY(y0+(row+0.5)/res);
+  const lr=dir>0;
+  const xa=x0+runs[0].a/res-over,xb=x0+runs[runs.length-1].b/res+over;
+  g+='G0 X'+gfmt(lr?xa:xb)+' Y'+gfmt(y)+'\n';
+  const seq=lr?runs:runs.slice().reverse();
+  for(const run of seq){
+   g+='G1 X'+gfmt(x0+(lr?run.a:run.b)/res)+' S0'+(fSet?'':' F'+gfmt(F))+'\n';fSet=true;
+   g+='G1 X'+gfmt(x0+(lr?run.b:run.a)/res)+' S'+run.S+'\n';}
+  g+='G1 X'+gfmt(lr?xb:xa)+' S0\n';
+  dir=-dir;}
+ g+='M5\n(fin raster: '+filas+' filas con tinta)\n';
+ return g;}
+function cargarBitmap(s){return new Promise(res=>{const im=new Image();
+ im.onload=()=>res(im);im.onerror=()=>res(null);im.src=s.href;});}
+function gcodeRasterDe(s,bmp,o){const r=s.raster;const gm=rasterGeom(s);
+ let res=gm.lpm;const maxPx=2500;
+ if(gm.W*res>maxPx)res=maxPx/gm.W;
+ if(gm.H*res>maxPx)res=Math.min(res,maxPx/gm.H);
+ const pw=Math.max(2,Math.round(gm.W*res)),ph=Math.max(2,Math.round(gm.H*res));
+ const cv2=document.createElement('canvas');cv2.width=pw;cv2.height=ph;
+ const cx2=cv2.getContext('2d');
+ cx2.setTransform(res,0,0,res,-gm.x0*res,-gm.y0*res);
+ if(s.rot){const c={x:s.x+s.w/2,y:s.y+s.h/2};cx2.translate(c.x,c.y);cx2.rotate(s.rot*Math.PI/180);cx2.translate(-c.x,-c.y);}
+ cx2.drawImage(bmp,s.x,s.y,s.w,s.h);
+ const d=cx2.getImageData(0,0,pw,ph).data;
+ const gray=new Float32Array(pw*ph);
+ for(let i=0;i<pw*ph;i++){const al=d[i*4+3]/255;
+  const lum=d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114;
+  gray[i]=ajustarGris(lum*al+255*(1-al),r);} /* transparente = blanco = no quema */
+ return(res<gm.lpm-0.01?'(aviso: resolucion bajada a '+N(res)+' lineas/mm por tamano de imagen)\n':'')
+  +emitRaster(gray,pw,ph,res,gm.x0,gm.y0,r,o);}
+/* --- diálogo con vista previa en vivo --- */
+let rasCtx=null;
+function openRaster(s){const im=new Image();
+ im.onload=()=>{const maxD=260;const sc=Math.min(1,maxD/Math.max(im.naturalWidth,im.naturalHeight));
+  const w2=Math.max(2,Math.round(im.naturalWidth*sc)),h2=Math.max(2,Math.round(im.naturalHeight*sc));
+  const cv2=document.createElement('canvas');cv2.width=w2;cv2.height=h2;
+  const cx2=cv2.getContext('2d');cx2.drawImage(im,0,0,w2,h2);
+  const d=cx2.getImageData(0,0,w2,h2).data;
+  const lum=new Float32Array(w2*h2);
+  for(let i=0;i<w2*h2;i++){const al=d[i*4+3]/255;
+   lum[i]=(d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114)*al+255*(1-al);}
+  rasCtx={s:s,lum:lum,w:w2,h:h2};
+  const r=s.raster||{};
+  $('#rasModo').value=r.modo||'fs';
+  $('#rasThr').value=r.umbral||128;$('#rasBri').value=r.brillo||0;
+  $('#rasCon').value=r.contraste||0;$('#rasGam').value=r.gamma||1;
+  $('#rasNeg').checked=!!r.neg;$('#rasLpm').value=r.lpm||5;
+  $('#rasPot').value=r.pot!=null?r.pot:(parseFloat($('#lzEngP')&&$('#lzEngP').value)||40);
+  $('#rasVel').value=r.vel!=null?r.vel:(parseFloat($('#lzEngV')&&$('#lzEngV').value)||3000);
+  $('#rasOver').value=r.over!=null?r.over:3;
+  $('#rasOn').checked=r.on!==false;
+  rasPreview();$('#rasDlg').classList.add('show');};
+ im.src=s.href;}
+function rasParams(){return{
+ on:$('#rasOn').checked,modo:$('#rasModo').value,
+ umbral:+$('#rasThr').value||128,brillo:+$('#rasBri').value||0,contraste:+$('#rasCon').value||0,
+ gamma:Math.max(0.2,+$('#rasGam').value||1),neg:$('#rasNeg').checked,
+ lpm:Math.min(20,Math.max(1,+$('#rasLpm').value||5)),
+ pot:Math.min(100,Math.max(0,parseFloat($('#rasPot').value)||0)),
+ vel:Math.max(1,parseFloat($('#rasVel').value)||3000),
+ over:Math.max(0,parseFloat($('#rasOver').value)||0)};}
+function rasPreview(){if(!rasCtx)return;const r=rasParams();
+ const w2=rasCtx.w,h2=rasCtx.h;
+ const adj=new Float32Array(w2*h2);
+ for(let i=0;i<w2*h2;i++)adj[i]=ajustarGris(rasCtx.lum[i],r);
+ const bin=ditherGris(adj,w2,h2,r);
+ const pc=$('#rasPrev');pc.width=w2;pc.height=h2;
+ const cx2=pc.getContext('2d');const id=cx2.createImageData(w2,h2);
+ for(let i=0;i<w2*h2;i++){const v=bin?(bin[i]?0:255):Math.min(255,Math.max(0,adj[i]));
+  id.data[i*4]=v;id.data[i*4+1]=v;id.data[i*4+2]=v;id.data[i*4+3]=255;}
+ cx2.putImageData(id,0,0);
+ $('#rasThrRow').style.display=r.modo==='umbral'?'':'none';
+ $('#rasThrV').textContent=$('#rasThr').value;$('#rasBriV').textContent=$('#rasBri').value;
+ $('#rasConV').textContent=$('#rasCon').value;$('#rasGamV').textContent=$('#rasGam').value;}
+['rasModo','rasThr','rasBri','rasCon','rasGam','rasNeg','rasLpm'].forEach(id=>$('#'+id).addEventListener('input',rasPreview));
+$('#rasCancel').onclick=()=>{rasCtx=null;$('#rasDlg').classList.remove('show');};
+$('#rasOk').onclick=()=>{if(!rasCtx)return;pushUndo();
+ rasCtx.s.raster=rasParams();
+ rasCtx=null;$('#rasDlg').classList.remove('show');refresh();
+ $('#hint').textContent='Grabado raster guardado — la imagen entra línea a línea en el G-code láser y en la simulación';};
 
 /* ================= Vista 3D de la pieza resultante ================= */
 /* Contorno = la forma cerrada más grande de la capa corte. Cerradas dentro de él = agujeros pasantes.

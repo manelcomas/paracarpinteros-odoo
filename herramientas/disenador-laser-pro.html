@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Diseñador Láser & CNC PRO — Paracarpinteros</title>
+<title>Diseñador Láser & CNC PRO — Paracarpinteros Costa Rica</title>
+<meta name="description" content="Diseñador online gratis de Paracarpinteros Costa Rica para cortadora láser y router CNC: dibujá tu pieza con medidas, exportá SVG para LightBurn (xTool, Ortur, Atomstack, Sculpfun, TwoTrees TTS, K40 y CO₂ de 40 a 600 W) o G-code GRBL con fresas, profundidades y rampa para TwoTrees TTC450, Genmitsu 3018/4040, Vevor 3040/6040 y routers 6090/1325.">
+<meta name="keywords" content="diseñador láser online, CNC router Costa Rica, TwoTrees TTC450, G-code GRBL, LightBurn SVG, corte láser madera, fresado CNC carpintería, xTool, Ortur, Atomstack, Sculpfun, K40, láser CO2 600W, Genmitsu, Vevor, Paracarpinteros">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#1a1a1a;--panel:#232323;--panel2:#2b2b2b;--line:#3a3a3a;--txt:#e8e8e8;--mut:#9a9a9a;--acc:#E8A800;--accBg:#E8A800;--inbg:#1d1d1d;--cvbg:#161616;--corte:#ff5252;--grab:#f0f0f0;--cota:#E8A800;}
@@ -70,6 +72,9 @@ input[type=checkbox]{accent-color:var(--acc)}
 </head>
 <body>
 <header>
+  <a href="https://www.paracarpinteros.com" target="_blank" title="Paracarpinteros — fanáticos de la carpintería" style="display:flex;align-items:center;text-decoration:none">
+    <img src="logo-paracarpinteros.webp" alt="Paracarpinteros" style="height:24px;display:block" onerror="this.onerror=null;this.src='https://www.paracarpinteros.com/web/image/website/3/logo/ParaCarpinteros'">
+  </a>
   <h1>DISEÑADOR <span>PRO</span></h1>
   <span id="modeSw">
     <button class="btn modeOn" id="mLaser" title="Modo láser: capas, potencia/velocidad, SVG para LightBurn">🔦 Láser</button>
@@ -123,20 +128,23 @@ input[type=checkbox]{accent-color:var(--acc)}
       <span class="kbd">Enter</span> termina polilínea · <span class="kbd">C</span> la cierra<br>
       Mientras dibujas, escribe la <b>longitud</b> en la barra inferior y pulsa <span class="kbd">Enter</span><br>
       Rueda: zoom · Botón central o espacio: mover vista<br>Imagen seleccionada → <b>Recortar</b>, <b>Vectorizar</b>, <b>Quitar fondo</b> (varita por color) o <b>Borrador</b> (pincel) en Propiedades
+      <br><br><b style="color:var(--acc);font-family:'Bebas Neue';letter-spacing:1px">PALABRAS QUE VAS A VER</b><br>
+      <b>Corte</b>: atraviesa el material y suelta la pieza · <b>Grabado</b>: solo marca la superficie<br>
+      <b>Kerf</b>: el pelito que se come el láser; se compensa para que los encajes queden justos<br>
+      <b>Pasada</b>: cada vuelta del corte; los materiales gruesos se cortan en varias<br>
+      <b>Fresa</b>: la "broca" que corta en el router; su Ø define el detalle mínimo<br>
+      <b>Rampa</b>: la fresa entra bajando en pendiente, no clavándose en vertical<br>
+      <b>Cajeado</b>: vaciar una zona a cierta profundidad sin atravesar (para encajes)<br>
+      <b>Z seguro</b>: altura de viaje entre cortes · <b>Cero de pieza</b>: esquina inferior izquierda, cara de arriba
     </div>
   </div>
   <div id="side">
     <div class="sec"><h3>ÁREA DE TRABAJO</h3>
-      <div class="row"><select id="preset" class="full">
-        <option value="300x180">CNC 3018 — 300×180</option>
-        <option value="300x200">K40 — 300×200</option>
-        <option value="400x400">400×400</option>
-        <option value="600x400">600×400</option>
-        <option value="900x600" selected>Láser 300W — 900×600</option>
-        <option value="1300x900">1300×900</option>
+      <div class="row"><select id="preset" class="full" title="Elegí tu máquina y el lienzo toma el tamaño exacto de su mesa de trabajo. Si la tuya no está, usá Personalizado y escribí las medidas abajo.">
         <option value="custom">Personalizado…</option>
       </select></div>
       <div class="row"><label>An</label><input type="number" id="areaW" value="900" min="10"><label>Al</label><input type="number" id="areaH" value="600" min="10"><span style="color:var(--mut)">mm</span></div>
+      <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4">Es el espacio real de tu máquina: lo que dibujés aquí cabe seguro en la mesa.</div>
     </div>
     <div class="sec"><h3>REJILLA Y SNAP</h3>
       <div class="row"><label><input type="checkbox" id="gShow" checked> Mostrar rejilla</label>
@@ -144,24 +152,26 @@ input[type=checkbox]{accent-color:var(--acc)}
       <div class="row"><label><input type="checkbox" id="gSnap" checked> Snap a</label>
         <select id="sStep"><option>0.1</option><option>0.5</option><option selected>1</option><option>5</option><option>10</option></select><span style="color:var(--mut)">mm</span></div>
       <div class="row"><label><input type="checkbox" id="eSnap" checked> Imán a puntos/extremos</label></div>
+      <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4">El "snap" atrae el cursor a medidas redondas y a las esquinas de lo ya dibujado: así todo queda exacto sin pulso de cirujano.</div>
     </div>
     <div class="sec"><h3>CAPAS</h3>
       <div class="lyr"><input type="checkbox" id="vCorte" checked><span class="dot" style="background:var(--corte)"></span>Corte <span style="color:var(--mut);margin-left:auto">rojo</span></div>
       <div class="lyr"><input type="checkbox" id="vGrab" checked><span class="dot" style="background:var(--grab)"></span>Grabado línea <span style="color:var(--mut);margin-left:auto">negro</span></div>
       <div class="lyr"><input type="checkbox" id="vImg" checked><span class="dot" style="background:#4da3ff"></span>Imágenes <span style="color:var(--mut);margin-left:auto">grabado</span></div>
       <div class="lyr"><input type="checkbox" id="vCota" checked><span class="dot" style="background:var(--cota)"></span>Cotas <span style="color:var(--mut);margin-left:auto">verde</span></div>
+      <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4"><b>Corte</b> atraviesa el material y suelta la pieza · <b>Grabado</b> solo marca el dibujo en la superficie · <b>Cotas</b> son medidas de referencia que no se cortan. Las casillas solo muestran/ocultan en pantalla.</div>
     </div>
     <div class="sec" id="routerSec" style="display:none"><h3>FRESADO CNC (ROUTER)</h3>
-      <div class="row"><label style="min-width:62px">Espesor</label><input type="number" id="rtEsp" value="12" step="0.5" min="0.5"><span style="color:var(--mut)">mm material</span></div>
-      <div class="row"><label style="min-width:62px">Prof. grabado</label><input type="number" id="rtGrab" value="0.8" step="0.1" min="0.05"><span style="color:var(--mut)">mm</span></div>
-      <div class="row"><label style="min-width:62px">Z seguro</label><input type="number" id="rtZs" value="5" step="1" style="width:48px"><label>Rampa</label><input type="number" id="rtRampa" value="3" step="0.5" min="1" max="45" style="width:48px"><span style="color:var(--mut)">°</span></div>
-      <div class="row"><label style="min-width:62px">Fresa corte</label><select id="rtFCorte" style="max-width:160px"></select></div>
-      <div class="row"><label style="min-width:62px">Fresa grab.</label><select id="rtFGrab" style="max-width:160px"></select></div>
-      <div class="row"><label style="min-width:62px">Archivos</label><select id="rtModo" style="max-width:160px">
+      <div class="row" title="El grosor de tu tabla. Las formas de corte bajan hasta esta profundidad para atravesarla del todo."><label style="min-width:62px">Espesor</label><input type="number" id="rtEsp" value="12" step="0.5" min="0.5"><span style="color:var(--mut)">mm material</span></div>
+      <div class="row" title="Cuánto se hunde la fresa al dibujar líneas decorativas o texto sin atravesar la tabla. Con 0.5–1 mm ya se ve bien."><label style="min-width:62px">Prof. grabado</label><input type="number" id="rtGrab" value="0.8" step="0.1" min="0.05"><span style="color:var(--mut)">mm</span></div>
+      <div class="row" title="Z seguro: altura a la que viaja la fresa entre corte y corte para no rozar la pieza ni las prensas. Rampa: en vez de clavarse en vertical como un taladro, la fresa baja en pendiente suave mientras avanza — sufre menos la punta y el material no se quema."><label style="min-width:62px">Z seguro</label><input type="number" id="rtZs" value="5" step="1" style="width:48px"><label>Rampa</label><input type="number" id="rtRampa" value="3" step="0.5" min="1" max="45" style="width:48px"><span style="color:var(--mut)">°</span></div>
+      <div class="row" title="La fresa que usarán los cortes si no le asignás otra a una forma concreta en Propiedades."><label style="min-width:62px">Fresa corte</label><select id="rtFCorte" style="max-width:160px"></select></div>
+      <div class="row" title="La fresa para los grabados (líneas y texto). Una V-bit da líneas finas y elegantes."><label style="min-width:62px">Fresa grab.</label><select id="rtFGrab" style="max-width:160px"></select></div>
+      <div class="row" title="Tu máquina no cambia de fresa sola: hay que parar, cambiarla a mano y volver a tocar la altura cero. 'Uno por fresa' genera un archivo por cada fresa — el método seguro. 'Único con M0' mete pausas en un solo archivo: solo conviene si tenés sonda de altura Z."><label style="min-width:62px">Archivos</label><select id="rtModo" style="max-width:160px">
         <option value="porFresa">Uno por fresa (re-cero Z a mano)</option>
         <option value="m0">Único con pausas M0 (con sonda Z)</option>
       </select></div>
-      <div class="row"><label><input type="checkbox" id="rtIncG" checked> Incluir grabado</label></div>
+      <div class="row" title="Desmarcá para generar solo los cortes y dejar el grabado para otro momento (o para hacerlo con láser)."><label><input type="checkbox" id="rtIncG" checked> Incluir grabado</label></div>
       <div class="row" style="margin-top:6px"><button class="btn full" id="rtHoja">📋 Hoja de ruta (fresas y pasos)</button></div>
       <div style="color:var(--mut);font-size:10.5px;margin-top:5px;line-height:1.4">Cada forma decide su operación y fresa en <b>Propiedades</b> (por defecto: contorno mayor = perfil exterior, cerradas dentro = interior, perforaciones = taladro, grabado = sobre la línea). Origen XY: esquina inferior izquierda · Z0 = cara superior.</div>
     </div>
@@ -171,22 +181,28 @@ input[type=checkbox]{accent-color:var(--acc)}
       <div style="color:var(--mut);font-size:10.5px;margin-top:4px">El color de cada fresa pinta las formas que mecaniza.</div>
     </div>
     <div class="sec" id="expSec"><h3>EXPORTACIÓN</h3>
-      <div class="row"><label>Kerf</label><input type="number" id="kerf" value="0.15" step="0.05" min="0"><span style="color:var(--mut)">mm (rect/círc.)</span></div>
+      <div class="row" title="El láser quema un pelito de material a cada lado de la línea (kerf). Este ajuste agranda las piezas y achica los agujeros esa pizca, para que los encajes queden justos y no flojos."><label>Kerf</label><input type="number" id="kerf" value="0.15" step="0.05" min="0"><span style="color:var(--mut)">mm (rect/círc.)</span></div>
       <div class="row"><label><input type="checkbox" id="expCotas"> Incluir cotas (verde)</label></div>
       <div style="color:var(--mut);font-size:11px;margin-top:4px">En LightBurn: Importar → asigna capa por color. Rojo = corte · Negro = grabado · Verde = cotas (ponla en capa T1 o bórrala).</div>
     </div>
     <div class="sec" id="lzSec"><h3>LÁSER Y MATERIAL</h3>
-      <div class="row"><label style="min-width:40px">Láser</label><select id="lzTipo" class="full">
-        <optgroup label="Diodo (azul ~445 nm)">
+      <div class="row" title="Elegí la potencia de tu láser y el material, y te sugerimos potencia, velocidad y pasadas de arranque. Diodo: los láseres azules de xTool, Ortur, Atomstack, Sculpfun, TwoTrees… CO₂: máquinas de tubo, del K40 a las industriales."><label style="min-width:40px">Láser</label><select id="lzTipo" class="full">
+        <optgroup label="Diodo (azul ~445 nm) — xTool, Ortur, Atomstack, Sculpfun, TwoTrees">
           <option value="d5">Diodo 5 W</option>
           <option value="d10" selected>Diodo 10 W</option>
           <option value="d20">Diodo 20 W</option>
+          <option value="d30">Diodo 30 W</option>
           <option value="d40">Diodo 40 W</option>
         </optgroup>
-        <optgroup label="CO₂">
-          <option value="co40">CO₂ 40 W</option>
+        <optgroup label="CO₂ (tubo) — K40, Ruida, industriales">
+          <option value="co40">CO₂ 40 W (K40)</option>
           <option value="co60">CO₂ 60 W</option>
+          <option value="co80">CO₂ 80 W</option>
           <option value="co100">CO₂ 100 W</option>
+          <option value="co130">CO₂ 130 W</option>
+          <option value="co150">CO₂ 150 W</option>
+          <option value="co300">CO₂ 300 W industrial</option>
+          <option value="co600">CO₂ 600 W industrial</option>
         </optgroup>
       </select></div>
       <div class="row"><label style="min-width:40px">Mat.</label><select id="lzMat" class="full"></select></div>
@@ -210,6 +226,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   </span>
   <span class="spacer" style="flex:1"></span>
   <span id="hint"></span>
+  <span style="color:var(--mut);font-size:11px">Hecho con 🪚 por <a href="https://www.paracarpinteros.com" target="_blank" style="color:var(--acc);text-decoration:none;font-weight:600">Paracarpinteros</a> — fanáticos de la carpintería</span>
   <span>Zoom <b id="sz">100%</b></span>
 </div>
 <div id="vecDlg" class="dlg">
@@ -274,18 +291,18 @@ input[type=checkbox]{accent-color:var(--acc)}
 <div id="fresaDlg" class="dlg">
   <h3 id="fdTitle">FRESA</h3>
   <div class="row"><label>Nombre</label><input type="text" id="fdNom" style="width:180px" maxlength="40"></div>
-  <div class="row"><label>Tipo</label><select id="fdTipo">
+  <div class="row" title="Recta: la todoterreno para madera. Upcut: saca la viruta hacia arriba, corta rápido pero astilla la cara de arriba. Downcut: empuja la viruta hacia abajo, deja la cara superior limpia (ideal contrachapado). V-bit: punta en V para grabar letras y detalles finos. Bola: punta redonda para relieves suaves."><label>Tipo</label><select id="fdTipo">
     <option value="recta">Recta</option>
     <option value="upcut">Espiral upcut</option>
     <option value="downcut">Espiral downcut</option>
     <option value="vbit">V-bit (grabado)</option>
     <option value="bola">Punta de bola</option>
   </select></div>
-  <div class="row"><label>Ø</label><input type="number" id="fdD" step="0.001" min="0.1" style="width:70px"><span style="color:var(--mut)">mm</span>
+  <div class="row" title="El diámetro de la parte que corta. Es el dato más importante: con él se compensa el trayecto para que la pieza salga con la medida exacta del dibujo."><label>Ø</label><input type="number" id="fdD" step="0.001" min="0.1" style="width:70px"><span style="color:var(--mut)">mm</span>
     <span id="fdAngRow" style="display:none"><label>Áng.</label><input type="number" id="fdAng" step="5" min="10" max="150" style="width:52px"><span style="color:var(--mut)">°</span></span></div>
-  <div class="row"><label>Filos</label><input type="number" id="fdFilos" step="1" min="1" max="6" style="width:52px"><label>Pasada</label><input type="number" id="fdPaso" step="0.5" min="0.1" style="width:56px"><span style="color:var(--mut)">mm</span></div>
-  <div class="row"><label>Avance</label><input type="number" id="fdFxy" step="50" style="width:64px"><label>Z</label><input type="number" id="fdFz" step="50" style="width:60px"><span style="color:var(--mut)">mm/min</span></div>
-  <div class="row"><label>RPM</label><input type="number" id="fdRpm" step="500" style="width:70px"><label>Solape</label><input type="number" id="fdStep" step="5" min="10" max="90" style="width:52px"><span style="color:var(--mut)">% (cajeados)</span></div>
+  <div class="row" title="Filos: cuántos labios de corte tiene la fresa. Pasada: cuánto baja en cada vuelta — pasadas finas cuidan la fresa y dan mejor acabado; en madera blanda, hasta la mitad del Ø de la fresa va bien."><label>Filos</label><input type="number" id="fdFilos" step="1" min="1" max="6" style="width:52px"><label>Pasada</label><input type="number" id="fdPaso" step="0.5" min="0.1" style="width:56px"><span style="color:var(--mut)">mm</span></div>
+  <div class="row" title="Avance: velocidad a la que se mueve la fresa mientras corta. Z: velocidad al bajar en vertical. Si la madera se quema, subí el avance o bajá las RPM; si la máquina vibra o pierde pasos, bajá el avance."><label>Avance</label><input type="number" id="fdFxy" step="50" style="width:64px"><label>Z</label><input type="number" id="fdFz" step="50" style="width:60px"><span style="color:var(--mut)">mm/min</span></div>
+  <div class="row" title="RPM: vueltas del husillo (la TTC450 llega a ~10.000). Solape: en cajeados, cuánto se pisa una pasada con la anterior — 40-50 % deja el fondo liso sin perder tiempo."><label>RPM</label><input type="number" id="fdRpm" step="500" style="width:70px"><label>Solape</label><input type="number" id="fdStep" step="5" min="10" max="90" style="width:52px"><span style="color:var(--mut)">% (cajeados)</span></div>
   <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn" id="fdDel" style="color:#ff8a8a">Borrar</button><span><button class="btn" id="fdCancel">Cancelar</button> <button class="btn acc" id="fdOk">Guardar</button></span></div>
 </div>
 <input type="file" id="fImg" accept="image/*" style="display:none">
@@ -1297,6 +1314,7 @@ function hojaRuta(){const b=buildRouter();
   +'button{font-size:14px;padding:8px 16px;margin-top:8px}'
   +'@media print{button{display:none}}'
   +'</style></head><body>'
+  +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><img src="https://www.paracarpinteros.com/web/image/website/3/logo/ParaCarpinteros" alt="Paracarpinteros" style="height:34px"><span style="color:#777;font-size:12px">paracarpinteros.com — fanáticos de la carpintería</span></div>'
   +'<h1>HOJA DE RUTA CNC — '+nombre+'</h1>'
   +'<div class="meta"><b>Pieza:</b> '+dims+' · <b>Espesor:</b> '+cfg.esp+' mm · <b>Origen XY:</b> esquina inferior izquierda · <b>Z0:</b> cara superior · <b>Rampa:</b> '+cfg.rampa+'°<br>'
   +(cfg.modo==='m0'?'<b>Archivo único</b> con pausas M0: re-zerear Z con sonda en cada pausa.':'<b>Un archivo por fresa</b>: ejecutalos en orden, re-zereando Z al cambiar.')
@@ -1344,6 +1362,41 @@ $('#fdDel').onclick=()=>{if(fresaEdit<0||FRESAS.length<=1)return;
  for(const s of shapes)if(s.cnc&&s.cnc.fresa!=null){if(s.cnc.fresa===fresaEdit)s.cnc.fresa=-1;else if(s.cnc.fresa>fresaEdit)s.cnc.fresa--;}
  saveFresas();renderFresas();$('#fresaDlg').classList.remove('show');refresh();};
 
+/* --- presets de máquina según el modo --- */
+const PRESETS={
+ laser:[
+  ['Diodo — los más vendidos',[
+   ['300x300','TwoTrees TTS-55 — 300×300'],
+   ['430x400','xTool D1 / D1 Pro — 430×400'],
+   ['400x400','Ortur Laser Master 3 — 400×400'],
+   ['410x400','Atomstack A5 / A10 — 410×400'],
+   ['410x420','Sculpfun S9 / S30 — 410×420'],
+   ['400x415','Creality Falcon2 — 400×415']]],
+  ['CO₂ — del K40 a industrial',[
+   ['300x200','K40 (40 W) — 300×200'],
+   ['500x300','CO₂ 50 W — 500×300'],
+   ['700x500','CO₂ 60–80 W — 700×500'],
+   ['900x600','CO₂ 100 W — 900×600'],
+   ['1300x900','CO₂ 130–150 W — 1300×900'],
+   ['1300x2500','CO₂ 300–600 W industrial — 1300×2500']]]],
+ router:[
+  ['Router CNC de escritorio',[
+   ['460x460','TwoTrees TTC450 / TTC450 Pro — 460×460'],
+   ['300x180','Genmitsu 3018-PRO — 300×180'],
+   ['400x400','Genmitsu 4040-PRO — 400×400'],
+   ['390x290','Vevor CNC 3040 — 390×290'],
+   ['600x400','Vevor CNC 6040 — 600×400']]],
+  ['Router de taller',[
+   ['900x600','Router 6090 — 900×600'],
+   ['1220x1220','Media plancha — 1220×1220'],
+   ['1300x2500','Router 1325 (plancha entera 4×8) — 1300×2500']]]]};
+function fillPresets(){const cur=area.w+'x'+area.h;let h='';
+ for(const [gl,items] of PRESETS[MODO]){h+='<optgroup label="'+gl+'">';
+  for(const [v,l] of items)h+='<option value="'+v+'">'+l+'</option>';h+='</optgroup>';}
+ h+='<option value="custom">Personalizado…</option>';
+ const el=$('#preset');el.innerHTML=h;
+ el.value=[...el.options].some(o=>o.value===cur)?cur:'custom';}
+
 /* --- conmutador Láser / Router --- */
 function setModo(m){MODO=(m==='router')?'router':'laser';
  $('#mLaser').classList.toggle('modeOn',MODO==='laser');
@@ -1354,6 +1407,7 @@ function setModo(m){MODO=(m==='router')?'router':'laser';
  $('#fresasSec').style.display=MODO==='router'?'':'none';
  $('#bExp').style.display=MODO==='laser'?'':'none';
  $('#bGc').style.display=MODO==='router'?'':'none';
+ fillPresets();
  try{localStorage.setItem('pc_modo',MODO);}catch(e){}
  refresh();}
 $('#mLaser').onclick=()=>setModo('laser');
@@ -1384,15 +1438,21 @@ const LZ_MATS=[
  {k:'acril5',n:'Acrílico 5 mm'},
  {k:'cuero',n:'Cuero 2–3 mm'},
  {k:'carton',n:'Cartón / cartulina'}];
-const LZ_NAMES={d5:'Diodo 5 W',d10:'Diodo 10 W',d20:'Diodo 20 W',d40:'Diodo 40 W',co40:'CO₂ 40 W',co60:'CO₂ 60 W',co100:'CO₂ 100 W'};
+const LZ_NAMES={d5:'Diodo 5 W',d10:'Diodo 10 W',d20:'Diodo 20 W',d30:'Diodo 30 W',d40:'Diodo 40 W',co40:'CO₂ 40 W (K40)',co60:'CO₂ 60 W',co80:'CO₂ 80 W',co100:'CO₂ 100 W',co130:'CO₂ 130 W',co150:'CO₂ 150 W',co300:'CO₂ 300 W',co600:'CO₂ 600 W'};
 const LZ_PRE={
  d5 :{madera3:{e:[45,3000],c:[100,250,3]},madera6:{e:[45,3000],c:null},      mdf3:{e:[40,3000],c:[100,200,4]},mdf6:{e:[40,3000],c:null},      acril3:{e:null,c:null},acril5:{e:null,c:null},cuero:{e:[30,4000],c:[85,250,1]}, carton:{e:[25,5000],c:[75,400,1]}},
  d10:{madera3:{e:[40,3500],c:[100,400,2]},madera6:{e:[40,3500],c:[100,200,3]},mdf3:{e:[38,3500],c:[100,350,2]},mdf6:{e:[38,3500],c:[100,180,4]},acril3:{e:null,c:null},acril5:{e:null,c:null},cuero:{e:[25,4500],c:[80,350,1]}, carton:{e:[20,6000],c:[70,600,1]}},
  d20:{madera3:{e:[35,4000],c:[100,700,1]},madera6:{e:[35,4000],c:[100,350,2]},mdf3:{e:[33,4000],c:[100,600,1]},mdf6:{e:[33,4000],c:[100,300,2]},acril3:{e:null,c:null},acril5:{e:null,c:null},cuero:{e:[22,5000],c:[100,600,1]},carton:{e:[18,7000],c:[80,1000,1]}},
+ d30:{madera3:{e:[32,4500],c:[100,900,1]},madera6:{e:[32,4500],c:[100,450,2]},mdf3:{e:[30,4500],c:[100,800,1]},mdf6:{e:[30,4500],c:[100,400,2]},acril3:{e:null,c:null},acril5:{e:null,c:null},cuero:{e:[21,5500],c:[100,800,1]},carton:{e:[16,7500],c:[75,1200,1]}},
  d40:{madera3:{e:[30,5000],c:[100,1200,1]},madera6:{e:[30,5000],c:[100,600,1]},mdf3:{e:[28,5000],c:[100,1000,1]},mdf6:{e:[28,5000],c:[100,500,1]},acril3:{e:null,c:null},acril5:{e:null,c:null},cuero:{e:[20,6000],c:[100,1000,1]},carton:{e:[15,8000],c:[70,1500,1]}},
  co40 :{madera3:{e:[20,5000],c:[60,400,1]},madera6:{e:[20,5000],c:[80,250,1]},mdf3:{e:[18,5000],c:[55,350,1]},mdf6:{e:[18,5000],c:[75,200,1]},acril3:{e:[25,4000],c:[70,400,1]},acril5:{e:[25,4000],c:[90,250,1]},cuero:{e:[15,6000],c:[45,500,1]},carton:{e:[12,8000],c:[35,800,1]}},
  co60 :{madera3:{e:[18,6000],c:[45,600,1]},madera6:{e:[18,6000],c:[60,400,1]},mdf3:{e:[16,6000],c:[40,500,1]},mdf6:{e:[16,6000],c:[55,350,1]},acril3:{e:[22,5000],c:[50,600,1]},acril5:{e:[22,5000],c:[65,400,1]},cuero:{e:[12,7000],c:[35,700,1]},carton:{e:[10,9000],c:[28,1100,1]}},
- co100:{madera3:{e:[14,8000],c:[30,1000,1]},madera6:{e:[14,8000],c:[40,700,1]},mdf3:{e:[12,8000],c:[28,900,1]},mdf6:{e:[12,8000],c:[38,600,1]},acril3:{e:[18,6000],c:[35,1000,1]},acril5:{e:[18,6000],c:[45,700,1]},cuero:{e:[10,9000],c:[25,1200,1]},carton:{e:[8,10000],c:[20,1600,1]}}};
+ co80 :{madera3:{e:[16,7000],c:[38,800,1]},madera6:{e:[16,7000],c:[50,500,1]},mdf3:{e:[14,7000],c:[35,700,1]},mdf6:{e:[14,7000],c:[48,450,1]},acril3:{e:[20,5500],c:[42,800,1]},acril5:{e:[20,5500],c:[55,500,1]},cuero:{e:[11,8000],c:[30,900,1]},carton:{e:[9,9500],c:[24,1300,1]}},
+ co100:{madera3:{e:[14,8000],c:[30,1000,1]},madera6:{e:[14,8000],c:[40,700,1]},mdf3:{e:[12,8000],c:[28,900,1]},mdf6:{e:[12,8000],c:[38,600,1]},acril3:{e:[18,6000],c:[35,1000,1]},acril5:{e:[18,6000],c:[45,700,1]},cuero:{e:[10,9000],c:[25,1200,1]},carton:{e:[8,10000],c:[20,1600,1]}},
+ co130:{madera3:{e:[12,9000],c:[24,1300,1]},madera6:{e:[12,9000],c:[34,900,1]},mdf3:{e:[11,9000],c:[22,1100,1]},mdf6:{e:[11,9000],c:[31,750,1]},acril3:{e:[15,7000],c:[28,1300,1]},acril5:{e:[15,7000],c:[38,900,1]},cuero:{e:[9,9500],c:[20,1500,1]},carton:{e:[7,11000],c:[16,2000,1]}},
+ co150:{madera3:{e:[11,9500],c:[22,1500,1]},madera6:{e:[11,9500],c:[30,1000,1]},mdf3:{e:[10,9500],c:[20,1300,1]},mdf6:{e:[10,9500],c:[28,850,1]},acril3:{e:[14,7500],c:[25,1500,1]},acril5:{e:[14,7500],c:[34,1000,1]},cuero:{e:[8,10000],c:[18,1700,1]},carton:{e:[6,12000],c:[14,2200,1]}},
+ co300:{madera3:{e:[8,12000],c:[15,2500,1]},madera6:{e:[8,12000],c:[20,1800,1]},mdf3:{e:[7,12000],c:[14,2200,1]},mdf6:{e:[7,12000],c:[18,1500,1]},acril3:{e:[10,9000],c:[18,2500,1]},acril5:{e:[10,9000],c:[24,1800,1]},cuero:{e:[6,12000],c:[12,2800,1]},carton:{e:[5,14000],c:[10,3500,1]}},
+ co600:{madera3:{e:[6,15000],c:[10,4000,1]},madera6:{e:[6,15000],c:[14,3000,1]},mdf3:{e:[5,15000],c:[9,3500,1]},mdf6:{e:[5,15000],c:[12,2500,1]},acril3:{e:[8,11000],c:[12,4000,1]},acril5:{e:[8,11000],c:[16,3000,1]},cuero:{e:[4,15000],c:[8,4500,1]},carton:{e:[3,16000],c:[7,5000,1]}}};
 const LZ_DIODE=t=>t.charAt(0)==='d';
 function lzFillMats(){$('#lzMat').innerHTML=LZ_MATS.map(m=>'<option value="'+m.k+'">'+m.n+'</option>').join('');}
 function lzReco(){const tipo=$('#lzTipo').value,mat=$('#lzMat').value;

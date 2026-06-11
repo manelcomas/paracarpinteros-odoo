@@ -88,6 +88,13 @@ input[type=checkbox]{accent-color:var(--acc)}
 #ctx button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);padding:6px 10px;border-radius:5px;cursor:pointer;font:12px Montserrat,sans-serif}
 #ctx button:hover{background:var(--panel2);color:var(--acc)}
 #ctx hr{border:none;border-top:1px solid var(--line);margin:3px 0}
+#paleta{display:flex;gap:3px;align-items:center}
+#paleta .sw{width:15px;height:15px;border-radius:3px;cursor:pointer;border:1px solid var(--line);display:inline-block}
+#paleta .sw:hover{border-color:var(--acc)}
+#paleta .sw.on{outline:2px solid var(--acc);outline-offset:1px}
+#capaList .lyr.off{opacity:.55}
+#capaList .lyr [data-edit]{cursor:pointer}
+#capaList .lyr:hover{background:var(--inbg);border-radius:5px}
 </style>
 </head>
 <body>
@@ -110,6 +117,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   <button class="btn" id="bTheme" title="Tema claro / oscuro">🌓 Tema</button>
   <button class="btn" id="bHelp">? Atajos</button>
   <button class="btn acc" id="bGc" style="display:none">⬇ G-code Router</button>
+  <button class="btn" id="bLg" style="display:none" title="G-code GRBL directo para láseres sin LightBurn: cada capa con su potencia, velocidad y pasadas">⬇ G-code Láser</button>
   <button class="btn acc" id="bExp">⬇ Exportar SVG (LightBurn)</button>
 </header>
 <main>
@@ -155,6 +163,7 @@ input[type=checkbox]{accent-color:var(--acc)}
       Rueda: zoom · Botón central o espacio: mover vista<br>Imagen seleccionada → <b>Recortar</b>, <b>Vectorizar</b>, <b>Quitar fondo</b> (varita por color) o <b>Borrador</b> (pincel) en Propiedades
       <br><br><b style="color:var(--acc);font-family:'Bebas Neue';letter-spacing:1px">PALABRAS QUE VAS A VER</b><br>
       <b>Corte</b>: atraviesa el material y suelta la pieza · <b>Grabado</b>: solo marca la superficie<br>
+      <b>Capa</b>: cada color agrupa formas que comparten potencia, velocidad y pasadas (como LightBurn)<br>
       <b>Kerf</b>: el pelito que se come el láser; se compensa para que los encajes queden justos<br>
       <b>Pasada</b>: cada vuelta del corte; los materiales gruesos se cortan en varias<br>
       <b>Fresa</b>: la "broca" que corta en el router; su Ø define el detalle mínimo<br>
@@ -180,11 +189,10 @@ input[type=checkbox]{accent-color:var(--acc)}
       <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4">El "snap" atrae el cursor a medidas redondas y a las esquinas de lo ya dibujado: así todo queda exacto sin pulso de cirujano.</div>
     </div>
     <div class="sec" id="capasSec"><h3>CAPAS</h3>
-      <div class="lyr"><input type="checkbox" id="vCorte" checked><span class="dot" style="background:var(--corte)"></span>Corte <span style="color:var(--mut);margin-left:auto">rojo</span></div>
-      <div class="lyr"><input type="checkbox" id="vGrab" checked><span class="dot" style="background:var(--grab)"></span>Grabado línea <span style="color:var(--mut);margin-left:auto">negro</span></div>
-      <div class="lyr"><input type="checkbox" id="vImg" checked><span class="dot" style="background:#4da3ff"></span>Imágenes <span style="color:var(--mut);margin-left:auto">grabado</span></div>
-      <div class="lyr"><input type="checkbox" id="vCota" checked><span class="dot" style="background:var(--cota)"></span>Cotas <span style="color:var(--mut);margin-left:auto">verde</span></div>
-      <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4"><b>Corte</b> atraviesa el material y suelta la pieza · <b>Grabado</b> solo marca el dibujo en la superficie · <b>Cotas</b> son medidas de referencia que no se cortan. Las casillas solo muestran/ocultan en pantalla.</div>
+      <div id="capaList"></div>
+      <div class="lyr"><input type="checkbox" id="vImg" checked><span class="dot" style="background:#4da3ff"></span>Imágenes <span style="color:var(--mut);margin-left:auto"></span></div>
+      <div class="lyr"><input type="checkbox" id="vCota" checked><span class="dot" style="background:var(--cota)"></span>Cotas <span style="color:var(--mut);margin-left:auto"></span></div>
+      <div style="color:var(--mut);font-size:10.5px;margin-top:3px;line-height:1.4">Cada <b>color</b> es una capa con su potencia, velocidad y pasadas (como LightBurn). Seleccioná formas y tocá un color en la barra de abajo para cambiarlas de capa; ✎ edita los ajustes. La casilla solo muestra/oculta en pantalla.</div>
     </div>
     <div class="sec" id="routerSec" style="display:none"><h3>FRESADO CNC (ROUTER)</h3>
       <div class="row" title="El grosor de tu tabla. Las formas de corte bajan hasta esta profundidad para atravesarla del todo."><label style="min-width:62px">Espesor</label><input type="number" id="rtEsp" value="12" step="0.5" min="0.5"><span style="color:var(--mut)">mm material</span></div>
@@ -208,7 +216,7 @@ input[type=checkbox]{accent-color:var(--acc)}
     <div class="sec" id="expSec"><h3>EXPORTACIÓN</h3>
       <div class="row" title="El láser quema un pelito de material a cada lado de la línea (kerf). Este ajuste agranda las piezas y achica los agujeros esa pizca, para que los encajes queden justos y no flojos."><label>Kerf</label><input type="number" id="kerf" value="0.15" step="0.05" min="0"><span style="color:var(--mut)">mm (rect/círc.)</span></div>
       <div class="row"><label><input type="checkbox" id="expCotas"> Incluir cotas (verde)</label></div>
-      <div style="color:var(--mut);font-size:11px;margin-top:4px">En LightBurn: Importar → asigna capa por color. Rojo = corte · Negro = grabado · Verde = cotas (ponla en capa T1 o bórrala).</div>
+      <div style="color:var(--mut);font-size:11px;margin-top:4px">El SVG sale agrupado por capa, cada una con su color. En LightBurn: Importar → cada color llega como una capa; los ajustes sugeridos van anotados en el archivo. Verde = cotas (ponla en capa T1 o bórrala).</div>
     </div>
     <div class="sec" id="lzSec"><h3>LÁSER Y MATERIAL</h3>
       <div class="row" title="Elegí la potencia de tu láser y el material, y te sugerimos potencia, velocidad y pasadas de arranque. Diodo: los láseres azules de xTool, Ortur, Atomstack, Sculpfun, TwoTrees… CO₂: máquinas de tubo, del K40 a las industriales."><label style="min-width:40px">Láser</label><select id="lzTipo" class="full">
@@ -232,14 +240,18 @@ input[type=checkbox]{accent-color:var(--acc)}
       </select></div>
       <div class="row"><label style="min-width:40px">Mat.</label><select id="lzMat" class="full"></select></div>
       <div id="lzReco" style="margin-top:6px"></div>
-      <div class="row" style="margin-top:6px"><button class="btn full" id="lzCopy">📋 Copiar ajustes (LightBurn)</button></div>
-      <div style="color:var(--mut);font-size:10.5px;margin-top:5px;line-height:1.4">⚠ Valores <b>orientativos de arranque</b>. Cada máquina, lente y lote de material varía — probá siempre en un recorte antes de la pieza final. Editá los números a tu gusto.</div>
+      <div class="row" style="margin-top:6px"><button class="btn full acc" id="lzApply" title="Vuelca estos números en las capas: corte en las capas modo Línea, grabado en las modo Relleno">▼ Pasar estos valores a las capas</button></div>
+      <div class="row"><button class="btn full" id="lzCopy">📋 Copiar ajustes (LightBurn)</button></div>
+      <div class="row" style="gap:4px"><button class="btn" id="lzReset" title="Descartar tu ajuste guardado y volver a la sugerencia original para este láser + material">⟲ Sugerido</button><button class="btn" id="lzLibExp" title="Descargar tu biblioteca de ajustes como JSON (respaldo o para otra compu)">⬇ Biblioteca</button><button class="btn" id="lzLibImp" title="Cargar una biblioteca de ajustes JSON">⬆ Cargar</button></div>
+      <div style="color:var(--mut);font-size:10.5px;margin-top:5px;line-height:1.4">⚠ Valores <b>orientativos de arranque</b>. Cada máquina, lente y lote de material varía — probá siempre en un recorte antes de la pieza final. Si editás los números, quedan guardados para ese láser + material (tu biblioteca).</div>
+      <input type="file" id="fLzLib" accept=".json" style="display:none">
     </div>
     <div class="sec" id="propSec"><h3>PROPIEDADES</h3><div id="props" style="color:var(--mut)">Nada seleccionado</div></div>
   </div>
 </main>
 <div id="status">
   <button class="btn" id="bGuia" title="Asistente paso a paso: decinos qué querés hacer y te acompañamos hasta el archivo final">🧭 ¿Qué querés hacer?</button>
+  <span id="paleta" title="Capas por color, como LightBurn"></span>
   <span>X <b id="sx">0.0</b></span><span>Y <b id="sy">0.0</b></span>
   <span class="draftIn" id="draftIn">
     <label id="lblA">Long.</label><input type="number" id="inLen" step="0.1">
@@ -261,7 +273,7 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div class="row"><label>Umbral</label><input type="range" id="vecThr" min="1" max="254" value="128"><b id="vecThrV">128</b></div>
   <div class="row"><label><input type="checkbox" id="vecInv"> Invertir (dibujo claro sobre fondo oscuro)</label></div>
   <div class="row"><label>Suavizado</label><input type="range" id="vecEps" min="0.3" max="3" step="0.1" value="1"></div>
-  <div class="row"><label>Capa</label><select id="vecLayer"><option value="grabado">Grabado (negro)</option><option value="corte">Corte (rojo)</option></select></div>
+  <div class="row"><label>Capa</label><select id="vecLayer"></select></div>
   <div class="row"><label><input type="checkbox" id="vecDel" checked> Quitar la imagen al terminar</label></div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="vecCancel">Cancelar</button><button class="btn acc" id="vecGo">Vectorizar</button></div>
 </div>
@@ -291,7 +303,7 @@ input[type=checkbox]{accent-color:var(--acc)}
     <option value="abril">Abril Fatface — serif elegante</option>
   </select></div>
   <div class="row"><label>Altura</label><input type="number" id="txtSize" value="15" min="2" step="1"><span style="color:var(--mut)">mm</span>
-   <select id="txtLayer"><option value="grabado">Grabado</option><option value="corte">Corte</option></select></div>
+   <select id="txtLayer"></select></div>
   <div style="color:var(--mut);font-size:11px;line-height:1.45">El trazo fino graba en una pasada rápida. Las letras con grosor son contorno cerrado: grabalas, vaciálas con fresa, o ponelas en capa Corte para <b>letras caladas</b>. Acentos se simplifican (á→a); la ñ sale.</div>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="txtCancel">Cancelar</button><button class="btn acc" id="txtGo">Colocar</button></div>
 </div>
@@ -356,6 +368,33 @@ input[type=checkbox]{accent-color:var(--acc)}
   <div id="fdInfo" style="background:var(--inbg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:11px;line-height:1.55;margin-top:6px"></div>
   <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn" id="fdDel" style="color:#ff8a8a">Borrar</button><span><button class="btn" id="fdCancel">Cancelar</button> <button class="btn acc" id="fdOk">Guardar</button></span></div>
 </div>
+<div id="capaDlg" class="dlg" style="width:330px">
+  <h3 id="cdTitle">CAPA</h3>
+  <div class="row"><span class="dot" id="cdSw" style="width:16px;height:16px"></span><input type="text" id="cdNom" style="flex:1;width:auto" maxlength="24" placeholder="Nombre de la capa"></div>
+  <div class="row" title="Línea: el láser recorre el contorno (cortar pasante o marcar la línea). Relleno: rellena la forma entera, como grabar un dibujo. Línea+Relleno: las dos cosas."><label>Modo</label><select id="cdModo" style="max-width:200px">
+    <option value="linea">Línea — corta/marca el contorno</option>
+    <option value="relleno">Relleno — graba la superficie</option>
+    <option value="ambos">Línea + Relleno</option>
+  </select></div>
+  <div class="row"><label>Potencia</label><input type="number" id="cdPot" min="0" max="100" step="1" style="width:58px"><span style="color:var(--mut)">%</span><label>Vel.</label><input type="number" id="cdVel" min="1" step="50" style="width:66px"><span style="color:var(--mut)">mm/min</span></div>
+  <div class="row"><label>Pasadas</label><input type="number" id="cdPas" min="1" max="50" step="1" style="width:55px"><label title="Las capas con número menor se ejecutan antes. Lo clásico: grabar primero y cortar al final, así la pieza no se suelta hasta el último momento.">Orden</label><input type="number" id="cdPrio" min="1" max="99" step="1" style="width:55px"></div>
+  <div class="row"><label><input type="checkbox" id="cdSal"> Generar salida (incluir al exportar)</label></div>
+  <div class="row"><button class="btn full" id="cdMat">⚡ Sugerir del láser + material elegidos</button></div>
+  <div id="cdInfo" style="background:var(--inbg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:11px;line-height:1.55;margin-top:6px"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn" id="cdCancel">Cancelar</button><button class="btn acc" id="cdOk">Guardar</button></div>
+</div>
+<div id="lgDlg" class="dlg" style="width:350px">
+  <h3>G-CODE LÁSER (GRBL)</h3>
+  <div id="lgResumen" style="font-size:11px;max-height:200px;overflow:auto;margin-bottom:6px;line-height:1.5"></div>
+  <div class="row"><label>Archivo</label><input type="text" id="lgNombre" value="laser" style="width:140px"><span style="color:var(--mut);font-size:10.5px">.nc</span></div>
+  <div class="row" title="El número S que tu controladora toma como 100% de potencia (parámetro $30 de GRBL). Casi siempre 1000; algunas usan 255."><label>S máx</label><input type="number" id="lgSmax" value="1000" min="1" step="1" style="width:70px"><span style="color:var(--mut);font-size:10.5px">= $30 de tu GRBL (normal: 1000)</span></div>
+  <div class="row" title="M4 baja la potencia cuando el cabezal frena (esquinas sin quemar) — lo normal en diodos GRBL. M3 deja potencia fija — para CO₂ o controladoras viejas."><label>Modo</label><select id="lgModo">
+    <option value="M4">M4 — dinámico (diodos GRBL)</option>
+    <option value="M3">M3 — potencia fija (CO₂ / viejas)</option>
+  </select></div>
+  <div style="color:var(--mut);font-size:10.5px;margin:4px 0;line-height:1.4">Cada capa sale con su potencia, velocidad y pasadas, en su orden. Origen XY: esquina inferior izquierda. La primera vez probá en un recorte o con poca potencia.</div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="lgCancel">Cancelar</button><button class="btn acc" id="lgGo">Generar</button></div>
+</div>
 <div id="ctx"></div>
 <input type="file" id="fImg" accept="image/*" style="display:none">
 <input type="file" id="fOpen" accept=".json" style="display:none">
@@ -384,6 +423,40 @@ function TH(){return THEMES[theme];}
 function setTheme(t){theme=t;DISP=THEMES[t].disp;document.body.classList.toggle('light',t==='light');refresh();}
 const EXP={corte:'#FF0000',grabado:'#000000',cota:'#00FF00'};
 
+/* ================= Sistema de capas por color (estilo LightBurn) =================
+   Cada forma lleva s.layer = clave de capa ('C1'…'C8') o 'cota'. Los valores viejos
+   'corte'/'grabado' se siguen aceptando (capaKey los traduce) para no romper
+   autosaves, proyectos guardados y plantillas anteriores. El color identifica la
+   capa (fijo); nombre y ajustes son editables. prio menor = se ejecuta antes. */
+const CAPAS_DEF=[
+ {k:'C1',color:'#FF0000',nombre:'Corte',modo:'linea',pot:100,vel:400,pasadas:2,prio:8,salida:true,visible:true},
+ {k:'C2',color:'#000000',nombre:'Grabado',modo:'relleno',pot:40,vel:3500,pasadas:1,prio:1,salida:true,visible:true},
+ {k:'C3',color:'#0050FF',nombre:'Azul',modo:'linea',pot:50,vel:1000,pasadas:1,prio:2,salida:true,visible:true},
+ {k:'C4',color:'#00A000',nombre:'Verde',modo:'linea',pot:50,vel:1000,pasadas:1,prio:3,salida:true,visible:true},
+ {k:'C5',color:'#E000E0',nombre:'Magenta',modo:'linea',pot:50,vel:1000,pasadas:1,prio:4,salida:true,visible:true},
+ {k:'C6',color:'#FF7800',nombre:'Naranja',modo:'relleno',pot:35,vel:3000,pasadas:1,prio:5,salida:true,visible:true},
+ {k:'C7',color:'#00A0C8',nombre:'Celeste',modo:'linea',pot:50,vel:1000,pasadas:1,prio:6,salida:true,visible:true},
+ {k:'C8',color:'#8B5A2B',nombre:'Marrón',modo:'relleno',pot:35,vel:3000,pasadas:1,prio:7,salida:true,visible:true}];
+function normalizarCapas(arr){const base=JSON.parse(JSON.stringify(CAPAS_DEF));
+ if(!Array.isArray(arr))return base;
+ for(const b of base){const o=arr.find(x=>x&&x.k===b.k);
+  if(o)Object.assign(b,o,{k:b.k,color:b.color});} /* color fijo: es la identidad de la capa */
+ return base;}
+let CAPAS=null;try{CAPAS=JSON.parse(localStorage.getItem('pc_capas_v1')||'null');}catch(e){}
+CAPAS=normalizarCapas(CAPAS);
+let capaActiva='C1';
+const CAPA_LEGACY={corte:'C1',grabado:'C2'};
+function capaKey(l){return CAPA_LEGACY[l]||l||'C1';}
+function capaDe(s){if(!s||s.type==='dim'||s.type==='image'||s.layer==='cota')return null;
+ const k=capaKey(s.layer);return CAPAS.find(c=>c.k===k)||CAPAS[0];}
+/* "grabado" semántico (3D, router, pieza de referencia): capas modo Relleno/ambos */
+function esGrabado(s){const c=capaDe(s);return !!c&&c.modo!=='linea';}
+function capasOrden(){return CAPAS.slice().sort((a,b)=>a.prio-b.prio||CAPAS.indexOf(a)-CAPAS.indexOf(b));}
+function saveCapas(){try{localStorage.setItem('pc_capas_v1',JSON.stringify(CAPAS));}catch(e){}}
+function normalizarShapes(arr){for(const s of arr||[]){
+ if(s.type==='dim'){s.layer='cota';continue;}
+ if(s.layer!=='cota')s.layer=capaKey(s.layer);}}
+
 /* ================= Utilidades ================= */
 const N=v=>Math.round(v*1000)/1000;
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -394,10 +467,13 @@ function distSeg(p,a,b){const l2=(b.x-a.x)**2+(b.y-a.y)**2;if(!l2)return{d:dist(
 function download(name,content,mime){const b=new Blob([content],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
 
 /* ================= Undo / Redo ================= */
-function snapshot(){return JSON.stringify({shapes,nextId});}
+function snapshot(){return JSON.stringify({shapes,nextId,capas:CAPAS});}
 function commit(pre){undoStack.push(pre);if(undoStack.length>100)undoStack.shift();redoStack.length=0;}
 function pushUndo(){commit(snapshot());}
-function restore(j){const s=JSON.parse(j);shapes=s.shapes;nextId=s.nextId;if(sel&&!shapes.find(x=>x.id===sel))sel=null;selGrp.clear();refresh();}
+function restore(j){const s=JSON.parse(j);shapes=s.shapes;nextId=s.nextId;
+ if(s.capas){CAPAS=normalizarCapas(s.capas);saveCapas();}
+ normalizarShapes(shapes);
+ if(sel&&!shapes.find(x=>x.id===sel))sel=null;selGrp.clear();refresh();}
 function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());}
 
@@ -461,7 +537,7 @@ function translateShape(s,dx,dy){switch(s.type){
  case 'circle':case 'arc':s.cx+=dx;s.cy+=dy;break;
  case 'dim':s.p1={x:s.p1.x+dx,y:s.p1.y+dy};s.p2={x:s.p2.x+dx,y:s.p2.y+dy};break;
 }}
-function layerVisible(s){if(s.type==='image')return $('#vImg').checked;if(s.type==='dim'||s.layer==='cota')return $('#vCota').checked;return s.layer==='corte'?$('#vCorte').checked:$('#vGrab').checked;}
+function layerVisible(s){if(s.type==='image')return $('#vImg').checked;if(s.type==='dim'||s.layer==='cota')return $('#vCota').checked;const c=capaDe(s);return c?c.visible!==false:true;}
 
 /* ================= Render ================= */
 function setViewBox(){svg.setAttribute('viewBox',view.x+' '+view.y+' '+view.w+' '+view.h);
@@ -481,7 +557,7 @@ function dimMarkup(s,col,sw,fs,forExport){const dx=s.p2.x-s.p1.x,dy=s.p2.y-s.p1.
  for(const p of [s.p1,s.p2])m+='<line x1="'+N(p.x-nx*tk)+'" y1="'+N(p.y-ny*tk)+'" x2="'+N(p.x+nx*tk)+'" y2="'+N(p.y+ny*tk)+'" stroke="'+col+'" stroke-width="'+sw+'"'+ve+'/>';
  m+='<text x="'+N(mx+nx*fs)+'" y="'+N(my+ny*fs)+'" font-size="'+fs+'" fill="'+col+'" text-anchor="middle" font-family="Montserrat">'+L.toFixed(1)+'</text>';
  return m;}
-function shapeMarkup(s){const mm=pxmm();let col=s.type==='dim'?DISP.cota:(DISP[s.layer]||'#fff');
+function shapeMarkup(s){const mm=pxmm();const cp=capaDe(s);let col=(s.type==='dim'||s.layer==='cota')?DISP.cota:(cp?cp.color:'#888');
  if(CNCMETA&&s.type!=='dim'&&s.type!=='image'&&s.layer!=='cota'){const cm=CNCMETA.get(s.id);col=cm?fcol(cm.f):'#555';}
  const selA=(s.id===sel||selGrp.has(s.id))?' filter="drop-shadow(0 0 '+(3*mm)+'px '+col+')"':'';
  if(s.type==='image'){const c={x:s.x+s.w/2,y:s.y+s.h/2};const tr=s.rot?' transform="rotate('+s.rot+' '+N(c.x)+' '+N(c.y)+')"':'';
@@ -519,14 +595,14 @@ function renderOverlay(){const mm=pxmm();let out=draftMarkup();
  const s=shapes.find(x=>x.id===sel);
  if(s&&tool==='select'){for(const h of getHandles(s))out+='<rect class="h" data-hi="'+h.i+'" x="'+(h.x-5*mm)+'" y="'+(h.y-5*mm)+'" width="'+(10*mm)+'" height="'+(10*mm)+'" fill="'+TH().handleFill+'" stroke="#E8A800" stroke-width="1.5" vector-effect="non-scaling-stroke" style="cursor:pointer"/>';}
  gOverlay.innerHTML=out;}
-function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();guiaTick();autosave();}
+function refresh(){setViewBox();renderGrid();renderShapes();renderOverlay();renderProps();renderLegend();renderCapas();guiaTick();autosave();}
 
 /* ================= Propiedades ================= */
 function propRow(lbl,prop,val,step){return '<div class="row"><label>'+lbl+'</label><input type="number" data-prop="'+prop+'" value="'+N(val)+'" step="'+(step||0.5)+'"></div>';}
 function renderProps(){const el=$('#props');
  if(selGrp.size>1){$('#propSec').classList.remove('cerrada');
   el.innerHTML='<div class="row"><b>'+selGrp.size+' formas seleccionadas</b></div>'
-  +'<div style="color:var(--mut);font-size:11px;margin:2px 0 6px">Arrastrá cualquiera de ellas y se mueve el grupo entero (las distancias entre sí no cambian).</div>'
+  +'<div style="color:var(--mut);font-size:11px;margin:2px 0 6px">Arrastrá cualquiera de ellas y se mueve el grupo entero (las distancias entre sí no cambian). Tocá un color de la barra de abajo para mandarlas todas a esa capa.</div>'
   +'<div class="row"><button class="btn" data-act="grp_ch">Centrar grupo H</button><button class="btn" data-act="grp_cv">Centrar grupo V</button></div>'
   +'<div class="row"><button class="btn" data-act="grp_dup">⧉ Duplicar grupo</button><button class="btn" data-act="grp_del">🗑 Borrar grupo</button></div>';
   return;}
@@ -534,7 +610,10 @@ function renderProps(){const el=$('#props');
  if(!s){el.innerHTML='<span style="color:var(--mut)">Nada seleccionado · arrastrá en un espacio vacío para seleccionar varias formas a la vez</span>';return;}
  $('#propSec').classList.remove('cerrada');
  let h='<div class="row"><label>Tipo</label><b>'+(s.perf?'Perforación':({line:'Línea',poly:'Polilínea',rect:'Rectángulo',circle:'Círculo',arc:'Arco',dim:'Cota',image:'Imagen',text:'Texto'})[s.type])+'</b></div>';
- if(s.type!=='dim'&&s.type!=='image'){h+='<div class="row"><label>Capa</label><select data-prop="layer"><option value="corte"'+(s.layer==='corte'?' selected':'')+'>Corte</option><option value="grabado"'+(s.layer==='grabado'?' selected':'')+'>Grabado</option><option value="cota"'+(s.layer==='cota'?' selected':'')+'>Cota</option></select></div>';}
+ if(s.type!=='dim'&&s.type!=='image'){const ck=s.layer==='cota'?'cota':capaKey(s.layer);
+  h+='<div class="row"><label>Capa</label><select data-prop="layer" style="max-width:170px">'
+   +CAPAS.map(c=>'<option value="'+c.k+'"'+(ck===c.k?' selected':'')+'>'+c.k+' · '+c.nombre+'</option>').join('')
+   +'<option value="cota"'+(ck==='cota'?' selected':'')+'>Cota (no se corta)</option></select></div>';}
  switch(s.type){
   case 'line':{h+=propRow('X1','p0x',s.pts[0].x)+propRow('Y1','p0y',s.pts[0].y)+propRow('X2','p1x',s.pts[1].x)+propRow('Y2','p1y',s.pts[1].y)+propRow('Long','len',dist(s.pts[0],s.pts[1]));break;}
   case 'poly':{h+='<div class="row"><label>'+s.pts.length+' nodos</label><label><input type="checkbox" data-prop="closed"'+(s.closed?' checked':'')+'> Cerrada</label></div>';break;}
@@ -670,7 +749,7 @@ function commitNumeric(){if(!draft||!draft.pts.length)return;const a=anchorPt();
 $('#inLen').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commitNumeric();}});
 $('#inAng').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commitNumeric();}});
 
-function newShape(base){const s=Object.assign({id:nextId++,layer:'corte'},base);pushUndo();shapes.push(s);sel=s.id;return s;}
+function newShape(base){const s=Object.assign({id:nextId++,layer:capaActiva},base);pushUndo();shapes.push(s);sel=s.id;return s;}
 function addDraftPoint(p){if(!draft)return;
  if(draft.tool==='line'){if(!draft.pts.length)draft.pts.push(p);else{newShape({type:'line',pts:[draft.pts[0],p]});draft={tool:'line',pts:[]};$('#draftIn').classList.remove('show');refresh();return;}}
  else if(draft.tool==='poly'){draft.pts.push(p);}
@@ -707,7 +786,7 @@ svg.addEventListener('mousedown',e=>{const raw=toWorld(e);
    selGrp.clear();sel=id;drag={kind:'move',last:snapPt(raw,{exclude:sel}),pre:snapshot(),moved:false};refresh();return;}
   /* clic en vacío: banda elástica para seleccionar varias */
   sel=null;selGrp.clear();drag={kind:'band',a:raw,b:raw};refresh();return;}
- if(tool==='text'){txtPending=snapPt(raw);$('#txtDlg').classList.add('show');setTimeout(()=>$('#txtVal').focus(),60);return;}
+ if(tool==='text'){txtPending=snapPt(raw);fillCapaSel($('#txtLayer'),$('#txtLayer').value||'C2');$('#txtDlg').classList.add('show');setTimeout(()=>$('#txtVal').focus(),60);return;}
  if(tool==='hole'){const p=snapPt(raw);const d=Math.max(0.2,parseFloat($('#holeD').value)||5);
   newShape({type:'circle',cx:p.x,cy:p.y,r:d/2,kerf:'int',perf:true});refresh();return;}
  const a=anchorPt();const p=snapPt(raw,{anchor:a});
@@ -822,7 +901,7 @@ window.addEventListener('resize',fitView);
 $('#preset').addEventListener('change',e=>{const v=e.target.value;if(v==='custom')return;const [w,h]=v.split('x').map(Number);area={w,h};$('#areaW').value=w;$('#areaH').value=h;fitView();});
 $('#areaW').addEventListener('change',e=>{area.w=Math.max(10,parseFloat(e.target.value)||area.w);$('#preset').value='custom';fitView();});
 $('#areaH').addEventListener('change',e=>{area.h=Math.max(10,parseFloat(e.target.value)||area.h);$('#preset').value='custom';fitView();});
-['gShow','gStep','gSnap','sStep','eSnap','vCorte','vGrab','vImg','vCota'].forEach(id=>$('#'+id).addEventListener('change',refresh));
+['gShow','gStep','gSnap','sStep','eSnap','vImg','vCota'].forEach(id=>$('#'+id).addEventListener('change',refresh));
 $('#bHelp').onclick=()=>$('#help').classList.toggle('show');
 
 /* ================= Imagen ================= */
@@ -835,10 +914,12 @@ $('#fImg').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;
 
 /* ================= Proyecto ================= */
 $('#bNew').onclick=()=>{if(shapes.length&&!confirm('¿Borrar todo y empezar de cero?'))return;pushUndo();shapes=[];sel=null;draft=null;refresh();};
-$('#bSave').onclick=()=>{download('proyecto-laser.json',JSON.stringify({v:2,area,shapes,kerf:parseFloat($('#kerf').value)||0,modo:MODO,fresas:FRESAS,router:rtCfg()},null,1),'application/json');};
+$('#bSave').onclick=()=>{download('proyecto-laser.json',JSON.stringify({v:3,area,shapes,capas:CAPAS,kerf:parseFloat($('#kerf').value)||0,modo:MODO,fresas:FRESAS,router:rtCfg()},null,1),'application/json');};
 $('#bOpen').onclick=()=>$('#fOpen').click();
 $('#fOpen').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
  rd.onload=()=>{try{const d=JSON.parse(rd.result);pushUndo();shapes=d.shapes||[];area=d.area||area;
+  if(d.capas){CAPAS=normalizarCapas(d.capas);saveCapas();}
+  normalizarShapes(shapes);
   nextId=shapes.reduce((m,s)=>Math.max(m,s.id||0),0)+1;sel=null;
   $('#areaW').value=area.w;$('#areaH').value=area.h;$('#preset').value='custom';
   if(d.kerf!=null)$('#kerf').value=d.kerf;
@@ -855,16 +936,29 @@ function kerfAdjusted(s){const k=parseFloat($('#kerf').value)||0;if(!k||!s.kerf|
  else if(s.type==='circle'){c.r+=sg*k/2;if(c.r<=0)return s;}
  else return s;
  return c;}
+function escAttr(v){return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function svgPathDe(s,col){ /* una forma → <path> de export (texto incluido) */
+ if(s.type==='text'){let d='';for(const pl of textPolylines(s))d+='M '+pl.map(q=>N(q.x)+' '+N(q.y)).join(' L ')+(pl.closed?' Z ':' ');
+  return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="0.1"/>':'';}
+ const d=shapePathD(kerfAdjusted(s));
+ return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="0.1"/>':'';}
 $('#bExp').onclick=()=>{const incCotas=$('#expCotas').checked;let out='';
- for(const s of shapes){
-  if(s.type==='image'){const cx=N(s.x+s.w/2),cy=N(s.y+s.h/2);const tr=s.rot?' transform="rotate('+s.rot+' '+cx+' '+cy+')"':'';
-   out+='<image x="'+N(s.x)+'" y="'+N(s.y)+'" width="'+N(s.w)+'" height="'+N(s.h)+'" preserveAspectRatio="none"'+tr+' xlink:href="'+s.href+'"/>';continue;}
-  if(s.type==='dim'){if(incCotas)out+='<g>'+dimMarkup(s,EXP.cota,'0.1',6,true)+'</g>';continue;}
-  if(s.layer==='cota'&&!incCotas)continue;
-  if(s.type==='text'){let d='';for(const pl of textPolylines(s))d+='M '+pl.map(q=>N(q.x)+' '+N(q.y)).join(' L ')+(pl.closed?' Z ':' ');
-   out+='<path d="'+d+'" fill="none" stroke="'+(EXP[s.layer]||EXP.grabado)+'" stroke-width="0.1"/>';continue;}
-  const col=EXP[s.layer]||EXP.grabado;
-  out+='<path d="'+shapePathD(kerfAdjusted(s))+'" fill="none" stroke="'+col+'" stroke-width="0.1"/>';}
+ /* imágenes primero (LightBurn las importa como grabado raster) */
+ const imgs=shapes.filter(s=>s.type==='image');
+ if(imgs.length){out+='<g id="imagenes">';
+  for(const s of imgs){const cx=N(s.x+s.w/2),cy=N(s.y+s.h/2);const tr=s.rot?' transform="rotate('+s.rot+' '+cx+' '+cy+')"':'';
+   out+='<image x="'+N(s.x)+'" y="'+N(s.y)+'" width="'+N(s.w)+'" height="'+N(s.h)+'" preserveAspectRatio="none"'+tr+' xlink:href="'+s.href+'"/>';}
+  out+='</g>\n';}
+ /* un <g> por capa, en orden de ejecución, con sus ajustes como data-attrs */
+ for(const c of capasOrden()){if(c.salida===false)continue;
+  const its=shapes.filter(s=>capaDe(s)===c);if(!its.length)continue;
+  out+='<g id="capa-'+c.k+'" data-nombre="'+escAttr(c.nombre)+'" data-modo="'+c.modo+'" data-power="'+c.pot+'" data-speed="'+c.vel+'" data-passes="'+c.pasadas+'" stroke="'+c.color+'">\n';
+  for(const s of its)out+=svgPathDe(s,c.color);
+  out+='</g>\n';}
+ if(incCotas){const dims=shapes.filter(s=>s.type==='dim'||(s.layer==='cota'&&s.type!=='image'));
+  if(dims.length){out+='<g id="cotas" stroke="'+EXP.cota+'">';
+   for(const s of dims)out+=s.type==='dim'?'<g>'+dimMarkup(s,EXP.cota,'0.1',6,true)+'</g>':svgPathDe(s,EXP.cota);
+   out+='</g>\n';}}
  const str='<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generado con Diseñador Láser PRO — paracarpinteros.com -->\n<!-- '+lzText(' · ')+' -->\n'+
   '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+area.w+'mm" height="'+area.h+'mm" viewBox="0 0 '+area.w+' '+area.h+'">\n'+out+'\n</svg>';
  download('diseno-paracarpinteros.svg',str,'image/svg+xml');};
@@ -894,7 +988,7 @@ function openVect(s){const im=new Image();
   cx.fillStyle='#ffffff';cx.fillRect(0,0,w,hh);cx.drawImage(im,0,0,w,hh);
   const d=cx.getImageData(0,0,w,hh).data;const lum=new Uint8Array(w*hh);
   for(let i=0;i<w*hh;i++)lum[i]=(d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114)|0;
-  vecCtx={s,w,h:hh,lum};$('#vecDlg').classList.add('show');vecPreview();};
+  vecCtx={s,w,h:hh,lum};fillCapaSel($('#vecLayer'),$('#vecLayer').value||'C2');$('#vecDlg').classList.add('show');vecPreview();};
  im.src=s.href;}
 function closeVect(){vecCtx=null;$('#vecDlg').classList.remove('show');}
 function vecBin(){const t=+$('#vecThr').value,inv=$('#vecInv').checked;const{w,h,lum}=vecCtx;
@@ -953,7 +1047,8 @@ function doVect(){if(!vecCtx)return;const{s,w,h}=vecCtx;const b=vecBin();
  const delImg=$('#vecDel').checked,sid=s.id;
  if(delImg)shapes=shapes.filter(x=>x.id!==sid);
  closeVect();sel=null;refresh();
- $('#hint').textContent=count?count+' trazados creados en capa '+layer+' — selecciónalos para moverlos o cambiar de capa':'Sin contornos — ajusta el umbral o marca Invertir';}
+ const cnom=(CAPAS.find(c=>c.k===layer)||{}).nombre||layer;
+ $('#hint').textContent=count?count+' trazados creados en capa '+cnom+' — selecciónalos para moverlos o cambiar de capa':'Sin contornos — ajusta el umbral o marca Invertir';}
 $('#vecThr').addEventListener('input',()=>{$('#vecThrV').textContent=$('#vecThr').value;vecPreview();});
 $('#vecInv').addEventListener('change',vecPreview);
 $('#vecCancel').onclick=closeVect;
@@ -1083,7 +1178,8 @@ function pointInPoly(p,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;
    la misma tabla: si pasás un punto, gana la pieza MÁS CHICA que lo contiene;
    sin punto, la más grande del lienzo. */
 function pieceRef(excludeId,refPt){const cands=[];
- for(const s of shapes){if(s.id===excludeId||s.layer!=='corte'||s.perf)continue;
+ for(const s of shapes){if(s.id===excludeId||s.perf)continue;
+  const cl=capaDe(s);if(!cl||cl.modo!=='linea')continue; /* contorno de pieza = capa de corte (modo Línea) */
   if(!(s.type==='rect'||s.type==='circle'||(s.type==='poly'&&s.closed)))continue;
   const bb=bboxOf(s);
   cands.push({x0:bb.x0,y0:bb.y0,x1:bb.x1,y1:bb.y1,shape:s,A:(bb.x1-bb.x0)*(bb.y1-bb.y0)});}
@@ -1202,7 +1298,7 @@ function applyRtCfg(c){if(!c)return;
 
 /* --- qué operación le toca a cada forma --- */
 function autoOp(s){
- if(s.layer==='grabado'||s.type==='text'||s.type==='line'||s.type==='arc')return 'sobre';
+ if(esGrabado(s)||s.type==='text'||s.type==='line'||s.type==='arc')return 'sobre';
  if(s.type==='poly'&&!s.closed)return 'sobre';
  if(s.perf)return 'taladro';
  /* con varias piezas en la tabla: si esta forma cae dentro de OTRA pieza, es interior */
@@ -1381,7 +1477,7 @@ function gcodeJob(job,t,cfg){const s=job.s,m=job.m,j=job.j;
 /* --- armado de programas por fresa --- */
 function buildRouter(){const cfg=rtCfg();const meta=cncMeta();const warns=[];const grupos=new Map();
  for(const s of shapes){const m=meta.get(s.id);if(!m)continue;
-  if(!cfg.incG&&m.op==='sobre'&&s.layer==='grabado')continue;
+  if(!cfg.incG&&m.op==='sobre'&&esGrabado(s))continue;
   const t=FRESAS[m.f];const j=jobPaths(s,m,t);
   if(j.warn)warns.push(j.warn);
   if(j.empty){warns.push(shapeLabel(s)+': '+j.empty);continue;}
@@ -1591,6 +1687,7 @@ function setModo(m){MODO=(m==='router')?'router':'laser';
  $('#routerSec').style.display=MODO==='router'?'':'none';
  $('#fresasSec').style.display=MODO==='router'?'':'none';
  $('#bExp').style.display=MODO==='laser'?'':'none';
+ $('#bLg').style.display=MODO==='laser'?'':'none';
  $('#bGc').style.display=MODO==='router'?'':'none';
  fillPresets();
  try{localStorage.setItem('pc_modo',MODO);}catch(e){}
@@ -1639,9 +1736,23 @@ const LZ_PRE={
  co300:{madera3:{e:[8,12000],c:[15,2500,1]},madera6:{e:[8,12000],c:[20,1800,1]},mdf3:{e:[7,12000],c:[14,2200,1]},mdf6:{e:[7,12000],c:[18,1500,1]},acril3:{e:[10,9000],c:[18,2500,1]},acril5:{e:[10,9000],c:[24,1800,1]},cuero:{e:[6,12000],c:[12,2800,1]},carton:{e:[5,14000],c:[10,3500,1]}},
  co600:{madera3:{e:[6,15000],c:[10,4000,1]},madera6:{e:[6,15000],c:[14,3000,1]},mdf3:{e:[5,15000],c:[9,3500,1]},mdf6:{e:[5,15000],c:[12,2500,1]},acril3:{e:[8,11000],c:[12,4000,1]},acril5:{e:[8,11000],c:[16,3000,1]},cuero:{e:[4,15000],c:[8,4500,1]},carton:{e:[3,16000],c:[7,5000,1]}}};
 const LZ_DIODE=t=>t.charAt(0)==='d';
+/* Biblioteca del usuario: ajustes propios por láser+material que pisan los presets.
+   Se guarda sola al editar los números; ⟲ vuelve al sugerido; import/export JSON. */
+let LZLIB=null;try{LZLIB=JSON.parse(localStorage.getItem('pc_lzlib_v1')||'null');}catch(e){}
+if(!LZLIB||typeof LZLIB!=='object'||Array.isArray(LZLIB))LZLIB={};
+function saveLzLib(){try{localStorage.setItem('pc_lzlib_v1',JSON.stringify(LZLIB));}catch(e){}}
+function lzGet(tipo,mat){const p=(LZ_PRE[tipo]||{})[mat]||{e:null,c:null};
+ const o=(LZLIB[tipo]||{})[mat];
+ return{e:o&&o.e!==undefined?o.e:p.e,c:o&&o.c!==undefined?o.c:p.c,propio:!!o};}
+function lzSetLib(){const tipo=$('#lzTipo').value,mat=$('#lzMat').value;
+ const num=id=>{const el=$('#'+id);return el?(parseFloat(el.value)||0):null;};
+ const o={};
+ if($('#lzEngP'))o.e=[num('lzEngP'),num('lzEngV')];
+ if($('#lzCutP'))o.c=[num('lzCutP'),num('lzCutV'),Math.max(1,Math.round(num('lzCutN')||1))];
+ if(!LZLIB[tipo])LZLIB[tipo]={};LZLIB[tipo][mat]=o;saveLzLib();}
 function lzFillMats(){$('#lzMat').innerHTML=LZ_MATS.map(m=>'<option value="'+m.k+'">'+m.n+'</option>').join('');}
 function lzReco(){const tipo=$('#lzTipo').value,mat=$('#lzMat').value;
- const p=(LZ_PRE[tipo]||{})[mat]||{e:null,c:null};const el=$('#lzReco');
+ const p=lzGet(tipo,mat);const el=$('#lzReco');
  const inp=(id,v,suf)=>'<input type="number" id="'+id+'" value="'+v+'" min="0" style="width:50px">'+(suf?'<span style="color:var(--mut);font-size:10px">'+suf+'</span>':'');
  let h='';
  if(p.e)h+='<div class="row" style="gap:4px"><label style="min-width:50px">Grabado</label>'+inp('lzEngP',p.e[0],'%')+inp('lzEngV',p.e[1],'mm/min')+'</div>';
@@ -1649,6 +1760,7 @@ function lzReco(){const tipo=$('#lzTipo').value,mat=$('#lzMat').value;
  if(p.c)h+='<div class="row" style="gap:4px"><label style="min-width:50px">Corte</label>'+inp('lzCutP',p.c[0],'%')+inp('lzCutV',p.c[1],'mm/min')+inp('lzCutN',p.c[2],'pas.')+'</div>';
  else{const acr=LZ_DIODE(tipo)&&mat.indexOf('acril')===0;
   h+='<div class="row"><label style="min-width:50px">Corte</label><span style="color:#ff8a8a;font-size:11px">✗ '+(acr?'los diodos no cortan acrílico transparente — usá CO₂':'no recomendado con este láser')+'</span></div>';}
+ if(p.propio)h+='<div style="color:var(--acc);font-size:10px;margin-top:2px">✎ ajuste tuyo guardado — ⟲ Sugerido lo descarta</div>';
  el.innerHTML=h;}
 function lzText(sep){sep=sep||'\n';const t=$('#lzTipo').value;
  let s=['Material: '+$('#lzMat').selectedOptions[0].text,'Laser: '+LZ_NAMES[t]];
@@ -1657,10 +1769,154 @@ function lzText(sep){sep=sep||'\n';const t=$('#lzTipo').value;
  s.push('Valores orientativos: probar en recorte');return s.join(sep);}
 $('#lzTipo').addEventListener('change',lzReco);
 $('#lzMat').addEventListener('change',lzReco);
+$('#lzReco').addEventListener('change',e=>{if(e.target.tagName==='INPUT'){lzSetLib();lzReco();}});
 $('#lzCopy').onclick=()=>{const t=lzText();
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>{});
  $('#hint').textContent='Ajustes copiados — pégalos en tu capa de LightBurn / GRBL';};
+$('#lzReset').onclick=()=>{const tipo=$('#lzTipo').value,mat=$('#lzMat').value;
+ if(LZLIB[tipo]){delete LZLIB[tipo][mat];if(!Object.keys(LZLIB[tipo]).length)delete LZLIB[tipo];saveLzLib();}
+ lzReco();$('#hint').textContent='Valores sugeridos restaurados para este láser + material';};
+$('#lzLibExp').onclick=()=>download('biblioteca-laser-paracarpinteros.json',JSON.stringify({v:1,tipo:'pc_lzlib',lib:LZLIB},null,1),'application/json');
+$('#lzLibImp').onclick=()=>$('#fLzLib').click();
+$('#fLzLib').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{try{const d=JSON.parse(rd.result);const lib=d&&d.lib&&typeof d.lib==='object'?d.lib:(typeof d==='object'&&!Array.isArray(d)?d:null);
+  if(!lib)throw 0;
+  for(const t in lib){if(!LZLIB[t])LZLIB[t]={};Object.assign(LZLIB[t],lib[t]);}
+  saveLzLib();lzReco();$('#hint').textContent='Biblioteca cargada — tus ajustes guardados ya están activos';}
+  catch(err){alert('Archivo no válido: tiene que ser una biblioteca exportada desde aquí.');}};
+ rd.readAsText(f);e.target.value='';});
+/* Pasar los valores del panel a las capas: corte → capas modo Línea, grabado → modo Relleno */
+$('#lzApply').onclick=()=>{
+ const num=id=>{const el=$('#'+id);return el?parseFloat(el.value):NaN;};
+ const e=[num('lzEngP'),num('lzEngV')],c=[num('lzCutP'),num('lzCutV'),Math.max(1,Math.round(num('lzCutN'))||1)];
+ const hayE=!isNaN(e[0])&&!isNaN(e[1]),hayC=!isNaN(c[0])&&!isNaN(c[1]);
+ if(!hayE&&!hayC){alert('Este láser + material no tiene valores recomendados que aplicar.');return;}
+ pushUndo();let n=0;
+ for(const cp of CAPAS){
+  const enUso=shapes.some(s=>capaDe(s)===cp);
+  if(!enUso&&cp.k!=='C1'&&cp.k!=='C2')continue;
+  if(cp.modo==='linea'){if(hayC){cp.pot=c[0];cp.vel=c[1];cp.pasadas=c[2];n++;}}
+  else if(hayE){cp.pot=e[0];cp.vel=e[1];cp.pasadas=1;n++;}}
+ saveCapas();refresh();
+ $('#hint').textContent=n?'Valores aplicados a '+n+' capa(s) — revisalos con ✎ en el panel CAPAS':'No había capas en uso para aplicar';};
 lzFillMats();lzReco();
+
+/* ================= Panel de capas + paleta (estilo LightBurn) ================= */
+function fillCapaSel(el,cur){if(!el)return;
+ el.innerHTML=CAPAS.map(c=>'<option value="'+c.k+'">'+c.k+' · '+c.nombre+'</option>').join('');
+ el.value=CAPAS.some(c=>c.k===capaKey(cur))?capaKey(cur):'C2';}
+function renderPaleta(){const el=$('#paleta');if(!el)return;
+ el.innerHTML=CAPAS.map(c=>{
+  const mod=c.modo==='linea'?'Línea (corte/marca)':(c.modo==='relleno'?'Relleno (grabado)':'Línea + Relleno');
+  return '<span class="sw'+(c.k===capaActiva?' on':'')+'" data-ck="'+c.k+'" style="background:'+c.color+'" title="'+c.k+' · '+escAttr(c.nombre)+' — '+mod+' · '+c.pot+'% · '+c.vel+' mm/min&#10;Clic: asignar la selección a esta capa (o dejarla activa para dibujar)&#10;Doble clic: ajustes de la capa"></span>';}).join('');}
+function renderCapas(){const el=$('#capaList');if(!el)return;
+ const counts={};for(const s of shapes){const c=capaDe(s);if(c)counts[c.k]=(counts[c.k]||0)+1;}
+ el.innerHTML=CAPAS.filter(c=>counts[c.k]||c.k==='C1'||c.k==='C2'||c.k===capaActiva).map(c=>{
+  return '<div class="lyr'+(c.salida===false?' off':'')+'">'
+   +'<input type="checkbox" data-vis="'+c.k+'"'+(c.visible!==false?' checked':'')+' title="Mostrar/ocultar en pantalla (no afecta la exportación)">'
+   +'<span class="dot" data-edit="'+c.k+'" style="background:'+c.color+'"></span>'
+   +'<span data-edit="'+c.k+'" style="flex:1;font-size:11px">'+escAttr(c.nombre)+(counts[c.k]?' <span style="color:var(--mut)">('+counts[c.k]+')</span>':'')+'</span>'
+   +'<span style="color:var(--mut);font-size:10px">'+(c.salida===false?'sin salida':c.pot+'% · '+c.vel)+'</span>'
+   +'<button class="btn" data-edit="'+c.k+'" style="padding:1px 7px" title="Editar nombre, modo, potencia, velocidad, pasadas y orden">✎</button></div>';}).join('');
+ renderPaleta();
+ fillCapaSel($('#txtLayer'),$('#txtLayer')&&$('#txtLayer').value||'C2');
+ fillCapaSel($('#vecLayer'),$('#vecLayer')&&$('#vecLayer').value||'C2');}
+$('#capaList').addEventListener('change',e=>{const k=e.target.dataset.vis;if(!k)return;
+ const c=CAPAS.find(x=>x.k===k);if(!c)return;c.visible=e.target.checked;saveCapas();refresh();});
+$('#capaList').addEventListener('click',e=>{const k=e.target.closest&&e.target.closest('[data-edit]');
+ if(k)openCapaDlg(k.dataset.edit);});
+$('#paleta').addEventListener('click',e=>{const k=e.target.dataset.ck;if(!k)return;
+ capaActiva=k;
+ const ids=selGrp.size?[...selGrp]:(sel!=null?[sel]:[]);
+ const its=shapes.filter(s=>ids.includes(s.id)&&s.type!=='image'&&s.type!=='dim');
+ if(its.length){pushUndo();for(const s of its)s.layer=k;
+  const c=CAPAS.find(x=>x.k===k);
+  $('#hint').textContent=its.length+' forma(s) → capa '+(c?c.nombre:k);refresh();}
+ else{const c=CAPAS.find(x=>x.k===k);
+  $('#hint').textContent='Capa activa: '+(c?c.nombre:k)+' — lo nuevo que dibujés cae en esta capa';renderCapas();}});
+$('#paleta').addEventListener('dblclick',e=>{const k=e.target.dataset.ck;if(k)openCapaDlg(k);});
+
+/* --- diálogo de ajustes de capa --- */
+let capaEdit=null;
+function openCapaDlg(k){const c=CAPAS.find(x=>x.k===k);if(!c)return;capaEdit=k;
+ $('#cdTitle').textContent='CAPA '+c.k+' — '+c.nombre.toUpperCase();
+ $('#cdSw').style.background=c.color;
+ $('#cdNom').value=c.nombre;$('#cdModo').value=c.modo;
+ $('#cdPot').value=c.pot;$('#cdVel').value=c.vel;$('#cdPas').value=c.pasadas;$('#cdPrio').value=c.prio;
+ $('#cdSal').checked=c.salida!==false;
+ cdInfoUpd();$('#capaDlg').classList.add('show');}
+function cdInfoUpd(){const c=CAPAS.find(x=>x.k===capaEdit);if(!c)return;
+ const n=shapes.filter(s=>capaDe(s)===c).length;
+ const modo=$('#cdModo').value,pot=$('#cdPot').value,vel=$('#cdVel').value,pas=Math.max(1,+$('#cdPas').value||1);
+ let h='📐 <b>Qué va a hacer:</b> las formas de esta capa ('+n+' ahora) ';
+ h+=modo==='linea'?'se recorren <b>por la línea</b> — al '+pot+'% es corte o marcado según tu material':
+    modo==='relleno'?'se <b>rellenan enteras</b> como grabado de superficie':
+    'se rellenan como grabado y además se recorre el contorno';
+ h+=', a '+vel+' mm/min'+(pas>1?', repitiendo <b>'+pas+' pasadas</b>':'')+'.';
+ h+='<br>Orden '+$('#cdPrio').value+': las capas con número menor van primero (grabá primero, cortá al final).';
+ if($('#cdSal').checked===false)h+='<br><b>Sin salida:</b> se ve en pantalla pero no entra en el SVG ni en el G-code.';
+ $('#cdInfo').innerHTML=h;}
+['cdModo','cdPot','cdVel','cdPas','cdPrio','cdSal'].forEach(id=>$('#'+id).addEventListener('input',cdInfoUpd));
+$('#cdMat').onclick=()=>{const modo=$('#cdModo').value;
+ const num=id=>{const el=$('#'+id);return el?parseFloat(el.value):NaN;};
+ const v=modo==='relleno'?[num('lzEngP'),num('lzEngV'),1]:[num('lzCutP'),num('lzCutV'),Math.max(1,Math.round(num('lzCutN'))||1)];
+ if(isNaN(v[0])||isNaN(v[1])){alert('El láser + material elegidos en el panel no tienen sugerencia para este modo.');return;}
+ $('#cdPot').value=v[0];$('#cdVel').value=v[1];$('#cdPas').value=v[2];cdInfoUpd();};
+$('#cdCancel').onclick=()=>$('#capaDlg').classList.remove('show');
+$('#cdOk').onclick=()=>{const c=CAPAS.find(x=>x.k===capaEdit);if(!c)return;pushUndo();
+ c.nombre=$('#cdNom').value.trim()||c.k;
+ c.modo=$('#cdModo').value;
+ c.pot=Math.min(100,Math.max(0,parseFloat($('#cdPot').value)||0));
+ c.vel=Math.max(1,parseFloat($('#cdVel').value)||1);
+ c.pasadas=Math.min(50,Math.max(1,Math.round(+$('#cdPas').value)||1));
+ c.prio=Math.min(99,Math.max(1,Math.round(+$('#cdPrio').value)||1));
+ c.salida=$('#cdSal').checked;
+ saveCapas();$('#capaDlg').classList.remove('show');refresh();};
+
+/* ================= G-code láser (GRBL M3/M4) ================= */
+try{const lc=JSON.parse(localStorage.getItem('pc_lasercfg_v1')||'null');
+ if(lc){if(lc.smax)$('#lgSmax').value=lc.smax;if(lc.modo)$('#lgModo').value=lc.modo;}}catch(e){}
+function lgCfg(){return{smax:Math.max(1,parseFloat($('#lgSmax').value)||1000),modo:$('#lgModo').value==='M3'?'M3':'M4'};}
+['lgSmax','lgModo'].forEach(id=>$('#'+id).addEventListener('change',()=>{
+ try{localStorage.setItem('pc_lasercfg_v1',JSON.stringify(lgCfg()));}catch(e){}}));
+/* trabajos por capa, en orden de ejecución */
+function buildLaser(){const out=[];
+ for(const c of capasOrden()){if(c.salida===false)continue;
+  const its=shapes.filter(s=>capaDe(s)===c);if(!its.length)continue;
+  let len=0;const paths=[];
+  for(const s of its)for(const f of flattenShape(kerfAdjusted(s),0.1)){
+   if(!f.pts||f.pts.length<2)continue;
+   paths.push(f);len+=pathLen(f.pts,f.closed);}
+  if(!paths.length)continue;
+  out.push({c:c,n:its.length,paths:paths,len:len,min:len*Math.max(1,c.pasadas)/Math.max(1,c.vel)*1.1});}
+ return out;}
+function gcodeLaser(trabajos,o,nombre){
+ let g='(Paracarpinteros - Laser GRBL - '+nombre+')\n('+o.modo+' Smax '+o.smax+' - Origen XY: esquina inferior izquierda)\n('+lzText(' - ').replace(/[()]/g,'')+')\nG21 G90\nM5\n';
+ for(const t of trabajos){const c=t.c;
+  const S=Math.round(Math.min(100,Math.max(0,c.pot))*o.smax/100),F=Math.max(1,c.vel);
+  g+='\n(Capa '+c.k+' - '+c.nombre.replace(/[()]/g,'')+' - '+c.pot+'% S'+S+' - '+F+' mm/min - '+Math.max(1,c.pasadas)+' pasada(s))\n';
+  if(c.modo!=='linea')g+='(capa de relleno: por ahora se trazan los contornos)\n';
+  for(let pas=0;pas<Math.max(1,c.pasadas);pas++){
+   if(c.pasadas>1)g+='(pasada '+(pas+1)+')\n';
+   for(const f of t.paths){
+    const pts=f.closed?f.pts.concat([f.pts[0]]):f.pts;
+    g+='G0 X'+gpx(pts[0])+' Y'+gpy(pts[0])+'\n'+o.modo+' S'+S+'\n';
+    for(let i=1;i<pts.length;i++)g+='G1 X'+gpx(pts[i])+' Y'+gpy(pts[i])+(i===1?' F'+gfmt(F):'')+'\n';
+    g+='M5\n';}}}
+ g+='\nG0 X0 Y0\nM2\n';return g;}
+$('#bLg').onclick=()=>{const ts=buildLaser();let h='';
+ if(!ts.length)h='<span style="color:#ff8a8a">No hay nada que recorrer: dibujá formas (o revisá que sus capas tengan "Generar salida" activado).</span>';
+ else{let tot=0;
+  for(const t of ts){tot+=t.min;
+   h+='<div style="margin:3px 0"><b style="color:'+t.c.color+'">● '+t.c.k+' '+escAttr(t.c.nombre)+'</b> — '+t.n+' forma(s) · '+t.c.pot+'% · '+t.c.vel+' mm/min · '+Math.max(1,t.c.pasadas)+' pasada(s) · ≈ '+(t.min<1?'<1':Math.round(t.min))+' min</div>';}
+  h+='<div style="margin-top:4px;color:var(--mut)">Total estimado: ≈ '+(tot<1?'<1':Math.round(tot))+' min (sin contar desplazamientos)</div>';}
+ $('#lgResumen').innerHTML=h;$('#lgDlg').classList.add('show');};
+$('#lgCancel').onclick=()=>$('#lgDlg').classList.remove('show');
+$('#lgGo').onclick=()=>{const ts=buildLaser();
+ if(!ts.length){alert('No hay nada que recorrer.');return;}
+ const nombre=($('#lgNombre').value.trim()||'laser').replace(/[^\wáéíóúñÁÉÍÓÚÑ\-]+/g,'_');
+ download(nombre+'.nc',gcodeLaser(ts,lgCfg(),nombre),'text/plain');
+ $('#lgDlg').classList.remove('show');};
 
 /* ================= Vista 3D de la pieza resultante ================= */
 /* Contorno = la forma cerrada más grande de la capa corte. Cerradas dentro de él = agujeros pasantes.
@@ -1676,7 +1932,7 @@ function rings2d(){const cerrados=[],abiertos=[],grabado=[];
   if(m&&m.op==='sobre'){gd=m.prof;const t=FRESAS[m.f];
    gw=(t.tipo==='vbit')?Math.max(0.3,2*m.prof*Math.tan((t.ang||60)/2*Math.PI/180)):t.d;}
   for(const f of flattenShape(s,0.05)){if(f.pts.length<2)continue;
-   if(s.layer==='grabado')grabado.push({pts:f.pts,closed:!!f.closed,fill:!!f.fill,depth:gd,width:gw});
+   if(esGrabado(s))grabado.push({pts:f.pts,closed:!!f.closed,fill:!!f.fill,depth:gd,width:gw});
    else if(f.closed&&f.pts.length>2)cerrados.push({pts:f.pts,area:ringArea(f.pts)});
    else abiertos.push(f);}}
  return{cerrados,abiertos,grabado};}
@@ -1812,7 +2068,7 @@ const GUIAS={
   {t:{laser:'⬇ Exportar SVG (arriba a la derecha) y abrilo en LightBurn: rojo = corte, negro = grabado. ¡A cortar!',router:'⬇ G-code Router (arriba): un archivo por fresa, e imprimí la 📋 Hoja de ruta para seguir los pasos en la máquina.'}}]},
  grabar:{titulo:'Grabar un dibujo o texto',pasos:[
   {t:'Elegí tu máquina en ÁREA DE TRABAJO (panel derecho).'},
-  {t:'Escribí el texto con T (clic donde va) o subí tu dibujo con + Imagen / Logo y usá ⟲ Vectorizar en Propiedades para volverlo trazos grabables.',check:()=>shapes.some(s=>s.layer==='grabado'||s.type==='text'||s.type==='image')},
+  {t:'Escribí el texto con T (clic donde va) o subí tu dibujo con + Imagen / Logo y usá ⟲ Vectorizar en Propiedades para volverlo trazos grabables.',check:()=>shapes.some(s=>esGrabado(s)||s.type==='text'||s.type==='image')},
   {t:{laser:'En LÁSER Y MATERIAL mirá la línea "Grabado": menos potencia y más velocidad que el corte.',router:'El grabado lo hace la fresa de grabado (una V-bit da líneas finas) a poca profundidad — revisá "Prof. grabado" en FRESADO CNC.'}},
   {t:{laser:'⬇ Exportar SVG → LightBurn: lo negro es grabado. Probá primero en un recorte del mismo material.',router:'⬇ G-code Router e imprimí la 📋 Hoja de ruta. Probá primero en un recorte.'}}]},
  perforar:{titulo:'Perforar agujeros',pasos:[
@@ -1877,14 +2133,14 @@ function panelFingers(w,h,T,fw,conf){
   if(!q||Math.abs(q.x-p.x)>1e-6||Math.abs(q.y-p.y)>1e-6)out.push(p);}
  if(out.length>1&&Math.abs(out[0].x-out[out.length-1].x)<1e-6&&Math.abs(out[0].y-out[out.length-1].y)<1e-6)out.pop();
  return out;}
-function tplTexto(tx,cx,cy,size){return{type:'text',text:tx,x:cx-String(tx).length*size*0.36,y:cy+size*0.35,size:size,layer:'grabado',flipH:false,flipV:false};}
+function tplTexto(tx,cx,cy,size){return{type:'text',text:tx,x:cx-String(tx).length*size*0.36,y:cy+size*0.35,size:size,layer:'C2',flipH:false,flipV:false};}
 function tplCaja(v){const L=v.L,W=v.W,H=v.H,T=v.T,fw=Math.max(T*1.5,v.F),g=10;
  const wall0={top:null,right:0,bottom:0,left:0};   /* frente/atrás: fase 0 */
  const side1={top:null,right:1,bottom:0,left:1};   /* lados: verticales fase 1 */
  const base1={top:1,right:1,bottom:1,left:1};      /* base: todo fase 1 */
  const piezas=[];
  const P=(w,h,conf,x,y,label)=>{
-  piezas.push({type:'poly',pts:panelFingers(w,h,T,fw,conf).map(p=>({x:p.x+x,y:p.y+y})),closed:true,layer:'corte',kerf:'no'});
+  piezas.push({type:'poly',pts:panelFingers(w,h,T,fw,conf).map(p=>({x:p.x+x,y:p.y+y})),closed:true,layer:'C1',kerf:'no'});
   if(v.ROT)piezas.push(tplTexto(label,x+w/2,y+h/2,Math.min(10,h/4)));};
  let y=10;
  P(L,H,wall0,10,y,'FRENTE');P(L,H,wall0,10+L+g,y,'ATRAS');y+=H+g;
@@ -1893,19 +2149,19 @@ function tplCaja(v){const L=v.L,W=v.W,H=v.H,T=v.T,fw=Math.max(T*1.5,v.F),g=10;
  return{piezas,needW:Math.max(10+L+g+L,10+W+g+W)+10,needH:y+W+10};}
 function tplPosavasos(v){const D=v.D,cx=10+D/2,cy=10+D/2;
  return{piezas:[
-  {type:'circle',cx:cx,cy:cy,r:D/2,layer:'corte',kerf:'ext'},
-  {type:'circle',cx:cx,cy:cy,r:D/2-5,layer:'grabado',kerf:'no'},
+  {type:'circle',cx:cx,cy:cy,r:D/2,layer:'C1',kerf:'ext'},
+  {type:'circle',cx:cx,cy:cy,r:D/2-5,layer:'C2',kerf:'no'},
   tplTexto(v.TX,cx,cy,v.S)],needW:D+20,needH:D+20};}
 function tplLetrero(v){const w=v.W,h=v.H;
  return{piezas:[
-  {type:'rect',x:10,y:10,w:w,h:h,rx:8,layer:'corte',kerf:'no'},
-  {type:'circle',cx:10+15,cy:10+15,r:2.5,layer:'corte',kerf:'int',perf:true},
-  {type:'circle',cx:10+w-15,cy:10+15,r:2.5,layer:'corte',kerf:'int',perf:true},
+  {type:'rect',x:10,y:10,w:w,h:h,rx:8,layer:'C1',kerf:'no'},
+  {type:'circle',cx:10+15,cy:10+15,r:2.5,layer:'C1',kerf:'int',perf:true},
+  {type:'circle',cx:10+w-15,cy:10+15,r:2.5,layer:'C1',kerf:'int',perf:true},
   tplTexto(v.TX,10+w/2,10+h/2+5,v.S)],needW:w+20,needH:h+20};}
 function tplLlavero(v){const w=Math.max(55,28+String(v.TX).length*v.S*0.75),h=Math.max(24,v.S+14);
  return{piezas:[
-  {type:'rect',x:10,y:10,w:w,h:h,rx:h/3,layer:'corte',kerf:'no'},
-  {type:'circle',cx:10+9,cy:10+h/2,r:2.5,layer:'corte',kerf:'int',perf:true},
+  {type:'rect',x:10,y:10,w:w,h:h,rx:h/3,layer:'C1',kerf:'no'},
+  {type:'circle',cx:10+9,cy:10+h/2,r:2.5,layer:'C1',kerf:'int',perf:true},
   tplTexto(v.TX,10+9+(w-9)/2,10+h/2,v.S)],needW:w+20,needH:h+20};}
 const TPLS={
  caja:{n:'📦 Caja abierta con encajes de dedos',fn:tplCaja,
@@ -1947,7 +2203,7 @@ $('#tplGo').onclick=()=>{const t=TPLS[$('#tplSel').value];const v={};
 /* ================= Autoguardado + deshacer visible ================= */
 let autoT=null;
 function autosave(){clearTimeout(autoT);autoT=setTimeout(()=>{
- try{localStorage.setItem('pc_autosave',JSON.stringify({area,shapes,nextId,modo:MODO}));}catch(e){}},1200);}
+ try{localStorage.setItem('pc_autosave',JSON.stringify({area,shapes,nextId,modo:MODO,capas:CAPAS}));}catch(e){}},1200);}
 $('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
 
 /* ================= Diálogos arrastrables por su título ================= */
@@ -1980,6 +2236,8 @@ try{applyRtCfg(JSON.parse(localStorage.getItem('pc_routercfg_v1')||'null'));}cat
 /* recuperar el último diseño sin guardar (autosave) */
 try{const d=JSON.parse(localStorage.getItem('pc_autosave')||'null');
  if(d&&d.shapes&&d.shapes.length){shapes=d.shapes;area=d.area||area;
+  if(d.capas)CAPAS=normalizarCapas(d.capas);
+  normalizarShapes(shapes);
   nextId=Math.max(d.nextId||1,shapes.reduce((m,s)=>Math.max(m,s.id||0),0)+1);
   $('#areaW').value=area.w;$('#areaH').value=area.h;
   setTimeout(()=>{$('#hint').textContent='Recuperamos tu último diseño automáticamente — "Nuevo" para empezar de cero.';},300);}}catch(e){}

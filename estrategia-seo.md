@@ -14,7 +14,13 @@ siguen rankeando). La estrategia: tapar fugas → exprimir lo que ya casi rankea
 
 ---
 
-## P1 — Tapar la fuga: 404 que siguen rankeando (esfuerzo: bajo · impacto: inmediato)
+## P1 — Tapar la fuga: 404 que siguen rankeando ✅ EJECUTADO 2026-06-11
+
+El inventario completo encontró **74 URLs muertas** (no 4): todas categorías del
+árbol viejo, sumando **31.778 impresiones y 672 clicks** en 90 días. Se crearon
+74 redirecciones 301 vía `website.rewrite` con `scripts/aplicar_redirects_seo.py`
+(mapa slug→categoría viva, destinos canónicos sin cadenas). Verificado en vivo,
+querystrings se conservan. La tabla original de la propuesta (parcial):
 
 Google aún rankea **categorías del árbol viejo que hoy dan 404**:
 

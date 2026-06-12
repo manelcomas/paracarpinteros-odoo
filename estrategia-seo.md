@@ -67,7 +67,14 @@ Acciones, en orden:
    directa — su valor es marca, enlaces y remarketing. Por eso va después de P1
    pero no se le dedica contenido infinito: title + estructura y a otra cosa.
 
-## P3 — Cluster "aceites y acabados": el nicho transaccional ganador (esfuerzo: medio · impacto: ventas)
+## P3 — Cluster "aceites y acabados" ✅ EJECUTADO 2026-06-11
+
+Aplicado con `scripts/aplicar_p3_p6_seo.py`: metas con "Costa Rica" en fichas
+1086/6444/2711, cruce linaza↔tung en `alternative_product_ids` Y como bloque
+`pc-cruce` server-rendered en las descripciones (el carrusel "alternativos" de
+Odoo es un snippet dinámico que renderiza vacío en este theme — no sirve para
+SEO). El post "tung vs linaza" ya existía (id 57); los posts del cluster ahora
+enlazan fichas + categoría + guía. Plan original:
 
 Es la categoría reina en búsqueda no-marca y TODA la intención es de compra:
 linaza (2.285 imp pos 11 + 963 "donde comprar" pos 8), tung (920+889 pos 7–8),
@@ -108,7 +115,13 @@ sitio (la verificación del dominio ya está), añadir el feed por URL
 activar "plataformas gratuitas" (free listings). Con eso las fichas salen en la
 pestaña Shopping sin pagar.
 
-## P6 — Blog: mejorar CTR de lo que ya rankea antes de escribir nada nuevo
+## P6 — Blog: mejorar CTR de lo que ya rankea ✅ EJECUTADO 2026-06-11
+
+Mismo script: meta title/description nuevos en los 6 posts con tráfico (13
+linaza, 22 cedro amargo, 25 teca, 32 atomstack x20, 51 cura de madera, 18
+laurel — ninguno tenía) + bloque "🛒 Relacionado en la tienda" al final de cada
+uno (aceites → fichas+categoría+guía 57; atomstack → categoría Grabadoras Láser
++ diseñador). Plan original:
 
 El blog ya está en pos 5–8 para queries de volumen: cedro amargo (937), teca
 (502+382+186), laurel (100), atomstack x20 pro (410), "como se cura la madera"

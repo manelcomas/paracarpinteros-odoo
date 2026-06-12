@@ -1,0 +1,345 @@
+<script>
+(function(){
+  if(document.getElementById('wa-btn'))return;
+  /* herramientas-sin-burbuja */ if(/^\/(disenador-|etiquetas-correos|fe-converter|calculadora|mastercut|conversor|conversion-de-medidas|tabla-conversiones)/.test(location.pathname))return;
+  var a=document.createElement('a');
+  a.id='wa-btn';
+  a.href='https://wa.me/50686069717';
+  a.target='_blank';
+  a.style.cssText='position:fixed;bottom:24px;right:24px;z-index:99999;background:#25D366;color:#fff;border-radius:50px;padding:13px 22px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.35);display:flex;align-items:center;gap:10px;font-family:sans-serif;font-weight:700;font-size:15px';
+  a.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2.1-.4 0-.5s-.7-1.6-.9-2.2c-.2-.6-.5-.5-.7-.5H7.9c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/><path d="M12 0C5.4 0 0 5.4 0 12c0 2.1.6 4.1 1.5 5.9L0 24l6.3-1.5c1.7.9 3.7 1.5 5.7 1.5 6.6 0 12-5.4 12-12S18.6 0 12 0zm0 21.8c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.8.9 1-3.7-.2-.4A9.8 9.8 0 012.2 12C2.2 6.6 6.6 2.2 12 2.2s9.8 4.4 9.8 9.8-4.4 9.8-9.8 9.8z"/></svg>WhatsApp';
+  document.body.appendChild(a);
+})();
+</script>
+<!-- === Botón Compartir Producto === -->
+
+<style>
+.lj-share-pill{position:fixed;bottom:85px;right:18px;background:linear-gradient(135deg,#FF6B1A 0%,#E5550F 100%);color:#fff;border:none;cursor:pointer;display:none;align-items:center;gap:10px;padding:12px 20px;border-radius:50px;box-shadow:0 6px 20px rgba(255,107,26,.45);z-index:9998;font-weight:800;font-size:14px;font-family:-apple-system,'Montserrat',sans-serif;transition:all .2s;line-height:1;white-space:nowrap}
+.lj-share-pill:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(255,107,26,.6)}
+.lj-share-pill:disabled{opacity:.7;cursor:wait}
+.lj-share-pill svg{width:20px;height:20px;fill:currentColor;flex-shrink:0}
+body.lj-has-product .lj-share-pill{display:inline-flex}
+@media (max-width:768px){.lj-share-pill{bottom:92px;right:14px;padding:10px 16px;font-size:13px}.lj-share-pill svg{width:18px;height:18px}.lj-share-pill .lj-share-long{display:none}.lj-share-pill .lj-share-short{display:inline}}
+@media (min-width:769px){.lj-share-pill .lj-share-short{display:none}}
+.lj-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99998;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.lj-backdrop.show{display:flex;animation:ljFade .2s ease}
+@keyframes ljFade{from{opacity:0}to{opacity:1}}
+.lj-modal{background:#fff;border-radius:20px;padding:24px;max-width:420px;width:calc(100vw - 40px);box-shadow:0 20px 80px rgba(0,0,0,.3);font-family:-apple-system,'Montserrat',sans-serif;animation:ljModal .25s cubic-bezier(.2,.8,.3,1);max-height:90vh;overflow-y:auto}
+@keyframes ljModal{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.lj-modal-head{text-align:center;margin-bottom:20px;position:relative}
+.lj-modal-head h3{margin:0;font-size:19px;font-weight:800;color:#1A1A1A}
+.lj-modal-head p{margin:6px 0 0;font-size:14px;color:#777}
+.lj-modal-close{position:absolute;top:-4px;right:-4px;width:32px;height:32px;border-radius:50%;background:#F5F5F5;border:none;font-size:18px;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.lj-modal-close:hover{background:#EEE;color:#1A1A1A}
+.lj-preview{margin:0 0 18px;border-radius:12px;overflow:hidden;background:#F5F5F5;max-height:260px}
+.lj-preview img{width:100%;height:auto;display:block}
+.lj-modal-opts{display:flex;flex-direction:column;gap:10px}
+.lj-opt{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;border:2px solid #EEE;background:#fff;cursor:pointer;transition:all .18s;width:100%;text-align:left;font-family:inherit;text-decoration:none;color:inherit}
+.lj-opt:hover{border-color:#FF6B1A;background:#FFF4ED;transform:translateY(-2px);color:inherit}
+.lj-opt-ic{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;color:#fff}
+.bg-orange{background:linear-gradient(135deg,#FF6B1A,#E5550F)}
+.bg-blue{background:linear-gradient(135deg,#2D9CDB,#1A6BB5)}
+.lj-opt-txt{flex:1;min-width:0}
+.lj-opt-txt b{display:block;font-size:15px;color:#1A1A1A;margin-bottom:2px}
+.lj-opt-txt span{display:block;font-size:13px;color:#777;line-height:1.3}
+.lj-opt-arrow{color:#AAA;font-size:20px;flex-shrink:0}
+.lj-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1A1A1A;color:#fff;padding:20px 28px;border-radius:14px;font-size:15px;font-weight:700;z-index:99999;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:-apple-system,'Montserrat',sans-serif;display:none;align-items:center;gap:14px;max-width:90vw}
+.lj-toast.show{display:flex;animation:ljToastIn .22s ease}
+@keyframes ljToastIn{from{opacity:0;transform:translate(-50%,-40%)}to{opacity:1;transform:translate(-50%,-50%)}}
+</style>
+<button class="lj-share-pill" id="ljShareBtn" aria-label="Compartir producto">
+<svg viewBox="0 0 24 24"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+<span class="lj-share-long">Enviarle a un compa</span>
+<span class="lj-share-short">Compartir</span>
+</button>
+<div class="lj-backdrop" id="ljBackdrop">
+<div class="lj-modal" id="ljModal" onclick="event.stopPropagation()">
+<div class="lj-modal-head">
+<h3>Enviale la imagen a un compa</h3>
+<p>Solo la imagen. Ya lleva el precio y el link.</p>
+<button class="lj-modal-close" id="ljCloseBtn">×</button>
+</div>
+<div class="lj-preview" id="ljPreview"></div>
+<div class="lj-modal-opts" id="ljOpts"></div>
+</div>
+</div>
+<div class="lj-toast" id="ljToast"></div>
+<script>
+(function(){
+  function isProductPage(){ return /^\/shop\/[^/]+/.test(location.pathname) && !location.pathname.includes('/cart') && !location.pathname.includes('/checkout'); }
+  function isMobile(){ return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); }
+  function loadImg(src){ return new Promise((res,rej)=>{ var img=new Image(); img.crossOrigin='anonymous'; img.onload=()=>res(img); img.onerror=rej; img.src=src; }); }
+  function wrapText(ctx, text, maxWidth){
+    var words = text.split(' '), lines=[], cur='';
+    for(var i=0;i<words.length;i++){
+      var test = cur ? cur+' '+words[i] : words[i];
+      if(ctx.measureText(test).width > maxWidth && cur){ lines.push(cur); cur=words[i]; } else cur = test;
+    }
+    if(cur) lines.push(cur); return lines;
+  }
+  async function buildShareCard(imgEl, title, price, ref){
+    var W=1080, H=1350;
+    var c = document.createElement('canvas'); c.width=W; c.height=H;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+    try {
+      var pimg = await loadImg(imgEl.src);
+      var pad=70, availW=W-pad*2, availH=820;
+      ctx.fillStyle='#F5F5F5'; ctx.fillRect(0,0,W,availH+pad);
+      var scale = Math.min(availW/pimg.width, availH/pimg.height);
+      var w=pimg.width*scale, h=pimg.height*scale;
+      ctx.drawImage(pimg, (W-w)/2, pad+(availH-h)/2, w, h);
+    } catch(e){}
+    var bandY=890;
+    var grd=ctx.createLinearGradient(0,bandY,W,H);
+    grd.addColorStop(0,'#FF6B1A'); grd.addColorStop(1,'#E5550F');
+    ctx.fillStyle=grd; ctx.fillRect(0,bandY,W,H-bandY);
+    ctx.textBaseline='top';
+    ctx.fillStyle='#fff';
+    if(ref){ctx.save();ctx.font='bold 28px -apple-system, sans-serif';var __tw=ctx.measureText(ref).width;var __pw=__tw+32;var __ph=48;var __pX=W-40-__pw;var __pY=40;ctx.fillStyle='#FF6B1A';ctx.fillRect(__pX,__pY,__pw,__ph);ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(ref,__pX+16,__pY+__ph/2);ctx.restore();}
+ctx.font='bold 40px -apple-system, Montserrat, sans-serif';
+    var ct = title.replace(/\s+/g,' ').trim();
+    if(ct.length>90) ct = ct.substring(0,87)+'...';
+    var lines = wrapText(ctx, ct, W-140).slice(0,2);
+    lines.forEach((l,i)=>ctx.fillText(l, 70, bandY+50+i*50));
+    ctx.font='bold 22px -apple-system, sans-serif';
+    ctx.fillStyle='rgba(255,255,255,.85)';
+    ctx.fillText('PRECIO', 70, bandY+175);
+    ctx.font='bold 90px -apple-system, Montserrat, sans-serif';
+    ctx.fillStyle='#fff';
+    ctx.fillText(price||'—', 70, bandY+205);
+    var linkY=H-120;
+    ctx.fillStyle='#fff'; ctx.fillRect(40,linkY,W-80,80);
+    ctx.fillStyle='#1A1A1A';
+    ctx.font='bold 34px -apple-system, Montserrat, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('👉 paracarpinteros.com', W/2, linkY+22);
+    ctx.textAlign='left';
+    return new Promise(res=>c.toBlob(b=>res(b), 'image/png', 0.92));
+  }
+  function showToast(html, ms){
+    var t = document.getElementById('ljToast');
+    t.innerHTML = html; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), ms||3500);
+  }
+  async function copyImg(blob){
+    if(!navigator.clipboard || !window.ClipboardItem) return false;
+    try { await navigator.clipboard.write([new ClipboardItem({[blob.type]:blob})]); return true; }
+    catch(e){ return false; }
+  }
+  function openModal(){ document.getElementById('ljBackdrop').classList.add('show'); }
+  function closeModal(){ document.getElementById('ljBackdrop').classList.remove('show'); }
+
+  function setup(){
+    if(isProductPage()) document.body.classList.add('lj-has-product');
+    var btn = document.getElementById('ljShareBtn');
+    var backdrop = document.getElementById('ljBackdrop');
+    var closeBtn = document.getElementById('ljCloseBtn');
+    var optsEl = document.getElementById('ljOpts');
+    var previewEl = document.getElementById('ljPreview');
+    if(!btn) return;
+
+    backdrop.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+
+    btn.addEventListener('click', async function(){
+      btn.disabled = true;
+      var title = ((document.querySelector('h1')||{}).textContent||document.title).trim();
+      var priceEl = document.querySelector('.product_price, .oe_price .oe_currency_value, [itemprop="price"]');
+      var price = priceEl ? priceEl.textContent.trim() : '';
+      var img = document.querySelector('.product_detail_img, #o-carousel-product img, .o_wsale_product_images img, [itemprop="image"], .product-primary-image img, .o_wsale_product_main_image img');
+      if(!img) img = document.querySelector('img[src*="/web/image/product"]');
+
+      var blob = null;
+      try { if(img) blob = await buildShareCard(img, title, price, (function(){var rEl=document.querySelector('p.text-muted');return (rEl && /Ref/i.test(rEl.textContent)) ? rEl.textContent.trim() : '';})()); } catch(e){}
+
+      previewEl.innerHTML = '';
+      if(blob){
+        var fr = new FileReader();
+        fr.onload = e=>previewEl.innerHTML = '<img src="'+e.target.result+'" alt="">';
+        fr.readAsDataURL(blob);
+      }
+
+      optsEl.innerHTML = '';
+
+      // OPCIÓN 1: Copiar imagen (recomendada — solo imagen, sin texto)
+      var o1 = document.createElement('button');
+      o1.className='lj-opt';
+      o1.innerHTML='<div class="lj-opt-ic bg-orange">📋</div><div class="lj-opt-txt"><b>Copiar imagen</b><span>'+(isMobile()?'Mantené presionada y pegala en tu chat':'Pegá con Ctrl+V en WhatsApp Web, Messenger, email…')+'</span></div><span class="lj-opt-arrow">›</span>';
+      o1.onclick = async ()=>{
+        closeModal();
+        var ok = blob ? await copyImg(blob) : false;
+        if(ok) showToast('<span style="font-size:26px">📋</span><span><b style="color:#FF6B1A">¡Imagen copiada!</b><br>Presioná Ctrl+V en el chat</span>', 4500);
+        else showToast('<span style="font-size:26px">⚠️</span><span>No se pudo copiar.<br>Probá con "Compartir"</span>', 3500);
+      };
+      optsEl.appendChild(o1);
+
+      // OPCIÓN 2: Menú compartir nativo (solo imagen, sin texto ni URL)
+      if(navigator.share && blob){
+        var file = new File([blob], 'producto.png', {type:'image/png'});
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          var o2 = document.createElement('button');
+          o2.className='lj-opt';
+          o2.innerHTML='<div class="lj-opt-ic bg-blue">📤</div><div class="lj-opt-txt"><b>Compartir con app</b><span>'+(isMobile()?'Elegí la app que quieras':'Abre menú de Windows con apps disponibles')+'</span></div><span class="lj-opt-arrow">›</span>';
+          o2.onclick = async ()=>{
+            closeModal();
+            try { await navigator.share({files:[file]}); } catch(e){}
+          };
+          optsEl.appendChild(o2);
+        }
+      }
+
+      // OPCIÓN 3: Descargar imagen (backup)
+      var o3 = document.createElement('button');
+      o3.className='lj-opt';
+      o3.innerHTML='<div class="lj-opt-ic bg-blue">💾</div><div class="lj-opt-txt"><b>Descargar imagen</b><span>Guardala y compartila después</span></div><span class="lj-opt-arrow">›</span>';
+      o3.onclick = ()=>{
+        closeModal();
+        if(!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'producto.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+      };
+      optsEl.appendChild(o3);
+
+      openModal();
+      btn.disabled = false;
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+  else setup();
+})();
+</script>
+
+
+<!-- Banner Instala App PWA - ParaCarpinteros.com -->
+<style>
+#pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a1a;color:#fff;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 -2px 10px rgba(0,0,0,.3);align-items:center;gap:12px;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#pwa-banner .pwa-logo{width:40px;height:40px;border-radius:8px;flex-shrink:0;background:#f5c518;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#1a1a1a}
+#pwa-banner .pwa-text{flex:1;min-width:0}
+#pwa-banner .pwa-text strong{display:block;font-size:14px;line-height:1.3}
+#pwa-banner .pwa-text span{font-size:12px;color:#aaa;line-height:1.3}
+#pwa-banner .pwa-btn{background:#f5c518;color:#1a1a1a;border:none;padding:8px 18px;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+#pwa-banner .pwa-btn:hover{background:#e0b415}
+#pwa-banner .pwa-close{background:none;border:none;color:#888;font-size:22px;cursor:pointer;padding:0 0 0 4px;line-height:1;flex-shrink:0}
+#pwa-banner .pwa-close:hover{color:#fff}
+#ios-modal-overlay{display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+#ios-modal{background:#fff;color:#222;border-radius:16px 16px 0 0;padding:24px 20px 32px;max-width:400px;width:100%;text-align:center}
+#ios-modal h3{margin:0 0 16px;font-size:18px}
+#ios-modal .ios-step{display:flex;align-items:center;gap:12px;text-align:left;margin:12px 0;font-size:14px;line-height:1.4}
+#ios-modal .ios-step .icon{font-size:24px;flex-shrink:0;width:36px;text-align:center}
+#ios-modal .ios-close{margin-top:16px;background:#f5c518;color:#1a1a1a;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer}
+</style>
+<div id="pwa-banner">
+  <div class="pwa-logo">PC</div>
+  <div class="pwa-text">
+    <strong>Instala nuestra app</strong>
+    <span>ParaCarpinteros - acceso rapido</span>
+  </div>
+  <button class="pwa-btn" id="pwa-install-btn">Instalar</button>
+  <button class="pwa-close" id="pwa-close-btn" aria-label="Cerrar">&times;</button>
+</div>
+<div id="ios-modal-overlay">
+  <div id="ios-modal">
+    <h3>Instalar en iPhone</h3>
+    <div class="ios-step"><span class="icon">&#x1F4E4;</span><span>Pulsa el icono <strong>Compartir</strong> en la barra inferior de Safari</span></div>
+    <div class="ios-step"><span class="icon">&#x2795;</span><span>Selecciona <strong>"Anadir a pantalla de inicio"</strong></span></div>
+    <div class="ios-step"><span class="icon">&#x2705;</span><span>Pulsa <strong>"Anadir"</strong> y listo</span></div>
+    <button class="ios-close" id="ios-close-btn">Entendido</button>
+  </div>
+</div>
+<script>
+(function(){
+  var isMobile=/Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if(!isMobile)return;
+  if(document.querySelector('.o_in_editor'))return;
+  var ck='pwa_banner_closed=1';
+  if(document.cookie.indexOf(ck)!==-1)return;
+  var b=document.getElementById('pwa-banner');
+  if(!b)return;
+  b.style.display='flex';
+  var isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  document.getElementById('pwa-install-btn').addEventListener('click',function(){
+    if(isIOS){document.getElementById('ios-modal-overlay').style.display='flex';}
+    else{window.location.href='https://app.paracarpinteros.com/?utm_source=banner&utm_medium=web';}
+  });
+  document.getElementById('pwa-close-btn').addEventListener('click',function(){
+    b.style.display='none';
+    var d=new Date();d.setTime(d.getTime()+7*24*60*60*1000);
+    document.cookie=ck+';expires='+d.toUTCString()+';path=/;SameSite=Lax';
+  });
+  document.getElementById('ios-close-btn').addEventListener('click',function(){
+    document.getElementById('ios-modal-overlay').style.display='none';
+  });
+  document.getElementById('ios-modal-overlay').addEventListener('click',function(e){
+    if(e.target===this)this.style.display='none';
+  });
+})();
+</script>
+
+<script id="pc-preserve-search">
+/* PC-PRESERVE-SEARCH: mantiene ?search= al cambiar de categoría en /shop */
+(function(){
+  function rewrite(){
+    var url = new URL(window.location.href);
+    var search = url.searchParams.get('search');
+    var order  = url.searchParams.get('order');
+    var price  = url.searchParams.get('min_price');
+    var pmax   = url.searchParams.get('max_price');
+    if(!search && !order && !price && !pmax) return;
+    var links = document.querySelectorAll('a[href*="/shop/category/"], a[href="/shop"]');
+    links.forEach(function(a){
+      try{
+        var h = new URL(a.href, window.location.origin);
+        if(search) h.searchParams.set('search', search);
+        if(order)  h.searchParams.set('order', order);
+        if(price)  h.searchParams.set('min_price', price);
+        if(pmax)   h.searchParams.set('max_price', pmax);
+        a.href = h.toString();
+      }catch(e){}
+    });
+  }
+  function init(){
+    rewrite();
+    /* Re-aplicar tras cargas dinámicas (Odoo a veces re-renderiza) */
+    var obs = new MutationObserver(function(){rewrite();});
+    obs.observe(document.body, {childList:true, subtree:true});
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+<script id="pc-sku-jsonld">
+/* PC-SKU-JSONLD: anade sku al JSON-LD Product leyendo el "Ref:" nativo de la ficha */
+(function(){
+  function addSku(){
+    if(!/^\/shop\/[^/]+/.test(location.pathname) || location.pathname.indexOf('/shop/category')===0) return;
+    var ref=null;
+    document.querySelectorAll('p.text-muted').forEach(function(p){
+      var m=p.textContent.match(/^\s*Ref:\s*(\S+)\s*$/);
+      if(m) ref=m[1];
+    });
+    if(!ref) return;
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){
+      try{
+        var data=JSON.parse(s.textContent);
+        var arr=Array.isArray(data)?data:[data];
+        var cambiado=false;
+        arr.forEach(function(o){
+          if(o && o['@type']==='Product' && !o.sku){ o.sku=ref; cambiado=true; }
+        });
+        if(cambiado) s.textContent=JSON.stringify(data);
+      }catch(e){}
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', addSku);
+  else addSku();
+})();
+</script>

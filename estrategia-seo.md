@@ -92,7 +92,14 @@ cera de abeja (top 5 ya), más el galón (404 imp pos 6).
 4. Réplica del patrón en el siguiente nicho que ya asoma: **perfiles de
    aluminio** (526+416+159 imp pos 6–8, fichas 2020/4040 + categorías nuevas).
 
-## P4 — Resolver la canibalización de fresas (esfuerzo: decisión + 1h · impacto: medio)
+## P4 — Canibalización de fresas ✅ EJECUTADO 2026-06-11 (fusión)
+
+Fusionado con `scripts/aplicar_p4_fusion_fresas.py` (backup completo en
+_backups/): 88 productos del árbol G/P/V añadidos a Fresas mango 1/2" (→148),
+1/4" (→141) y Fresas CNC (→50); menús del website "Fresas P/G/V" reapuntados a
+las categorías destino como 'Fresas 1/4"/1/2"/CNC'; 7 redirects 301 (slugs
+viejos y nuevos del árbol B); categorías 2035–2038 eliminadas. Un solo hub
+recibe ahora toda la demanda de fresas, incluido el 301 de la 172. Plan original:
 
 "fresas para router" (463 imp) rankea con una **URL muerta** (la 172) en pos 16,
 y "fresas para router costa rica" (58 imp) igual — mientras hay DOS árboles

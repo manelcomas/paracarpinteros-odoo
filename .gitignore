@@ -33,3 +33,6 @@ graphify-out/
 .vscode/
 # Borradores de facturación electrónica (datos fiscales reales de clientes, NO subir)
 fe-signer/fe-converter/borrador_*.xml
+
+# Claves de cuentas de servicio (NO subir)
+.credentials/

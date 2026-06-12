@@ -37,7 +37,15 @@ resto: consultar GSC por dimensión `page`, probar status de cada URL y redirigi
 todo lo que dé 404 con impresiones. Nota: `maquinas-185` aparece con 60 clicks
 en el top de páginas — eso es tráfico que HOY cae en un 404.
 
-## P2 — La mina: conversores mm↔pulgadas (esfuerzo: medio · impacto: el mayor del sitio)
+## P2 — La mina: conversores mm↔pulgadas ✅ EJECUTADO 2026-06-11 (puntos 1–3)
+
+Aplicado con `scripts/aplicar_p2_conversores.py`: página 23 con meta title
+"Convertidor de mm a Pulgadas (y Pulgadas a mm) con Tabla" + description + H1
+con keyword (antes "CONVERSOR CARPINTERO PRO"); página 22 especializada en
+fracciones/decimales ("Tabla de Pulgadas a mm: Fracciones y Decimales Exactos").
+Se optó por especializar, no consolidar. Gotcha descubierto: los meta de
+website.page son traducibles — escribir con context lang es_ES o el render no
+los emite. Pendiente opcional: subir el conversor interactivo above the fold.
 
 **88.614 impresiones** (75% de todas las oportunidades) en ~200 variantes de la
 misma intención, casi todas hacia `/conversion-de-medidas-tabla-de-pulgadas-milimetros-y-fracciones`,

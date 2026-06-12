@@ -158,6 +158,16 @@ le manda el XML y reenvía a Hacienda.
 - **Gotcha tarifa IVA:** el `<TotalDesgloseImpuesto>` (resumen) debe llevar el
   **mismo `CodigoTarifaIVA` que las líneas**. UCR paga **2% (tarifa 03**, Ley 9635
   Art. 11.4); hardcodear `08` (13%) en el resumen → rechazo Hacienda **-488**.
+- **Gotcha CAByS:** el código CAByS de cada línea sale del campo
+  `product.product.x_cabys_code` en Odoo (el converter lo lee y lo puede escribir
+  desde su modal de búsqueda). Si el código **no existe** en el catálogo BCCR,
+  Hacienda rechaza con error **-400** ("no se encuentra en el Catálogo CAByS").
+  Validar contra `https://api.hacienda.go.cr/fe/cabys?codigo=XXX` (vacío = no
+  existe; también acepta `?q=texto`). El 2026-06-12 se saneó todo el catálogo:
+  38 productos tenían 3 códigos inventados (`3199900990000`, `4299299990000`,
+  `4449903000000`) que se remapearon a códigos reales. La respuesta de Hacienda
+  de cada FE queda como adjunto `FE_<clave>_respuesta_hacienda.xml` en el chatter
+  del `account.move` — ahí está el motivo exacto de un rechazo.
 
 ### wa-bot deploy
 

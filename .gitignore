@@ -36,3 +36,4 @@ fe-signer/fe-converter/borrador_*.xml
 
 # Claves de cuentas de servicio (NO subir)
 .credentials/
+.claude/settings.local.json

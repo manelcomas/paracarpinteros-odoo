@@ -89,8 +89,11 @@ cera de abeja (top 5 ya), más el galón (404 imp pos 6).
    gap es señal de que falta relevancia local en la ficha.
 3. **Contenido**: un post "Aceite de tung vs aceite de linaza: cuál usar"
    enlazando ambas fichas — captura las dos familias de queries a la vez.
-4. Réplica del patrón en el siguiente nicho que ya asoma: **perfiles de
-   aluminio** (526+416+159 imp pos 6–8, fichas 2020/4040 + categorías nuevas).
+4. ✅ (2026-06-12) Réplica en **perfiles de aluminio** con
+   `scripts/aplicar_p3b_perfiles.py`: metas CR en las 3 categorías de perfil
+   (1976/1977/1978, no tenían) y en las 8 fichas de tramos (2020/3060/4040 ×
+   100/250 cm), + bloque pc-cruce en cada ficha (otro largo, tuercas de riel,
+   uniones, categoría).
 
 ## P4 — Canibalización de fresas ✅ EJECUTADO 2026-06-11 (fusión)
 
@@ -140,6 +143,8 @@ demanda sin página (revisar pestaña Oportunidades, columna página).
 
 ## Medición y cadencia
 
+- ✅ Sitemap reenviado por API (2026-06-12) y borradas las 2 entradas zombi
+  non-www que daban error desde 2023. Queda solo www.../sitemap.xml.
 - `python3 scripts/gsc_keywords.py` **mensual** (1 min) y comparar resumen.md
   contra el del mes anterior (guardar como `resumen-YYYY-MM.md`).
 - KPI a 90 días: clicks no-marca ×2 (de ~1.500 a 3.000), las queries de P2 de

@@ -243,6 +243,22 @@ El bot contesta por **nota de voz** cuando el cliente le escribe **por audio** (
 - Costo: `gpt-4o-mini-tts` ≈ **$0.015/min** (~$0.007 por respuesta corta), reusa la cuenta OpenAI del Whisper (`OPENAI_API_KEY`).
 - Env (opcionales): `WA_VOICE_REPLIES` (default `1`; `0` lo apaga), `TTS_MODEL` (default `gpt-4o-mini-tts`), `TTS_VOICE` (default `shimmer`). El audio **entrante** ya se transcribía con Whisper (`transcribe_audio`).
 
+### wa-bot: gotcha API key Odoo con expiración + cache de uid
+
+El bot cachea el uid de Odoo en memoria (`_odoo_uid_cache` en `main.py`), así que
+**una API key expirada no se nota hasta el siguiente restart del container**: el
+proceso sigue funcionando con el uid viejo y el primer rebuild posterior arranca
+con `odoo: auth_failed` en `/health` (authenticate devuelve `False` = key
+inválida/expirada, no error de red). Pasó el 2026-06-13: la key propia del bot
+(distinta de la del baúl raíz) expiró a medianoche y el rebuild lo destapó; el
+fix fue poner la key del `.env` raíz local (que comparte usuario
+`manelcomasbre@gmail.com`) en `/opt/whatsapp-bot/.env` (backup
+`.env.bak-keyrotate-20260613`). Desde entonces **bot y scripts locales comparten
+la misma key Odoo** — si se rota la del baúl, actualizar también la del bot. Las
+API keys de Odoo Online llevan fecha de expiración obligatoria; al crear una
+nueva para el bot, elegir el plazo máximo y apuntar la fecha. Tras un deploy,
+verificá siempre `odoo` en `/health`, no solo que el container arranque.
+
 ### wa-bot: la "verdad" de cara al cliente vive en SQLite, no en el código
 
 Los datos oficiales que el bot da a clientes (números de WhatsApp, horarios, ubicación, métodos de pago, envíos) **NO** están en el `SYSTEM_PROMPT` de `main.py` sino en la tabla **`bot_knowledge`** de `data/conversations.db` (volumen Docker). `_knowledge_block()` la lee **fresca en cada mensaje** y la concatena al system prompt como bloque "INFORMACIÓN OFICIAL DE LA EMPRESA". El bloque está marcado como verdad absoluta en el prompt.

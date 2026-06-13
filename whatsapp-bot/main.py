@@ -100,12 +100,12 @@ Tu rol:
   **CASO B — Producto o herramienta** (foto física, captura de e-commerce, dibujo, etc.):
   1. Describí brevemente qué ves (1 frase).
   2. Usá `search_products` con palabras clave SIMPLES: 1-2 palabras genéricas, idealmente el sustantivo principal solo. NO metas colores, marcas comerciales, ni adjetivos tipo "intercambiable", "magnético", "eléctrico". Ej: si ves una broca avellanadora con mango azul, buscá "avellanador" (no "avellanador azul con mango").
-  3. PRESENTÁ AL CLIENTE los resultados aunque no sean visualmente idénticos a la foto. NUNCA digas "no encontré ese producto exacto" si search_products devolvió al menos 1 resultado.
+  3. PRESENTÁ AL CLIENTE los resultados aunque no sean visualmente idénticos a la foto. Si `match_aproximado` es false, NUNCA digas "no encontré ese producto exacto"; si es true, presentalos como opciones parecidas ("no tengo exactamente ese, pero tengo estos similares").
   4. Formato sugerido: "Veo un [tipo]. En el catálogo tenemos esto. ¿Alguno le sirve o lo paso con un compañero?" Mostrá 1-2 opciones que de verdad encajen, no tres en seco (ver sección H).
   5. Solo si después de 2 búsquedas distintas search_products devolvió 0 resultados, podés decir que no hay y ofrecer pasar a un humano.
 
   Si dudás entre A y B (no es claro si es pago o producto), preguntale al cliente "¿esto es un comprobante de pago o me puede decir qué producto busca?".
-- Si `search_products` devuelve resultados, por defecto mostrá solo 1-2 opciones (las que mejor encajen) con código, nombre y precio en colones (formato "₡4,500"). Mostrá hasta 3 SOLO cuando son variantes comparables de lo mismo (mismo uso, distinto modelo o precio); si los resultados responden a usos distintos NO los listes, preguntá primero por el uso (ver sección H). OJO con `total` y `hay_mas`: la lista que ves NO es todo el catálogo, es solo lo más barato que coincidió. Si `hay_mas` es true (hay más modelos de los que muestra la lista), NUNCA digas "es el único", "el único modelo que tenemos" ni "solo tenemos esta": decí que hay varios (podés mencionar cuántos con `total`) y o bien presentá hasta 3 representativos, o mejor preguntá por el uso para acotar (ver sección H). Si el cliente vuelve a preguntar tras una búsqueda, hacé otra `search_products` con otras palabras antes de afirmar que algo no existe o que es lo único. Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
+- Si `search_products` devuelve resultados, por defecto mostrá solo 1-2 opciones (las que mejor encajen) con código, nombre y precio en colones (formato "₡4,500"). Mostrá hasta 3 SOLO cuando son variantes comparables de lo mismo (mismo uso, distinto modelo o precio); si los resultados responden a usos distintos NO los listes, preguntá primero por el uso (ver sección H). OJO con `total` y `hay_mas`: la lista que ves NO es todo el catálogo, es solo lo más barato que coincidió. Si `hay_mas` es true (hay más modelos de los que muestra la lista), NUNCA digas "es el único", "el único modelo que tenemos" ni "solo tenemos esta": decí que hay varios (podés mencionar cuántos con `total`) y o bien presentá hasta 3 representativos, o mejor preguntá por el uso para acotar (ver sección H). Si el cliente vuelve a preguntar tras una búsqueda, hacé otra `search_products` con otras palabras antes de afirmar que algo no existe o que es lo único. OJO con `match_aproximado`: si es true, lo que pidió el cliente NO está en el catálogo tal cual (ej: pidió "sierra circular makita" y no hay Makita) — decílo con honestidad ("no manejamos exactamente eso, pero tengo estas opciones similares") y presentá los parecidos como alternativas; NO los presentes como si fueran el producto pedido. Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
 - Sobre disponibilidad: usá SIEMPRE el campo `disponible` (booleano) que devuelve `search_products`, NO el número `stock`. Casi todo el catálogo se vende por encargo, así que `disponible` casi siempre es `true` aunque el `stock` numérico sea 0 — eso es normal y NO significa que falte el producto. Tratá el producto como disponible salvo que `disponible` sea explícitamente `false`. NUNCA menciones el número exacto de stock al cliente ni digas "tenemos 34 unidades".
 - Solo si `disponible` es `false` para un producto, avisá: "este producto no lo tenemos disponible en este momento, un compañero le confirma si entra pronto". Si `disponible` es `true` (el caso normal), presentalo sin advertencias de stock.
 - Antes de invocar `send_product_photo`, si `disponible` es `false` para ese código, avisá primero con texto ("Le paso la foto, pero este producto no lo tenemos disponible en este momento. Un compañero le confirma si entra pronto.") y DESPUÉS mandá la foto. Si `disponible` es `true`, mandá la foto sin advertencias.
@@ -385,10 +385,13 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
       - productos: lista (hasta `limit`) ordenada por precio asc.
       - total: cuántos productos coinciden EN TOTAL con la búsqueda (puede ser > len(productos)).
       - hay_mas: True si total > len(productos) (hay más de los que se muestran).
+      - match_aproximado: True si NINGÚN producto matcheó todos los términos y los
+        resultados salen del fallback laxo (OR amplio o query cruda). El bot debe
+        presentarlos como "opciones parecidas", no como lo que pidió el cliente.
     Así el bot sabe si lo que ve es todo el catálogo de ese término o solo una parte,
     y nunca afirma "es el único" cuando en realidad hay más.
     """
-    empty = {"productos": [], "total": 0, "hay_mas": False}
+    empty = {"productos": [], "total": 0, "hay_mas": False, "match_aproximado": False}
     if not query or not query.strip():
         return empty
     tokens = _tokenize_query(query)
@@ -407,6 +410,7 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
     strong = [t for t in tokens if len(t) >= 4 and not t.isdigit()]
     rows = []
     used_domain = None
+    aproximado = False  # True si los resultados salen de los fallbacks laxos (estrategias 3-4)
 
     def _and_por_token(campos: list[str], toks: list[str]) -> list:
         """AND entre tokens; cada token es un OR sobre los `campos` (name/default_code/...).
@@ -440,6 +444,7 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
         rows = _odoo_search(domain, fetch_limit)
         if rows:
             used_domain = domain
+            aproximado = len(strong) > 1  # con 1 solo término el OR equivale al AND
 
     # Estrategia 4: query crudo contra el nombre (último recurso)
     if not rows:
@@ -447,6 +452,7 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
         rows = _odoo_search(domain, fetch_limit)
         if rows:
             used_domain = domain
+            aproximado = len(tokens) > 1
 
     # Re-rankear por relevancia (no por precio): el match más pertinente primero,
     # precio asc solo como desempate. Después truncar a `limit`.
@@ -470,7 +476,7 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
     total = _odoo_count(used_domain) if used_domain else len(out)
     if total < len(out):
         total = len(out)
-    return {"productos": out, "total": total, "hay_mas": total > len(out)}
+    return {"productos": out, "total": total, "hay_mas": total > len(out), "match_aproximado": aproximado and bool(out)}
 
 
 # Carriers que la tool calculate_shipping_quote debe consultar (ordenados por preferencia del usuario)
@@ -657,7 +663,10 @@ CLAUDE_TOOLS = [
             "Usalo SIEMPRE que el cliente mencione un producto, herramienta, marca, "
             "medida o pida precio/stock. Devuelve un objeto con: `productos` (lista de hasta 8, ordenados por relevancia: el match más pertinente primero), "
             "`total` (cuántos productos coinciden EN TOTAL con la búsqueda, puede ser mayor que los que se muestran) y "
-            "`hay_mas` (true si hay más de los que aparecen en la lista). Cada producto trae: código, "
+            "`hay_mas` (true si hay más de los que aparecen en la lista) y "
+            "`match_aproximado` (true si NINGÚN producto coincidió con todos los términos buscados y la lista son solo parecidos: "
+            "en ese caso decí honestamente que no encontraste exactamente eso y presentalos como opciones similares, "
+            "NUNCA como si fueran lo que pidió el cliente). Cada producto trae: código, "
             "nombre, precio en colones, `disponible` (booleano: si se puede vender; casi siempre true porque se vende por encargo), descripcion y peso en kg (si está cargado en la ficha). "
             "Mirá `total`/`hay_mas` antes de afirmar cuántos modelos hay: si `hay_mas` es true, NO digas que es el único. "
             "Si necesitás el peso del producto para cotizar envío con `calculate_shipping_quote`, "

@@ -7,12 +7,14 @@ FastAPI application con scheduler integrado.
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import Depends, FastAPI, HTTPException, Header
+from fastapi.responses import JSONResponse
 
 from .config import settings
 from .processor import Processor
@@ -108,6 +110,40 @@ def verify_token(x_api_token: str = Header(None)):
 @app.get('/health')
 def health():
     return {'status': 'ok', 'service': 'correos-cr-bridge'}
+
+
+# Caché del health profundo: el endpoint es público (sin token) y el monitor de
+# uptime corre cada 5 min, así que con 60s de caché no le pegamos a Odoo en cada
+# request y seguimos detectando una caída en <5 min.
+_deep_health = {'ts': 0.0, 'payload': None, 'ok': False}
+
+
+@app.get('/health/deep')
+def health_deep():
+    """Health profundo: confirma que la API key de Odoo siga viva.
+
+    Devuelve 503 si Odoo no autentica/responde (key expirada o revocada, Odoo
+    caído) para que el monitor de uptime abra un issue. El `/health` plano no
+    sirve para esto: queda en 200 aunque Odoo esté muerto.
+    """
+    now = time.monotonic()
+    if _deep_health['payload'] is not None and now - _deep_health['ts'] < 60:
+        return JSONResponse(_deep_health['payload'],
+                            status_code=200 if _deep_health['ok'] else 503)
+    payload = {'service': 'correos-cr-bridge', 'odoo': False}
+    ok = False
+    try:
+        uid = processor.odoo.authenticate()
+        # authenticate() cachea el uid, así que NO basta para detectar una key
+        # expirada: hay que forzar una llamada real que reenvíe la api_key.
+        processor.odoo.execute_kw('res.users', 'search_count', [[('id', '=', uid)]])
+        payload['odoo'] = True
+        payload['uid'] = uid
+        ok = True
+    except Exception as e:
+        payload['error'] = str(e)[:200]
+    _deep_health.update(ts=now, payload=payload, ok=ok)
+    return JSONResponse(payload, status_code=200 if ok else 503)
 
 
 @app.get('/status', dependencies=[Depends(verify_token)])

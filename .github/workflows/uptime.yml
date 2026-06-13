@@ -45,6 +45,21 @@ jobs:
           fi
           echo "HTML OK"
 
+      - name: Deep health (Odoo key viva)
+        if: success()
+        run: |
+          STATUS=$(curl -sS -o /tmp/deep.txt -w "%{http_code}" \
+            --max-time 20 \
+            --resolve panel.paracarpinteros.com:443:66.94.99.220 \
+            -k \
+            https://panel.paracarpinteros.com/health/deep)
+          echo "HTTP $STATUS"
+          cat /tmp/deep.txt
+          if [ "$STATUS" != "200" ]; then
+            echo "Odoo no responde (API key expirada/revocada o Odoo caído)"
+            exit 1
+          fi
+
       - name: Open issue on failure
         if: failure()
         uses: actions/github-script@v7
@@ -56,7 +71,7 @@ jobs:
               state: 'open', labels: 'monitoring'
             });
             const existing = issues.data.find(i => i.title.startsWith('Panel down'));
-            const body = `Panel paracarpinteros no responde.\n- Endpoint: https://panel.paracarpinteros.com/health\n- Hora: ${new Date().toISOString()}\n- Run: ${context.runId}\n[Ver logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+            const body = `Chequeo de uptime falló (panel caído o Odoo no responde — la API key de Odoo pudo expirar/revocarse).\n- Endpoints: https://panel.paracarpinteros.com/health y /health/deep\n- Revisar qué paso falló en los logs del run.\n- Hora: ${new Date().toISOString()}\n- Run: ${context.runId}\n[Ver logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
             if (existing) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner, repo: context.repo.repo,

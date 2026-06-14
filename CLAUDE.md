@@ -254,10 +254,21 @@ inválida/expirada, no error de red). Pasó el 2026-06-13: la key propia del bot
 fix fue poner la key del `.env` raíz local (que comparte usuario
 `manelcomasbre@gmail.com`) en `/opt/whatsapp-bot/.env` (backup
 `.env.bak-keyrotate-20260613`). Desde entonces **bot y scripts locales comparten
-la misma key Odoo** — si se rota la del baúl, actualizar también la del bot. Las
-API keys de Odoo Online llevan fecha de expiración obligatoria; al crear una
-nueva para el bot, elegir el plazo máximo y apuntar la fecha. Tras un deploy,
-verificá siempre `odoo` en `/health`, no solo que el container arranque.
+la misma key Odoo** — si se rota la del baúl, actualizar también la del bot.
+Odoo 19 **permite API keys sin expiración** (persistentes): al crear la del
+backend dejala **sin fecha de expiración** para que no vuelva a caducar (varias
+del usuario uid 8 ya lo son, p.ej. la "Fable"; la nota vieja de "expiración
+obligatoria" era falsa). No se puede casar una key con su registro
+`res.users.apikeys` por XML-RPC (Odoo 19 quitó el campo `index` y el valor va
+cifrado), así que apuntá por nombre qué key va en el baúl. El **mismo fallo
+tumbó el bridge el 2026-06-13** (panel `500`: su key propia, distinta del baúl,
+expiró; fix idéntico = key del baúl en `correos-cr-bridge/.env` + restart). Por
+eso el bridge ahora expone `GET /health/deep` (fuerza un `execute_kw` real;
+`authenticate()` cachea el uid y no detecta una key expirada por sí solo) y el
+workflow `.github/workflows/uptime.yml` lo vigila cada 5 min → issue de GitHub si
+Odoo cae (el `/health` plano queda `200` aunque Odoo muera). Tras un deploy,
+verificá siempre `odoo` en `/health` (bot) o `/health/deep` (bridge), no solo que
+el container arranque.
 
 ### wa-bot: la "verdad" de cara al cliente vive en SQLite, no en el código
 

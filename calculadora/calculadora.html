@@ -1569,8 +1569,10 @@ async function loadOdooConfig(){
     document.getElementById('odooUrl').value=cfg.url||'';
     document.getElementById('odooDb').value=cfg.db_name||'';
     document.getElementById('odooUser').value=cfg.username||'';
-    if(cfg.api_key){
-      document.getElementById('odooKey').value=cfg.api_key;
+    if(cfg.api_key_set){
+      // La key ya no se envía por HTTP; campo vacío y se mantiene en el servidor si no se cambia
+      document.getElementById('odooKey').value='';
+      document.getElementById('odooKey').placeholder='•••••••• (configurada — dejar en blanco para mantener)';
       document.getElementById('odooStatus').innerHTML='<span style="color:var(--accent2)">Config cargada de BD</span>';
     }
   }

@@ -1071,8 +1071,11 @@ class CalcHandler(SimpleHTTPRequestHandler):
         if self.path == '/' or self.path == '':
             self.path = '/calculadora.html'
 
-        filepath = os.path.join(SCRIPT_DIR, self.path.lstrip('/'))
-        if os.path.isfile(filepath):
+        # Resolver ruta y bloquear path traversal: el archivo debe quedar dentro de SCRIPT_DIR
+        rel = urlparse(self.path).path.lstrip('/')
+        filepath = os.path.realpath(os.path.join(SCRIPT_DIR, rel))
+        base = os.path.realpath(SCRIPT_DIR)
+        if (filepath == base or filepath.startswith(base + os.sep)) and os.path.isfile(filepath):
             self.send_response(200)
             ct = 'text/html; charset=utf-8' if filepath.endswith('.html') else \
                  'application/javascript' if filepath.endswith('.js') else \
@@ -1113,7 +1116,11 @@ class CalcHandler(SimpleHTTPRequestHandler):
                 self.json_response({'error': 'id requerido'}, 400)
 
         elif path == '/api/odoo/config':
-            self.json_response(self.db_query_one("SELECT url, db_name, username, api_key, last_sync FROM odoo_config WHERE id=1"))
+            # No exponer la api_key por HTTP: solo indicar si está configurada
+            cfg = self.db_query_one("SELECT url, db_name, username, api_key, last_sync FROM odoo_config WHERE id=1")
+            if cfg:
+                cfg['api_key_set'] = bool(cfg.pop('api_key', None))
+            self.json_response(cfg)
 
         elif path == '/api/odoo/test':
             odoo, err = odoo_connect()
@@ -1338,10 +1345,16 @@ class CalcHandler(SimpleHTTPRequestHandler):
         elif path == '/api/odoo/config':
             try:
                 data = json.loads(body)
-                print(f"  [SAVE ODOO] url='{data.get('url','')}' db='{data.get('db_name','')}' user='{data.get('username','')}' key={'***'+data.get('api_key','')[-4:] if data.get('api_key') else 'VACIA'}")
+                new_key = data.get('api_key', '')
+                print(f"  [SAVE ODOO] url='{data.get('url','')}' db='{data.get('db_name','')}' user='{data.get('username','')}' key={'***'+new_key[-4:] if new_key else '(sin cambio)'}")
                 conn = get_db()
-                conn.execute("UPDATE odoo_config SET url=?, db_name=?, username=?, api_key=? WHERE id=1",
-                             (data.get('url', ''), data.get('db_name', ''), data.get('username', ''), data.get('api_key', '')))
+                if new_key:
+                    conn.execute("UPDATE odoo_config SET url=?, db_name=?, username=?, api_key=? WHERE id=1",
+                                 (data.get('url', ''), data.get('db_name', ''), data.get('username', ''), new_key))
+                else:
+                    # Campo de key en blanco → mantener la existente (ya no se reenvía por GET)
+                    conn.execute("UPDATE odoo_config SET url=?, db_name=?, username=? WHERE id=1",
+                                 (data.get('url', ''), data.get('db_name', ''), data.get('username', '')))
                 conn.commit()
                 check = conn.execute("SELECT url, api_key FROM odoo_config WHERE id=1").fetchone()
                 conn.close()

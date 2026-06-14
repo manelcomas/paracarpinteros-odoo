@@ -96,6 +96,17 @@ try {
         ], 500);
     }
 
+    // El consecutivo ya quedó reservado y commiteado (lock corto). Si el MR NO llega
+    // a enviarse a Hacienda (falla la firma o el token), lo recuperamos con un
+    // compare-and-swap para no dejar hueco; una vez enviado, el número queda usado.
+    $mrEnviado = false;
+    $reclaimConsec = function () use ($pdo, $tipo, $correlativo) {
+        try {
+            $pdo->prepare("UPDATE consec_mr SET ultimo_consec = ultimo_consec - 1 WHERE tipo=? AND ultimo_consec=?")
+                ->execute([$tipo, $correlativo]);
+        } catch (Throwable $e) { /* best-effort: si no se puede, queda el hueco */ }
+    };
+
     // Mapa tipo MR → valor del nodo <Mensaje> (XSD v4.4) y estado del buzón.
     $mensajeVal  = ['05' => '1', '06' => '2', '07' => '3'][$tipo];
     $estadoFinal = ['05' => 'accepted', '06' => 'partial', '07' => 'rejected'][$tipo];
@@ -143,10 +154,12 @@ try {
     // consecutivo y el nodo <Mensaje>, no el documento que se firma.
     $p12Bytes = base64_decode($p12B64, true);
     if ($p12Bytes === false || strlen($p12Bytes) < 100) {
+        $reclaimConsec();
         bx_json(['error' => 'p12Base64 inválido'], 400);
     }
     $certsTmp = [];
     if (!@openssl_pkcs12_read($p12Bytes, $certsTmp, $pin)) {
+        $reclaimConsec();
         bx_json(['error' => 'p12 inválido o PIN incorrecto'], 400);
     }
     unset($certsTmp);
@@ -158,7 +171,7 @@ try {
     $signedB64 = $firmador->firmar($p12Path, $pin, base64_encode($xml), '05');
     @unlink($p12Path);
     $p12Path = null;
-    if (!$signedB64) bx_json(['error' => 'la firma del MR devolvió vacío'], 500);
+    if (!$signedB64) { $reclaimConsec(); bx_json(['error' => 'la firma del MR devolvió vacío'], 500); }
     $mrXmlFirmado = base64_decode($signedB64);
 
     // ─── Enviar a Hacienda vía el Worker Cloudflare ──────────────
@@ -170,8 +183,12 @@ try {
     ]);
     $tok = json_decode($tokResp['body'], true);
     if (empty($tok['access_token'])) {
+        $reclaimConsec();
         bx_json(['error' => 'no se obtuvo token del Worker', 'detail' => substr($tokResp['body'],0,300)], 502);
     }
+    // A partir de aquí se envía el MR a Hacienda: el consecutivo se da por usado
+    // (aunque Hacienda rechace o falle la red, no se reusa para no duplicar clave).
+    $mrEnviado = true;
     $submit = bx_http('POST', $workerUrl . '/submit', [
         'headers' => ['Content-Type: application/json'],
         'body' => json_encode([
@@ -211,8 +228,10 @@ try {
 } catch (Exception $e) {
     if ($p12Path && file_exists($p12Path)) @unlink($p12Path);
     if (bx_db()->inTransaction()) bx_db()->rollBack();
+    if (empty($mrEnviado) && isset($reclaimConsec)) $reclaimConsec();
     bx_json(['ok' => false, 'error' => $e->getMessage()], 500);
 } catch (Throwable $e) {
     if ($p12Path && file_exists($p12Path)) @unlink($p12Path);
+    if (empty($mrEnviado) && isset($reclaimConsec)) $reclaimConsec();
     bx_json(['ok' => false, 'error' => 'fatal: ' . $e->getMessage()], 500);
 }

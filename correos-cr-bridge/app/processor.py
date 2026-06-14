@@ -280,6 +280,7 @@ class Processor:
         weights = self.odoo.read_product_weights(product_ids)
 
         total_g = 0.0
+        sin_peso = []
         for m in moves:
             pid = m['product_id'][0] if m.get('product_id') else None
             qty = m.get('product_uom_qty') or 0
@@ -287,5 +288,14 @@ class Processor:
             if w_kg > 0:
                 total_g += w_kg * 1000 * qty
             else:
+                # Sin peso en Odoo: se declara el default por unidad (sobre-declara,
+                # que es el lado seguro para Correos). Se avisa para corregir el dato.
                 total_g += settings.default_weight_g * qty
+                if m.get('product_id'):
+                    sin_peso.append(f"{m['product_id'][1]} (x{qty:g})")
+        if sin_peso:
+            _logger.warning(
+                "Picking %s: %d producto(s) sin peso en Odoo, declarados a %d g/u por "
+                "defecto (puede inflar la tarifa Pymexpress): %s. Asigná el peso real en el producto.",
+                pk_id, len(sin_peso), settings.default_weight_g, "; ".join(sin_peso))
         return max(int(total_g), settings.default_weight_g)

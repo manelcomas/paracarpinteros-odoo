@@ -1536,7 +1536,10 @@ def limpiar_guia(picking_id: int):
     conn = db()
     try:
         conn.execute("DELETE FROM entrega_mano WHERE picking_id=?", (picking_id,))
-        conn.execute("DELETE FROM envio_manual WHERE picking_id=?", (picking_id,))
+        # envio_manual NO tiene picking_id (se indexa por tracking UNIQUE): borrar la
+        # fila de la guía manual que estamos limpiando, identificada por su tracking.
+        if prev_ref:
+            conn.execute("DELETE FROM envio_manual WHERE tracking=?", (prev_ref,))
         conn.commit()
     finally:
         conn.close()

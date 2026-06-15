@@ -3,6 +3,7 @@
 require_once __DIR__ . '/lib.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(204); exit; }
+bx_require_api_key();
 
 try {
     $status = $_GET['status'] ?? '';

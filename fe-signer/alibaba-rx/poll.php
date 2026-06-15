@@ -7,6 +7,12 @@
 require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/parser.php';
 
+// Acceso web a poll.php exige API key (el cron por CLI no la necesita).
+if (php_sapi_name() !== 'cli') {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(204); exit; }
+    arx_require_api_key();
+}
+
 function arx_poll() {
     $resumen = ['mensajes' => 0, 'pedidos_nuevos' => 0, 'pedidos_actualizados' => 0,
                 'eventos_nuevos' => 0, 'duplicados' => 0, 'contactos' => 0, 'errores' => []];

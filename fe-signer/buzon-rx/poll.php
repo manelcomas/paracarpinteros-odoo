@@ -6,6 +6,12 @@
  */
 require_once __DIR__ . '/lib.php';
 
+// Acceso web a poll.php exige API key (el cron por CLI no la necesita).
+if (php_sapi_name() !== 'cli') {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(204); exit; }
+    bx_require_api_key();
+}
+
 function bx_poll() {
     $resumen = ['nuevos' => 0, 'duplicados' => 0, 'errores' => [], 'mensajes' => 0];
 

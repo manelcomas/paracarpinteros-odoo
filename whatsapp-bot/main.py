@@ -15,6 +15,8 @@ import sqlite3
 import secrets
 import json
 import base64
+import hmac
+import hashlib
 import datetime as dt
 import urllib.parse
 import xmlrpc.client
@@ -36,6 +38,7 @@ except Exception:
 WA_ACCESS_TOKEN     = os.environ["WA_ACCESS_TOKEN"]
 WA_PHONE_NUMBER_ID  = os.environ["WA_PHONE_NUMBER_ID"]
 WA_VERIFY_TOKEN     = os.environ["WA_VERIFY_TOKEN"]
+WA_APP_SECRET       = os.environ.get("WA_APP_SECRET", "")  # firma HMAC del webhook de Meta (vacío = aún no aplicada)
 ANTHROPIC_API_KEY   = os.environ["ANTHROPIC_API_KEY"]
 WA_PANEL_PASSWORD   = os.environ["WA_PANEL_PASSWORD"]
 BIZ_HOUR_START      = int(os.environ.get("BIZ_HOUR_START", "8"))
@@ -2474,11 +2477,29 @@ async def webhook_verify(request: Request):
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
+def _verify_meta_signature(raw_body: bytes, signature_header: str) -> bool:
+    """Verifica la firma HMAC-SHA256 que Meta manda en X-Hub-Signature-256 sobre el
+    body CRUDO. Si WA_APP_SECRET no está configurado, NO se aplica (rollout gradual):
+    devuelve True y el webhook funciona como antes. Con el secret puesto en el .env,
+    las peticiones sin firma válida se descartan (evita inyección de mensajes falsos)."""
+    if not WA_APP_SECRET:
+        return True
+    if not signature_header.startswith("sha256="):
+        return False
+    expected = hmac.new(WA_APP_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()
+    received = signature_header.split("=", 1)[1].strip()
+    return hmac.compare_digest(expected, received)
+
+
 @app.post("/webhook")
 async def webhook_receive(request: Request):
     """Recibe los mensajes entrantes de WhatsApp Cloud API."""
+    raw = await request.body()
+    if not _verify_meta_signature(raw, request.headers.get("X-Hub-Signature-256", "")):
+        print("[webhook] firma X-Hub-Signature-256 inválida o ausente — mensaje descartado")
+        return JSONResponse({"status": "invalid_signature"}, status_code=200)
     try:
-        data = await request.json()
+        data = json.loads(raw)
     except Exception:
         return JSONResponse({"status": "bad_json"}, status_code=200)
 

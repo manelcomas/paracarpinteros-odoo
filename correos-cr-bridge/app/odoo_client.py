@@ -15,6 +15,20 @@ class OdooError(Exception):
     pass
 
 
+# Campos de res.partner que la etiqueta de Correos necesita. Compartido entre
+# read_partner (un partner) y list_addresses (varias direcciones de un cliente).
+_PARTNER_FIELDS = [
+    'id', 'name', 'street', 'street2', 'city', 'zip',
+    'phone', 'email', 'country_id', 'state_id', 'comment',
+    # type/parent/comercial para distinguir dirección principal vs de envío
+    'type', 'parent_id', 'commercial_partner_id',
+    # Studio fields de Paracarpinteros (verificados en prod): cantón y distrito
+    # CR como Many2one a modelos custom, señas como texto. Sin estos, la etiqueta
+    # de Correos no incluye prov/cantón/distrito y solo imprime la dirección.
+    'x_studio_canton_cr', 'x_studio_distrito_cr', 'x_studio_senas',
+]
+
+
 class OdooClient:
     def __init__(self, url: str, db: str, username: str, api_key: str):
         self.url = url.rstrip('/')
@@ -130,26 +144,11 @@ class OdooClient:
         _logger.info("Cargado mapa ZIP→distrito (%d entradas)", len(m))
         return m
 
-    def read_partner(self, partner_id: int) -> dict:
-        r = self.execute_kw(
-            'res.partner', 'read', [[partner_id]],
-            {'fields': [
-                'id', 'name', 'street', 'street2', 'city', 'zip',
-                'phone', 'email', 'country_id', 'state_id', 'comment',
-                # Studio fields de Paracarpinteros (verificados en prod):
-                # cantón y distrito CR como Many2one a modelos custom,
-                # señas como texto. Sin estos, la etiqueta de Correos
-                # no incluye prov/cantón/distrito y solo imprime la dirección.
-                'x_studio_canton_cr', 'x_studio_distrito_cr', 'x_studio_senas',
-            ]}
-        )
-        if not r:
-            return {}
-        partner = r[0]
-        # Fallback: si el partner no tiene cantón/distrito pero sí ZIP CR válido,
-        # sintetizamos los valores desde el master x_distrito_cr. Así la etiqueta
-        # de Correos imprime distrito+cantón+provincia incluso para partners
-        # nuevos que aún no se hayan rellenado.
+    def _apply_zip_fallback(self, partner: dict) -> dict:
+        """Si el partner no tiene cantón/distrito pero sí ZIP CR válido,
+        sintetiza los valores desde el master x_distrito_cr. Así la etiqueta
+        de Correos imprime distrito+cantón+provincia incluso para partners
+        nuevos que aún no se hayan rellenado. Muta y devuelve el dict."""
         z = (partner.get('zip') or '').strip().replace(' ', '').replace('-', '')
         if (z.isdigit() and len(z) == 5
             and not partner.get('x_studio_canton_cr')
@@ -160,6 +159,64 @@ class OdooClient:
                 partner['x_studio_distrito_cr'] = [dist_id, dist_name]
                 partner['x_studio_canton_cr'] = [cant_id, cant_name]
         return partner
+
+    def read_partner(self, partner_id: int) -> dict:
+        r = self.execute_kw(
+            'res.partner', 'read', [[partner_id]],
+            {'fields': _PARTNER_FIELDS}
+        )
+        if not r:
+            return {}
+        return self._apply_zip_fallback(r[0])
+
+    def list_addresses(self, partner_id: int) -> list:
+        """Devuelve las direcciones del cliente al que pertenece `partner_id`:
+        la principal (partner comercial) + sus direcciones de envío hijas
+        (type='delivery'). La entrada que corresponde a `partner_id` (la que el
+        picking ya usa) lleva is_current=True para que el panel la preseleccione.
+
+        Sirve para que el panel ofrezca elegir entre las direcciones reales del
+        cliente en Odoo en vez de tipear a mano (clientes con varias direcciones)."""
+        base = self.execute_kw('res.partner', 'read', [[partner_id]],
+                               {'fields': ['commercial_partner_id']})
+        if not base:
+            return []
+        commercial_id = (base[0].get('commercial_partner_id') or [partner_id])[0]
+        child_ids = self.execute_kw(
+            'res.partner', 'search',
+            [[('parent_id', '=', commercial_id), ('type', '=', 'delivery')]],
+            {'order': 'id desc'}
+        )
+        # Orden: principal primero, luego direcciones de envío. Dedup conservando
+        # orden y garantizando que el partner actual del picking esté incluido.
+        ordered = []
+        for i in [commercial_id] + list(child_ids) + [partner_id]:
+            if i not in ordered:
+                ordered.append(i)
+        rows = self.execute_kw('res.partner', 'read', [ordered],
+                               {'fields': _PARTNER_FIELDS})
+        by_id = {r['id']: r for r in rows}
+        out = []
+        for i in ordered:
+            r = by_id.get(i)
+            if not r:
+                continue
+            self._apply_zip_fallback(r)
+            r['is_current'] = (i == partner_id)
+            out.append(r)
+        return out
+
+    def create_delivery_address(self, commercial_id: int, vals: dict) -> int:
+        """Crea un contacto hijo type='delivery' bajo el cliente comercial.
+        Nunca toca la ficha principal. Devuelve el id del nuevo partner."""
+        base = self.execute_kw('res.partner', 'read', [[commercial_id]],
+                               {'fields': ['country_id']})
+        country = (base[0].get('country_id') or [None])[0] if base else None
+        create_vals = {'type': 'delivery', 'parent_id': commercial_id}
+        if country:
+            create_vals['country_id'] = country
+        create_vals.update(vals)
+        return self.execute_kw('res.partner', 'create', [create_vals])
 
     def read_picking_moves(self, picking_id: int) -> list:
         """Lee las líneas del picking con producto + cantidad + peso."""

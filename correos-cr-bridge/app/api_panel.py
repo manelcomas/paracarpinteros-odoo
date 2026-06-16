@@ -36,7 +36,7 @@ from pydantic import BaseModel, Field
 import requests as _requests  # alias para evitar shadow con otras importaciones
 
 from .config import settings
-from .processor import Processor, _in_flight, _in_flight_lock, build_dest_direccion, _m2o_name
+from .processor import Processor, _in_flight, _in_flight_lock, build_dest_direccion, _m2o_name, _clean_geo
 
 _logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api', tags=['panel'])
@@ -82,6 +82,36 @@ def _cr_codes_from_zip(zip_str: Optional[str]) -> dict:
         'provincia_code': z[0],
         'canton_code': z[1:3],
         'distrito_code': z[3:5],
+    }
+
+
+def _addr_entry(partner: dict, current_partner_id=None) -> dict:
+    """Entrada de dirección para el selector del panel, a partir del dict crudo
+    de res.partner (con el fallback ZIP→geo ya aplicado por read_partner /
+    list_addresses). type='delivery' = dirección de envío; el resto = principal."""
+    pid = partner.get('id')
+    ptype = partner.get('type') or 'contact'
+    is_current = partner.get('is_current')
+    if is_current is None and current_partner_id is not None:
+        is_current = (pid == current_partner_id)
+    return {
+        'id': pid,
+        'type': ptype,
+        'is_delivery': ptype == 'delivery',
+        'is_current': bool(is_current),
+        'name': partner.get('name') or '',
+        'street': partner.get('street') or '',
+        'street2': partner.get('street2') or '',
+        'city': partner.get('city') or '',
+        'zip': partner.get('zip') or '',
+        'phone': partner.get('phone') or '',
+        'cr_address': {
+            'provincia_name': _m2o_name(partner.get('state_id')).replace(' (CR)', '').strip(),
+            'canton_name': _m2o_name(partner.get('x_studio_canton_cr')),
+            'distrito_name': _m2o_name(partner.get('x_studio_distrito_cr')),
+            'senas': partner.get('x_studio_senas') or partner.get('street') or '',
+        },
+        'cr_codes': _cr_codes_from_zip(partner.get('zip')),
     }
 
 # ───────── PANEL AUTH (login con password compartido) ─────────
@@ -697,6 +727,12 @@ def get_picking_detail(picking_id: int):
             # fields rellenos.
             'cr_codes': _cr_codes_from_zip(partner.get('zip')),
         },
+        # Direcciones del cliente en Odoo (principal + de envío) para que el
+        # panel ofrezca elegir entre ellas en vez de tipear a mano.
+        'addresses': [
+            _addr_entry(a) for a in
+            (p.odoo.list_addresses(partner.get('id')) if partner.get('id') else [])
+        ],
         'lines': lines,
         'peso_total_g': peso_g,
         'remitente': {
@@ -921,6 +957,94 @@ def update_partner(partner_id: int, payload: PartnerUpdatePayload):
     except Exception as e:
         raise HTTPException(500, f'No se pudo actualizar partner: {e}')
     return {'ok': True, 'updated': list(vals.keys())}
+
+
+# ────────────────────────────────────────────────────
+#  POST /api/picking/{id}/guardar-direccion
+#  Guarda la dirección de envío del picking en Odoo SIN tocar la ficha
+#  principal del cliente:
+#   - Si address_id es una dirección de envío existente del mismo cliente →
+#     la actualiza en sitio.
+#   - Si no (principal seleccionada, o address_id vacío = "nueva") → crea un
+#     contacto hijo type='delivery' bajo el cliente comercial.
+#  El panel solo llama a esto cuando el operador marca "Guardar en Odoo";
+#  si no, la dirección se usa solo para esa guía y no se persiste.
+# ────────────────────────────────────────────────────
+class GuardarDireccionPayload(BaseModel):
+    address_id: Optional[int] = None
+    name: Optional[str] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    zip: Optional[str] = None
+    phone: Optional[str] = None
+
+@router.post('/picking/{picking_id}/guardar-direccion', dependencies=[Depends(verify_session)])
+def guardar_direccion(picking_id: int, payload: GuardarDireccionPayload):
+    p = get_processor()
+    odoo = p.odoo
+    odoo.authenticate()
+
+    pks = odoo.execute_kw('stock.picking', 'read', [[picking_id]], {'fields': ['partner_id']})
+    if not pks or not pks[0].get('partner_id'):
+        raise HTTPException(404, 'Picking o partner no encontrado')
+    picking_partner = pks[0]['partner_id'][0]
+    base = odoo.execute_kw('res.partner', 'read', [[picking_partner]],
+                           {'fields': ['commercial_partner_id']})
+    commercial_id = (base[0].get('commercial_partner_id') or [picking_partner])[0]
+
+    # Campos editables que vengan con valor
+    vals = {}
+    for f in ('name', 'street', 'phone'):
+        v = getattr(payload, f, None)
+        if v not in (None, ''):
+            vals[f] = v
+    z = ''.join(c for c in (payload.zip or '') if c.isdigit())
+    if z:
+        vals['zip'] = z
+
+    # Geografía CR desde el ZIP: cantón/distrito reales + city, para que la
+    # dirección quede tan completa como las que crea la web. El ZIP manda; el
+    # 'city' que llega del modal puede ser un placeholder ("Cantón 03") → se limpia.
+    city = _clean_geo(payload.city or '')
+    if len(z) == 5:
+        entry = odoo._load_zip_map().get(z)
+        if entry:
+            dist_id, dist_name, cant_id, _cant_name = entry
+            vals['x_studio_distrito_cr'] = dist_id
+            vals['x_studio_canton_cr'] = cant_id
+            if not city:
+                city = dist_name
+    if city:
+        vals['city'] = city
+    if vals.get('street'):
+        vals['x_studio_senas'] = vals['street']
+
+    if not vals:
+        raise HTTPException(400, 'Nada que guardar')
+
+    # ¿Actualizar una dirección de envío existente del mismo cliente, o crear nueva?
+    target_id = None
+    if payload.address_id:
+        info = odoo.execute_kw('res.partner', 'read', [[payload.address_id]],
+                               {'fields': ['type', 'commercial_partner_id']})
+        if info:
+            same_client = (info[0].get('commercial_partner_id') or [None])[0] == commercial_id
+            if info[0].get('type') == 'delivery' and same_client:
+                target_id = payload.address_id
+
+    try:
+        if target_id:
+            odoo.execute_kw('res.partner', 'write', [[target_id], vals])
+            new_id, mode = target_id, 'updated'
+        else:
+            new_id = odoo.create_delivery_address(commercial_id, vals)
+            mode = 'created'
+    except Exception as e:
+        raise HTTPException(500, f'No se pudo guardar la dirección: {e}')
+
+    fresh = odoo.read_partner(new_id)
+    fresh['is_current'] = True
+    return {'ok': True, 'mode': mode, 'address': _addr_entry(fresh)}
 
 
 @router.get('/next-tracking', dependencies=[Depends(verify_session)])

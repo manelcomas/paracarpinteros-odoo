@@ -4,8 +4,11 @@
 Genera el feed de Google Merchant Center (RSS 2.0 / Google Shopping) desde Odoo
 por XML-RPC. Solo LEE de Odoo; escribe únicamente el XML local indicado en --out.
 
-Productos: product.template con website_published=True e is_published=True.
-Se omiten (con aviso) los que no tienen default_code (g:id) o no tienen imagen.
+Productos: product.template con website_published=True, is_published=True y
+sale_ok=True. Los no vendibles (sale_ok=False) dan 404 en /shop aunque estén
+publicados, así que Google los desaprueba ("Product page unavailable"): por eso
+quedan fuera del feed (caso A898/tmpl 1915, 2026-06-15).
+Se omiten además (con aviso) los que no tienen default_code (g:id) o no tienen imagen.
 
 Uso:
   python3 scripts/generate_feed.py                      # escribe ./feed-google.xml
@@ -66,11 +69,20 @@ def main():
     def call(model, method, *a, **k):
         return models.execute_kw(DB, uid, KEY, model, method, list(a), k)
 
-    dominio = [["website_published", "=", True], ["is_published", "=", True]]
+    dominio = [["website_published", "=", True], ["is_published", "=", True],
+               ["sale_ok", "=", True]]
     campos = ["name", "default_code", "list_price", "qty_available",
               "website_url", "description_sale", "website_meta_description"]
     ids = call("product.template", "search", dominio, order="id")
-    print(f"{len(ids)} productos publicados", file=sys.stderr)
+    print(f"{len(ids)} productos publicados y vendibles", file=sys.stderr)
+
+    # Publicados pero NO vendibles (sale_ok=False): dan 404 en /shop → excluidos.
+    no_vendibles = call("product.template", "search_count",
+                        [["website_published", "=", True], ["is_published", "=", True],
+                         ["sale_ok", "=", False]])
+    if no_vendibles:
+        print(f"⚠️ {no_vendibles} publicados omitidos por sale_ok=False (404 en /shop)",
+              file=sys.stderr)
 
     productos = []
     for i in range(0, len(ids), 500):

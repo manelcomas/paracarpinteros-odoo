@@ -6,6 +6,21 @@ let POLL_TIMER = null;
 let CURRENT_STATUS_FILTER = '';  // '' = todos
 let CURRENT_QUICK_FILTER = '';   // '' | 'unread' | 'escalated' | 'today'
 
+// Badge de mensajes pendientes: "(N)" en el título de la pestaña + número en el icono de la
+// PWA (Badging API). Se actualiza en cada loadStats() con el conteo de conversaciones sin leer.
+// Con la PWA cerrada el badge lo pone el service worker al llegar el push (ver SW_JS en main.py).
+const BASE_TITLE = document.title || 'Panel · Paracarpinteros';
+function updateBadges(unread){
+  const n = Math.max(0, parseInt(unread, 10) || 0);
+  document.title = (n > 0 ? `(${n}) ` : '') + BASE_TITLE;
+  try{
+    if('setAppBadge' in navigator){
+      if(n > 0) navigator.setAppBadge(n).catch(()=>{});
+      else navigator.clearAppBadge().catch(()=>{});
+    }
+  }catch(_){}
+}
+
 const STATUS_ORDER = ['nuevo','en_conversacion','cotizado','pagado','a_despachar','cerrado'];
 const STATUS_LABELS = {
   nuevo:'🆕 Nuevos', en_conversacion:'💬 En conv.', cotizado:'📋 Cotizado',
@@ -48,6 +63,7 @@ async function loadStats(){
   try{
     const s = await api('/api/stats');
     if(!s) return;
+    updateBadges(s.unread);
     const f = CURRENT_QUICK_FILTER;
     document.getElementById('stats').innerHTML = `
       <div class="stat ${f===''?'active':''}" onclick="setQuickFilter('')" title="Mostrar todas las conversaciones"><div class="stat-label">Total</div><div class="stat-val">${s.total}</div></div>

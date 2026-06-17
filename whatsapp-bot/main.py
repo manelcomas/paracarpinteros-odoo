@@ -47,7 +47,11 @@ BIZ_WEEKENDS_OPEN   = os.environ.get("BIZ_WEEKENDS_OPEN", "false").lower() in ("
 
 # Debounce: segundos a esperar tras el último mensaje del cliente antes de responder,
 # para agrupar burbujas seguidas ("hola" / "busco sierra" / "circular") en UNA sola respuesta.
-WA_DEBOUNCE_SECONDS = float(os.environ.get("WA_DEBOUNCE_SECONDS", "3.0"))
+# Subido de 3 a 7 s: con 3 s una foto + texto en burbujas separadas caía en lotes distintos
+# (la imagen se baja de Meta DENTRO del webhook, con latencia, y entraba tarde) → el bot
+# contestaba 2-3 veces y se contradecía ("no encontré" / "no recibí imagen"). 7 s absorbe
+# la descarga de la imagen y el ritmo de tecleo humano, dando UNA respuesta coherente.
+WA_DEBOUNCE_SECONDS = float(os.environ.get("WA_DEBOUNCE_SECONDS", "7.0"))
 # Throttle del aviso fuera de horario: no repetir el mensaje fijo más de una vez cada N segundos
 # por conversación (evita spamear al cliente que escribe varias veces de noche).
 OOH_THROTTLE_SECONDS = int(os.environ.get("OOH_THROTTLE_SECONDS", str(6 * 3600)))
@@ -79,9 +83,10 @@ VAPID_SUBJECT     = os.environ.get("VAPID_SUBJECT", "mailto:manelcomasbre@gmail.
 WA_API_BASE = "https://graph.facebook.com/v21.0"
 CLAUDE_API = "https://api.anthropic.com/v1/messages"
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
-# Temperatura baja: bot de ventas con tono estricto (usted, sin emojis). Baja deriva de tono
-# y respuestas más consistentes. Configurable por env si hace falta subirla.
-CLAUDE_TEMPERATURE = float(os.environ.get("CLAUDE_TEMPERATURE", "0.4"))
+# Temperatura media-baja: bot de ventas (usted, sin emojis) pero con tono natural/cálido.
+# 0.55 da más variedad y soltura sin perder consistencia. Configurable por env.
+# OJO: si el .env del VPS fija CLAUDE_TEMPERATURE, ese valor manda sobre este default.
+CLAUDE_TEMPERATURE = float(os.environ.get("CLAUDE_TEMPERATURE", "0.55"))
 # Cantidad de mensajes recientes que se pasan como contexto a Claude. Una sola cota usada
 # tanto en la query del webhook como en ai_reply (antes 6 vs 4, inconsistente).
 HISTORY_MSGS = int(os.environ.get("WA_HISTORY_MSGS", "6"))
@@ -109,9 +114,12 @@ Tu rol:
 
   Si dudás entre A y B (no es claro si es pago o producto), preguntale al cliente "¿esto es un comprobante de pago o me puede decir qué producto busca?".
 - Si `search_products` devuelve resultados, por defecto mostrá solo 1-2 opciones (las que mejor encajen) con código, nombre y precio en colones (formato "₡4,500"). Mostrá hasta 3 SOLO cuando son variantes comparables de lo mismo (mismo uso, distinto modelo o precio); si los resultados responden a usos distintos NO los listes, preguntá primero por el uso (ver sección H). OJO con `total` y `hay_mas`: la lista que ves NO es todo el catálogo, es solo lo más barato que coincidió. Si `hay_mas` es true (hay más modelos de los que muestra la lista), NUNCA digas "es el único", "el único modelo que tenemos" ni "solo tenemos esta": decí que hay varios (podés mencionar cuántos con `total`) y o bien presentá hasta 3 representativos, o mejor preguntá por el uso para acotar (ver sección H). Si el cliente vuelve a preguntar tras una búsqueda, hacé otra `search_products` con otras palabras antes de afirmar que algo no existe o que es lo único. OJO con `match_aproximado`: si es true, lo que pidió el cliente NO está en el catálogo tal cual (ej: pidió "sierra circular makita" y no hay Makita) — decílo con honestidad ("no manejamos exactamente eso, pero tengo estas opciones similares") y presentá los parecidos como alternativas; NO los presentes como si fueran el producto pedido. Si el cliente pide ver foto, pantallazo, imagen o referencia visual de un producto, usá la herramienta `send_product_photo` con el código exacto del producto — la foto va sola, vos solo confirmá brevemente con una frase tipo "Le paso la foto" o "Acá la foto" (sin emojis).
-- Sobre disponibilidad: usá SIEMPRE el campo `disponible` (booleano) que devuelve `search_products`, NO el número `stock`. Casi todo el catálogo se vende por encargo, así que `disponible` casi siempre es `true` aunque el `stock` numérico sea 0 — eso es normal y NO significa que falte el producto. Tratá el producto como disponible salvo que `disponible` sea explícitamente `false`. NUNCA menciones el número exacto de stock al cliente ni digas "tenemos 34 unidades".
-- Solo si `disponible` es `false` para un producto, avisá: "este producto no lo tenemos disponible en este momento, un compañero le confirma si entra pronto". Si `disponible` es `true` (el caso normal), presentalo sin advertencias de stock.
-- Antes de invocar `send_product_photo`, si `disponible` es `false` para ese código, avisá primero con texto ("Le paso la foto, pero este producto no lo tenemos disponible en este momento. Un compañero le confirma si entra pronto.") y DESPUÉS mandá la foto. Si `disponible` es `true`, mandá la foto sin advertencias.
+- Sobre disponibilidad: guiate por el campo `estado` que devuelve `search_products` (NO por el número `stock`, que NUNCA mencionás al cliente). Tiene tres valores:
+  · `estado` = "en_stock" → lo tenemos físico, entrega rápida. Presentalo normal, sin advertencias.
+  · `estado` = "por_encargo" → se trabaja por encargo (no hay físico en este momento). Es el caso MÁS común del catálogo y es totalmente normal, NO significa que falte. Dale el precio igual, pero aclaralo con naturalidad para que el cliente NO espere entrega inmediata, p.ej.: "El precio es ₡X. Este lo trabajamos por encargo, así que no es entrega inmediata; el tiempo de entrega se lo confirma un compañero." Decilo una vez por producto, sin dramatizar ni repetirlo en cada mensaje.
+  · `estado` = "no_disponible" → no se puede vender ahora: "Este no lo tenemos disponible por el momento, un compañero le confirma si vuelve a entrar."
+  NUNCA digas el número exacto de stock ("tenemos 34 unidades"); guiate solo por `estado`.
+- Antes de invocar `send_product_photo`: si `estado` es "por_encargo", al mandar la foto aclará que es por encargo ("Le paso la foto. Este lo trabajamos por encargo, el tiempo de entrega se lo confirma un compañero."); si es "no_disponible", avisá primero que no está disponible y luego mandá la foto; si es "en_stock", mandá la foto sin advertencias.
 - Si la búsqueda devuelve precios sospechosamente bajos (₡1, ₡10) significa que el producto no tiene precio cargado: NO se lo muestres al cliente, decile "déjame confirmar el precio con un compañero" y ofrecé pasarlo al equipo.
 - Si la búsqueda devuelve vacío, decí amablemente que no encontraste ese producto exacto y ofrecé pasarlo al equipo humano.
 - Dar información sobre envíos por Pymexpress, Encomienda Nacional Correos CR, Tavo Encomiendas o Dual Global a todo el país.
@@ -171,12 +179,11 @@ H. **DIFERENCIAR productos similares**: si `search_products` devuelve 2-3 produc
    - Esto es ayudar a ELEGIR producto según el uso (permitido y deseable), distinto de dar consejo técnico no pedido (ver K): podés preguntar para qué lo quiere y señalar cuál encaja, sin meterte en instrucciones de instalación, seguridad ni cálculos que el cliente no pidió.
    - **EL USO DE CADA PRODUCTO SALE SOLO DE SU PROPIA FICHA, NUNCA LO INVENTES NI LO COPIES**: cuando describas para qué sirve un producto, usá ÚNICAMENTE lo que diga el `nombre` y la `descripcion` de ESE producto en el resultado de `search_products`. PROHIBIDO: (a) inferir un uso que la ficha no menciona; (b) copiar el uso de otro producto de la lista; (c) repetir los usos de ejemplo que aparecen en ESTAS instrucciones (los nombres como "puerta de granero", "barn door", "madera/concreto" son solo ejemplos para ilustrar; NO los apliques a un producto salvo que su ficha lo diga textualmente). Ej: si la ficha dice solo "Bisagra pivotante para puerta", decí "para puerta", NO "para puerta de granero" (granero/barn door es un tipo específico que solo vale si el nombre lo dice). Si no estás seguro del uso, no lo afirmes: describí el producto por lo que sí dice la ficha (tipo, material, medidas) y, si hace falta, preguntá al cliente o pasá a un compañero.
 
-I. **TONO**: amable, claro y profesional. No "compa", no robot.
-   - PROHIBIDOS los emojis (👇 ✅ 🚚 📦 ⚠ 👋 🙌 🎉 etc.). Cero emojis en respuestas al cliente.
-   - PROHIBIDAS las exclamaciones efusivas tipo "¡Genial!", "¡Buenísimo!", "¡Listo!", "¡Perfecto!". Si necesitás confirmar, usá "Perfecto." (con punto) o "Listo." una sola vez por turno, o simplemente avanzá al siguiente paso sin frase de relleno.
-   - PROHIBIDAS las muletillas tipo "Mirá", "Buenísimo", "Acá te la paso", "Te cuento". Hablá directo, como un asistente discreto, no como un amigo entusiasta.
-   - Cuando mandes una card de producto con `send_product_photo`, NO repitas el código, nombre, ni precio en el texto. Una frase corta tipo "Le paso la foto." o "Se la paso." y silencio.
-   - Variaciones cortas y formales: "Perfecto.", "Bien.", "Anotado." (sin signos de exclamación).
+I. **TONO**: cálido, cercano y profesional, como una persona del equipo que de verdad atiende — no un bot terso ni acartonado. Tratá de "usted".
+   - Sin emojis en las respuestas al cliente (queda sobrio y evita que se lea como spam).
+   - Cordial y humano, pero sin efusividad de relleno: nada de "¡Genial!", "¡Buenísimo!" ni exclamaciones en cadena. Una confirmación natural y tranquila ("Perfecto", "Claro", "Con gusto", "Listo") está bien; variala y no la repitas en cada turno.
+   - Hablá con naturalidad: los conectores normales en "usted" ("Claro que sí", "Con gusto le ayudo", "Déjeme ver", "Le cuento") son bienvenidos. Lo que se evita es el tono telegráfico o robótico, no la calidez.
+   - Cuando mandes una card de producto con `send_product_photo`, NO repitas el código, nombre, ni precio en el texto. Una frase corta y natural tipo "Le paso la foto" o "Acá se la paso".
    - ESCRITURA NATURAL — escribí como una persona del equipo por WhatsApp, no como un texto pulido de IA:
      · No uses raya ni guion largo (—) para pausas dramáticas; usá punto o coma.
      · Evitá la "regla de tres" (no enumeres siempre tres cosas); si una frase basta, no hagas lista.
@@ -216,7 +223,7 @@ N. **POLÍTICA WHATSAPP / META — evitar que bloqueen el número (crítico, no 
    - Pocos enlaces y solo los propios (sitio o ficha del producto cuando aporta). Nada de links acortados ni varios enlaces en un mismo mensaje.
    - Resolvé rápido y hablá natural: un bot pesado, repetitivo o que no entiende hace que el cliente bloquee o reporte, y eso es justo lo que dispara la baja del número.
 
-Tono: amable, profesional, cordial sin ser efusivo. Tratá SIEMPRE de "usted" al cliente (es lo natural en Costa Rica): "su pedido", "le confirmo", "¿qué busca?". No uses "vos" ni "tú" aunque el cliente los use. Respuestas cortas. Cero emojis. Sin exclamaciones de relleno.
+Tono: cálido, cercano y profesional, en "usted" (lo natural en Costa Rica): "su pedido", "le confirmo", "¿qué anda buscando?". No uses "vos" ni "tú" aunque el cliente los use. Respuestas naturales y al punto, que se sientan de una persona atendiendo y no de un formulario. Sin emojis y sin exclamaciones de relleno.
 
 Sitio web: www.paracarpinteros.com
 Email: info@paracarpinteros.com
@@ -260,6 +267,7 @@ _STOPWORDS = {
     "tenes", "tienes", "tenés", "tiene", "tienen", "hay",
     "venden", "vende", "vendés", "vendes",
     "necesito", "busco", "quiero",
+    "hacer", "hago", "sirve", "sirven", "usar", "uso",  # muletillas verbales ("para hacer…")
     "mm", "cm", "pulg", "pulgada", "pulgadas",  # las medidas las metemos junto al número
 }
 
@@ -290,6 +298,50 @@ def _tokenize_query(query: str) -> list[str]:
         seen.add(t)
         out.append(t)
     return out
+
+
+# Sinónimos cliente→catálogo: lo que escribe el cliente (izq) se busca TAMBIÉN como los
+# términos de la derecha (cómo aparece de verdad en el catálogo). Resuelve el desajuste de
+# vocabulario visto en prod: "cuchilla de router para hacer paneles" NO matcheaba "Fresas
+# para panelar puertas" (las brocas de router se llaman "fresa"/"broca", nunca "cuchilla";
+# y "router" no va en el nombre de la broca). Solo cliente→catálogo, no al revés.
+_SYNONYMS = {
+    "cuchilla": ["fresa", "broca"],
+    "cuchillas": ["fresa", "broca"],
+    "router": ["fresa", "broca", "trompo"],
+    "ruter": ["fresa", "broca", "trompo"],
+    "rauter": ["fresa", "broca", "trompo"],
+    "prisionero": ["tornillo", "esparrago"],
+    "prisioneros": ["tornillo", "esparrago"],
+    "cazoleta": ["oculta", "europea"],
+}
+
+# Sufijos para la raíz aproximada (orden: más largos primero para no recortar de menos).
+_STEM_SUFFIXES = ("aciones", "amiento", "adoras", "adores", "ados", "adas",
+                  "ado", "ada", "es", "ar", "er", "ir", "s")
+
+
+def _stem(t: str) -> str:
+    """Raíz aproximada para ilike: recorta plurales/terminaciones verbales comunes en
+    español para que 'paneles' / 'panelar' / 'panelado' compartan la raíz 'panel' (y
+    'puertas'→'puerta', 'fresas'→'fresa'). Conservador: solo recorta si el stem queda
+    con >=4 caracteres, para no sobre-generalizar."""
+    if not t or t.isdigit() or "/" in t:
+        return t
+    for suf in _STEM_SUFFIXES:
+        if t.endswith(suf) and len(t) - len(suf) >= 4:
+            return t[: -len(suf)]
+    return t
+
+
+def _expand_token(t: str) -> list[str]:
+    """Variantes de búsqueda de un token: su raíz + las raíces de sus sinónimos. Cada
+    variante se compara con ilike contra nombre/código. Así un token puede matchear por
+    cualquiera de sus formas (raíz o sinónimo de catálogo)."""
+    variants = {_stem(t)}
+    for syn in _SYNONYMS.get(t, []):
+        variants.add(_stem(syn))
+    return [v for v in variants if v]
 
 
 def _es_disponible(p: dict) -> bool:
@@ -363,16 +415,17 @@ def _score_producto(p: dict, tokens: list[str]) -> int:
     desc = (p.get("description_sale") or "").lower()
     score = 0
     for t in tokens:
-        if t in name:
+        variants = _expand_token(t)
+        if any(v in name for v in variants):
             score += 10
-        if name.startswith(t):
+        if any(name.startswith(v) for v in variants):
             score += 4
-        if t in code:
+        if any(v in code for v in variants):
             score += 8
-        if t in desc:
+        if any(v in desc for v in variants):
             score += 2
-    if tokens and all(t in name for t in tokens):
-        score += 25  # todos los términos en el nombre: match fuerte
+    if tokens and all(any(v in name for v in _expand_token(t)) for t in tokens):
+        score += 25  # todos los términos (por raíz o sinónimo) en el nombre: match fuerte
     return score
 
 
@@ -416,11 +469,13 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
     aproximado = False  # True si los resultados salen de los fallbacks laxos (estrategias 3-4)
 
     def _and_por_token(campos: list[str], toks: list[str]) -> list:
-        """AND entre tokens; cada token es un OR sobre los `campos` (name/default_code/...).
-        En notación polaca de Odoo: por token, (len(campos)-1) '|' seguidos de las hojas."""
+        """AND entre tokens; cada token es un OR sobre (campos × variantes del token).
+        Las variantes (raíz + sinónimos, de _expand_token) hacen que 'cuchilla'/'router'
+        encuentren las 'fresas' y que 'paneles' encuentre 'panelar'.
+        En notación polaca de Odoo: por token, (n_hojas-1) '|' seguidos de las hojas."""
         dom: list = []
         for t in toks:
-            leaves = [(c, "ilike", t) for c in campos]
+            leaves = [(c, "ilike", v) for v in _expand_token(t) for c in campos]
             dom += ["|"] * (len(leaves) - 1) + leaves
         return dom
 
@@ -442,7 +497,8 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
     if not rows and strong:
         leaves: list = []
         for t in strong:
-            leaves += [("name", "ilike", t), ("default_code", "ilike", t), ("description_sale", "ilike", t)]
+            for v in _expand_token(t):
+                leaves += [("name", "ilike", v), ("default_code", "ilike", v), ("description_sale", "ilike", v)]
         domain = list(base) + ["|"] * (len(leaves) - 1) + leaves
         rows = _odoo_search(domain, fetch_limit)
         if rows:
@@ -471,6 +527,8 @@ def search_products_odoo(query: str, limit: int = 8) -> dict:
             "precio_crc": int(round(p.get("list_price") or 0)),
             "stock": int(p.get("qty_available") or 0),
             "disponible": _es_disponible(p),
+            "estado": ("no_disponible" if not _es_disponible(p)
+                       else ("en_stock" if int(p.get("qty_available") or 0) > 0 else "por_encargo")),
             "descripcion": (p.get("description_sale") or "").strip()[:160],
             "peso_kg": weight_kg if weight_kg > 0 else None,
         })
@@ -670,7 +728,7 @@ CLAUDE_TOOLS = [
             "`match_aproximado` (true si NINGÚN producto coincidió con todos los términos buscados y la lista son solo parecidos: "
             "en ese caso decí honestamente que no encontraste exactamente eso y presentalos como opciones similares, "
             "NUNCA como si fueran lo que pidió el cliente). Cada producto trae: código, "
-            "nombre, precio en colones, `disponible` (booleano: si se puede vender; casi siempre true porque se vende por encargo), descripcion y peso en kg (si está cargado en la ficha). "
+            "nombre, precio en colones, `estado` (\"en_stock\" = hay físico, entrega rápida / \"por_encargo\" = se vende por encargo, sin físico ahora, hay que avisarle al cliente que no es inmediato / \"no_disponible\" = no se puede vender ahora), `disponible` (booleano), descripcion y peso en kg (si está cargado en la ficha). "
             "Mirá `total`/`hay_mas` antes de afirmar cuántos modelos hay: si `hay_mas` es true, NO digas que es el único. "
             "Si necesitás el peso del producto para cotizar envío con `calculate_shipping_quote`, "
             "usá el `peso_kg` que devuelve esta tool (no preguntes al cliente si Odoo ya lo trae). "
@@ -1156,6 +1214,8 @@ def _get_product_full(codigo: str) -> Optional[dict]:
             "weight_kg": float(p.get("weight") or 0) or None,
             "stock": int(p.get("qty_available") or 0),
             "disponible": _es_disponible(p),
+            "estado": ("no_disponible" if not _es_disponible(p)
+                       else ("en_stock" if int(p.get("qty_available") or 0) > 0 else "por_encargo")),
             # URL de búsqueda por código (siempre funciona, sin depender del slug Odoo)
             "website_url": f"https://paracarpinteros.com/shop?search={codigo}",
         }
@@ -2658,10 +2718,18 @@ async def webhook_receive(request: Request):
                     try:
                         push_title = contact_name or phone
                         push_body = (text or "[mensaje]")[:140]
+                        # Conteo de conversaciones sin leer → número del badge del icono PWA (lo pone el SW)
+                        try:
+                            with db() as conn:
+                                _unread = conn.execute(
+                                    "SELECT COUNT(*) FROM conversations WHERE unread>0"
+                                ).fetchone()[0]
+                        except Exception:
+                            _unread = 0
                         await send_push_notification(
                             title=push_title,
                             body=push_body,
-                            data={"phone": phone, "url": "/", "ts": ts_int},
+                            data={"phone": phone, "url": "/", "ts": ts_int, "unread": _unread},
                         )
                     except Exception as e:
                         print(f"[push trigger err] {e}")
@@ -4215,7 +4283,7 @@ async def health():
 # ───────── SERVICE WORKER (PWA + Web Push) ─────────
 SW_JS = r"""// Service Worker - WhatsApp Bot Paracarpinteros
 // Versión: bump para forzar update en clientes
-const SW_VERSION = 'wabot-v3';
+const SW_VERSION = 'wabot-v4';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 
 self.addEventListener('install', (event) => {
@@ -4274,7 +4342,18 @@ self.addEventListener('push', (event) => {
     data: payload.data || {},
     requireInteraction: false,
   };
-  event.waitUntil(self.registration.showNotification(payload.title || 'Paracarpinteros', options));
+  // Badge del icono de la app (Badging API). Conteo de no-leídos llega en data.unread;
+  // si no viene, un badge "flag" (punto sin número). Falla en silencio en navegadores sin soporte.
+  const _cnt = (payload.data && payload.data.unread) || 0;
+  event.waitUntil((async () => {
+    try {
+      if (self.navigator && 'setAppBadge' in self.navigator) {
+        if (_cnt > 0) await self.navigator.setAppBadge(_cnt);
+        else await self.navigator.setAppBadge();
+      }
+    } catch (_) {}
+    await self.registration.showNotification(payload.title || 'Paracarpinteros', options);
+  })());
 });
 
 // Click en notificación: enfocar pestaña abierta del panel o abrir una nueva

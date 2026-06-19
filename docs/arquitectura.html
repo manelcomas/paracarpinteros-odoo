@@ -73,7 +73,6 @@ subgraph VPS["🖥️ VPS Contabo 66.94.99.220 — nginx host + Docker"]
     direction TB
     sign["sign.php /sign<br/>(solo firma XML)"]:::vps
     buzon["buzon-rx<br/>recepción FE Hacienda"]:::vps
-    alibaba["alibaba-rx<br/>pedidos Alibaba"]:::vps
     buzondb[("buzon.db<br/>oauth_tokens (AES-GCM)")]:::store
   end
 
@@ -114,10 +113,8 @@ feconv -->|XML sin firmar| sign
 sign -->|XML firmado| feconv
 feconv -->|envío FE| hacienda
 buzon <-->|polling| gmail
-alibaba <-->|polling| gmail
 buzon -->|Mensaje Receptor MR| hacienda
 buzon --- buzondb
-alibaba --- buzondb
 
 scripts <-->|XML-RPC| odooCore
 calc --- calcdb

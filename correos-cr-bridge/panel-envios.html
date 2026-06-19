@@ -448,10 +448,6 @@ tbody tr:hover{background:#F6EFE1 !important;}
     <div class="nav-item" onclick="window.open('https://www.paracarpinteros.com/fe-converter','_blank','noopener')" title="Abre en ventana nueva">
       <span class="nav-icon">📄</span> FE Converter <span class="nav-ext">↗</span>
     </div>
-    <div class="nav-item" onclick="switchTab('alibaba', this)">
-      <span class="nav-icon">🏭</span> Alibaba
-      <span class="badge" id="badgeAlibaba" style="display:none">·</span>
-    </div>
     <div class="nav-item" onclick="window.open('https://wa.paracarpinteros.com/','_blank','noopener')" title="Abre en ventana nueva">
       <span class="nav-icon">💬</span> WhatsApp Bot <span class="nav-ext">↗</span>
     </div>
@@ -724,71 +720,6 @@ tbody tr:hover{background:#F6EFE1 !important;}
               allow="clipboard-read; clipboard-write; camera; microphone"></iframe>
     </section>
 
-    <!-- ───── VIEW: ALIBABA ───── -->
-    <section id="view-alibaba" style="display:none">
-      <!-- Banner conexión OAuth -->
-      <div id="abConnPanel" style="display:none; padding:14px 18px; background:rgba(232,168,0,.12); border:1px solid var(--yellow); border-radius:var(--r); margin-bottom:14px; font-size:.78rem">
-        <b>Gmail no conectado.</b> Para empezar a recibir actualizaciones, autorizá la cuenta de Manel.
-        <a href="/alibaba-rx/oauth-start" class="btn btn-prim" target="_blank" style="margin-left:10px">Conectar manelcomasbre@gmail.com</a>
-      </div>
-
-      <!-- KPIs -->
-      <div class="kpi-row">
-        <div class="kpi"><div class="kpi-label">Activos</div><div class="kpi-value yellow" id="abKpiActivos">·</div><div class="kpi-foot">en camino / acción</div></div>
-        <div class="kpi"><div class="kpi-label">En camino</div><div class="kpi-value" id="abKpiEnCamino">·</div><div class="kpi-foot">enviados por proveedor</div></div>
-        <div class="kpi"><div class="kpi-label">Reseña pendiente</div><div class="kpi-value" id="abKpiResena">·</div><div class="kpi-foot">a calificar</div></div>
-        <div class="kpi"><div class="kpi-label">✈ Shenzhen</div><div class="kpi-value" id="abKpiShenzhen">·</div><div class="kpi-foot">consolidando</div></div>
-      </div>
-
-      <!-- Filtros -->
-      <div class="filter-row" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center">
-        <select id="abFiltComprador" onchange="abApplyFilters()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:var(--rsm); font-size:.78rem">
-          <option value="">👥 Todos los compradores</option>
-          <option value="manel">👨 Manel</option>
-          <option value="gabriela">👩 Gabriela</option>
-        </select>
-        <select id="abFiltEstado" onchange="abApplyFilters()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:var(--rsm); font-size:.78rem">
-          <option value="">Cualquier estado</option>
-          <option value="en_camino,enviado,cerca_entrega">✈️ En camino</option>
-          <option value="entregado,envio_completo">✅ Entregado</option>
-          <option value="resena_pendiente">⭐ Reseña pendiente</option>
-          <option value="pendiente_pago,pago_fallido,esperando_pago,pago_recibido,pago_confirmacion_proveedor,actualizado,pago_cambio">⚡ Acción</option>
-          <option value="cancelado,revocado">❌ Cancelado</option>
-        </select>
-        <input id="abFiltProveedor" placeholder="Buscar proveedor..." oninput="abApplyFilters()"
-               style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:var(--rsm); font-size:.78rem; min-width:180px" />
-        <button class="btn btn-ghost" id="abBtnShenzhen" onclick="abShowOnlyShenzhen=!abShowOnlyShenzhen; document.getElementById('abBtnShenzhen').classList.toggle('btn-prim', abShowOnlyShenzhen); abApplyFilters()">✈ Solo Shenzhen</button>
-        <button class="btn btn-ghost" id="abBtnTerminal" onclick="abShowTerminal=!abShowTerminal; document.getElementById('abBtnTerminal').classList.toggle('btn-prim', abShowTerminal); abApplyFilters()">Incluir cerrados</button>
-        <div style="flex:1"></div>
-        <button class="btn btn-sec" onclick="abSyncNow()">↻ Sincronizar ahora</button>
-      </div>
-
-      <!-- Grupos Shenzhen -->
-      <div id="abShenzhenGroups" style="margin-bottom:14px"></div>
-
-      <!-- Tabla principal -->
-      <div class="card list-wrap">
-        <table id="abTabla">
-          <thead>
-            <tr>
-              <th>Pedido</th>
-              <th>Comprador</th>
-              <th>Proveedor</th>
-              <th>Estado</th>
-              <th>Última actividad</th>
-              <th>Monto</th>
-              <th style="text-align:center">✈ Shenzhen</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="abTablaBody">
-            <tr><td colspan="8" style="text-align:center; color:var(--text3); padding:30px">Cargando…</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style="text-align:center; font-size:.65rem; color:var(--text3); margin-top:10px" id="abLastSync">—</div>
-    </section>
 
   </main>
 </div>
@@ -2595,7 +2526,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function switchTab(view, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
-  ['pendientes','manual','agenda','historial','calendario','calc','fe','alibaba','wa'].forEach(v=>{
+  ['pendientes','manual','agenda','historial','calendario','calc','fe','wa'].forEach(v=>{
     const sec = document.getElementById('view-'+v);
     if(sec) sec.style.display = (v===view) ? '' : 'none';
   });
@@ -2607,7 +2538,6 @@ function switchTab(view, el){
     calendario:['CALENDARIO DE ENVÍOS','Vista mensual por courier','CALENDARIO'],
     calc:['CALCULADORA DE COSTES','Pedidos a proveedores · Landed cost · Catálogo · Lista de espera','CALCULADORA'],
     fe:['FE CONVERTER','Conversor de facturas electrónicas Hacienda CR (embebido desde www.paracarpinteros.com)','FE CONVERTER'],
-    alibaba:['PEDIDOS ALIBABA','Manel + Gabriela · polling Gmail cada 15 min · uno mata al otro','ALIBABA'],
     wa:['WHATSAPP BOT','Tablero de conversaciones WhatsApp · auto-respuestas + cotizaciones · estilo WhatsApp Web','WA BOT']
   };
   const t = titles[view] || titles.pendientes;
@@ -2640,7 +2570,6 @@ function switchTab(view, el){
     if(!f.value){ f.value = todayLocal(); }
     loadAgenda();
   }
-  if(view==='alibaba') abLoad();
   if(view==='wa') {
     const fr = document.getElementById('waFrame');
     if(fr && (fr.src === 'about:blank' || !fr.src.includes('wa.paracarpinteros'))){
@@ -2679,12 +2608,6 @@ function onMobileSearch(q){
     if(window.__histSearchTimer) clearTimeout(window.__histSearchTimer);
     window.__histSearchTimer = setTimeout(()=>{ try{ loadHistorico(); }catch(e){} }, 350);
     return;
-  }
-  // Si estamos en alibaba, mapear al filtro de proveedor
-  const ab = document.getElementById('abFiltProveedor');
-  if(ab && document.getElementById('view-alibaba').style.display !== 'none'){
-    ab.value = q;
-    try{ abApplyFilters(); }catch(e){}
   }
 }
 function bnSwitch(view, btn){
@@ -3315,224 +3238,6 @@ async function loadHistorico(){
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// ALIBABA DASHBOARD — backend en panel.paracarpinteros.com/alibaba-rx
-// ══════════════════════════════════════════════════════════════════
-const ALIBABA_API_KEY = '5244633db0219316428f0cfc747a55f863d4f0d319fda5ecab9ba9a625cbc6d4';
-let abAllPedidos = [];
-let abShenzhenGroups = [];
-let abShowOnlyShenzhen = false;
-let abShowTerminal = false;
-
-async function abFetch(path, opts={}){
-  const headers = Object.assign({'X-API-Key': ALIBABA_API_KEY}, opts.headers || {});
-  if(opts.body && typeof opts.body !== 'string'){
-    headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(opts.body);
-  }
-  const r = await fetch('/alibaba-rx' + path, Object.assign({}, opts, {headers}));
-  let data;
-  try { data = await r.json(); }
-  catch(e){ throw new Error('respuesta no-JSON HTTP ' + r.status); }
-  if(!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
-  return data;
-}
-
-async function abLoad(){
-  const tbody = document.getElementById('abTablaBody');
-  if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text3); padding:30px">Cargando…</td></tr>`;
-  try {
-    const status = await abFetch('/status');
-    document.getElementById('abConnPanel').style.display = status.connected ? 'none' : '';
-    document.getElementById('abLastSync').textContent =
-      'Última sincronización: ' + (status.last_poll ? new Date(status.last_poll*1000).toLocaleString('es-CR') : 'nunca')
-      + (status.email ? ' · ' + status.email : '');
-
-    const data = await abFetch('/list?limit=2000');
-    abAllPedidos = data.pedidos || [];
-    abShenzhenGroups = data.shenzhen_grupos || [];
-
-    // badge sidebar
-    const activeCount = abAllPedidos.filter(p => !['cancelado','revocado','entregado','envio_completo','resena_pendiente'].includes(p.estado)).length;
-    const badge = document.getElementById('badgeAlibaba');
-    if(activeCount > 0){ badge.style.display=''; badge.textContent = activeCount; }
-    else { badge.style.display = 'none'; }
-
-    abRenderKpis();
-    abRenderShenzhen();
-    abApplyFilters();
-  } catch(e){
-    if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--red); padding:30px">Error: ${e.message}</td></tr>`;
-  }
-}
-
-function abRenderKpis(){
-  const active = abAllPedidos.filter(p => !['cancelado','revocado','entregado','envio_completo','resena_pendiente'].includes(p.estado));
-  const enCamino = abAllPedidos.filter(p => ['en_camino','enviado','cerca_entrega'].includes(p.estado));
-  const resena = abAllPedidos.filter(p => p.estado === 'resena_pendiente');
-  const shenzhen = abAllPedidos.filter(p => p.in_shenzhen === 1);
-  document.getElementById('abKpiActivos').textContent = active.length;
-  document.getElementById('abKpiEnCamino').textContent = enCamino.length;
-  document.getElementById('abKpiResena').textContent = resena.length;
-  document.getElementById('abKpiShenzhen').textContent = shenzhen.length;
-}
-
-function abRenderShenzhen(){
-  const cont = document.getElementById('abShenzhenGroups');
-  if(!abShenzhenGroups.length){ cont.innerHTML = ''; return; }
-  cont.innerHTML = '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:stretch">' +
-    abShenzhenGroups.map(g => {
-      const peds = abAllPedidos.filter(p => p.shenzhen_group === g.grupo);
-      return `<div class="card" style="padding:10px 14px; min-width:180px; cursor:pointer" onclick="document.getElementById('abFiltProveedor').value=''; abShowOnlyShenzhen=true; document.getElementById('abBtnShenzhen').classList.add('btn-prim'); abApplyFilters()">
-        <div style="font-weight:700; font-size:.85rem; color:var(--yellow)">✈ ${abEscape(g.grupo)}</div>
-        <div style="font-size:.65rem; color:var(--text3); margin:4px 0">${peds.length} pedido${peds.length===1?'':'s'} · ${abEscape(g.estado||'agrupando')}</div>
-      </div>`;
-    }).join('') + '</div>';
-}
-
-function abApplyFilters(){
-  const comprador = document.getElementById('abFiltComprador').value;
-  const estadoCsv = document.getElementById('abFiltEstado').value;
-  const proveedor = document.getElementById('abFiltProveedor').value.toLowerCase();
-  const estados = estadoCsv ? estadoCsv.split(',') : null;
-  let rows = abAllPedidos.filter(p => {
-    if(comprador && p.comprador !== comprador) return false;
-    if(estados && !estados.includes(p.estado)) return false;
-    if(proveedor && !(p.proveedor||'').toLowerCase().includes(proveedor)) return false;
-    if(abShowOnlyShenzhen && p.in_shenzhen !== 1) return false;
-    if(!abShowTerminal && ['cancelado','revocado','entregado','envio_completo','resena_pendiente'].includes(p.estado)) return false;
-    return true;
-  });
-  rows.sort((a,b) => (b.fecha_ultimo_evento||0) - (a.fecha_ultimo_evento||0));
-
-  const tbody = document.getElementById('abTablaBody');
-  if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text3); padding:30px">Sin resultados con esos filtros</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = rows.map(p => abRowHtml(p)).join('');
-}
-
-function abRowHtml(p){
-  const compIcon = p.comprador === 'manel' ? '👨 Manel' : p.comprador === 'gabriela' ? '👩 Gabriela' : '? ' + (p.comprador||'');
-  const fechaHuman = p.fecha_ultimo_evento ? new Date(p.fecha_ultimo_evento*1000).toLocaleDateString('es-CR') : '—';
-  const monto = p.monto ? Number(p.monto).toFixed(2) + (p.moneda?' '+p.moneda:'') : '—';
-  const estClass = abEstadoClass(p.estado);
-  const grupoBadge = p.shenzhen_group ? `<small style="display:block; color:var(--yellow); font-size:.55rem; margin-top:2px">✈ ${abEscape(p.shenzhen_group)}</small>` : '';
-  const items = p.items || [];
-  const arrow = items.length ? `<span class="expand-arrow" id="ab-arr-${p.numero}" onclick="abToggleItems('${p.numero}')" style="cursor:pointer; color:var(--yellow)">▸</span>` : '<span style="color:var(--text3)">·</span>';
-  const itemsBadge = items.length ? `<small style="color:var(--text3); font-size:.6rem; margin-left:4px">${items.length} ítem${items.length===1?'':'s'}</small>` : '';
-
-  const itemsRow = items.length ? `
-    <tr class="ab-items-row" id="ab-items-${p.numero}" style="display:none; background:var(--card2)">
-      <td colspan="8" style="padding:0">
-        <div style="padding:14px 18px">
-          <div style="font-size:.55rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); margin-bottom:10px">Productos del pedido</div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px">
-            ${items.map(it => abItemCardHtml(it)).join('')}
-          </div>
-        </div>
-      </td>
-    </tr>` : '';
-
-  return `
-    <tr>
-      <td data-label="Pedido" style="white-space:nowrap">${arrow} <b style="font-family:monospace; font-size:.7rem">${abEscape(p.numero)}</b>${grupoBadge}${itemsBadge}</td>
-      <td data-label="Comprador">${compIcon}</td>
-      <td data-label="Proveedor">${abEscape(p.proveedor || '—')}</td>
-      <td data-label="Estado"><span class="tag ${estClass}">${abEscape(p.estado_etiqueta || p.estado)}</span></td>
-      <td data-label="Última actividad">${fechaHuman}</td>
-      <td data-label="Monto">${monto}</td>
-      <td data-label="✈ Shenzhen" style="text-align:center">
-        <input type="checkbox" ${p.in_shenzhen===1?'checked':''} onchange="abToggleShenzhen('${p.numero}', this.checked)" style="cursor:pointer; width:16px; height:16px; accent-color:var(--yellow)" />
-      </td>
-      <td class="row-actions">
-        <button class="btn btn-ghost" onclick="abEditNote('${p.numero}')" title="Notas">📝</button>
-        <a class="btn btn-ghost" href="https://trade.alibaba.com/order/detail.htm?orderId=${p.numero}" target="_blank" title="Abrir en Alibaba">↗</a>
-      </td>
-    </tr>
-    ${itemsRow}`;
-}
-
-function abItemCardHtml(it){
-  const precio = it.precio_unitario ? `${(it.moneda||'')} ${Number(it.precio_unitario).toFixed(2)}` : '';
-  const cantidad = it.cantidad ? `${it.cantidad} ${abEscape(it.unidad||'')}` : '';
-  const subtotal = (it.cantidad && it.precio_unitario) ? `${(it.cantidad * it.precio_unitario).toFixed(2)} ${abEscape(it.moneda||'')}` : '';
-  const img = it.imagen_url ? `<img src="${abEscape(it.imagen_url)}" alt="" style="width:60px; height:60px; object-fit:cover; border-radius:4px; flex-shrink:0" onerror="this.style.display='none'">` : '';
-  return `
-    <div style="display:flex; gap:10px; background:var(--card); padding:8px; border-radius:6px; border:1px solid var(--border)">
-      ${img}
-      <div style="flex:1; min-width:0">
-        <div style="font-size:.72rem; color:var(--text); font-weight:600; line-height:1.3; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical" title="${abEscape(it.nombre)}">${abEscape(it.nombre)}</div>
-        <div style="font-size:.65rem; color:var(--text2); display:flex; gap:10px; flex-wrap:wrap">
-          ${cantidad?`<span>📦 ${cantidad}</span>`:''}
-          ${precio?`<span>💲 ${abEscape(precio)} c/u</span>`:''}
-          ${subtotal?`<span style="color:var(--yellow); font-weight:600">= ${abEscape(subtotal)}</span>`:''}
-        </div>
-      </div>
-    </div>`;
-}
-
-function abToggleItems(numero){
-  const row = document.getElementById('ab-items-' + numero);
-  const arr = document.getElementById('ab-arr-' + numero);
-  if (!row) return;
-  const open = row.style.display !== 'none';
-  row.style.display = open ? 'none' : '';
-  if (arr) arr.textContent = open ? '▸' : '▾';
-}
-
-function abEstadoClass(estado){
-  if(['entregado','envio_completo'].includes(estado)) return 'tag-listo';
-  if(['cancelado','revocado'].includes(estado)) return 'tag-error';
-  if(['resena_pendiente'].includes(estado)) return 'tag-incompleto';
-  return 'tag-pendiente';
-}
-
-async function abToggleShenzhen(numero, checked){
-  let grupo = null;
-  if(checked){
-    grupo = prompt('Grupo Shenzhen (opcional, ej. SH-01):', '');
-    if(grupo === null){ abLoad(); return; } // cancelado por el usuario
-  }
-  try {
-    await abFetch('/consolidate', {method:'POST', body:{action:'toggle', numero, in_shenzhen:checked?1:0, shenzhen_group:grupo||null}});
-    await abLoad();
-  } catch(e){ alert('Error: ' + e.message); abLoad(); }
-}
-
-async function abEditNote(numero){
-  const ped = abAllPedidos.find(p => p.numero === numero);
-  const nuevo = prompt('Notas para el pedido ' + numero + ':', (ped && ped.notas) || '');
-  if(nuevo === null) return;
-  try {
-    await abFetch('/consolidate', {method:'POST', body:{action:'note', numero, notas:nuevo}});
-    abLoad();
-  } catch(e){ alert('Error: ' + e.message); }
-}
-
-async function abSyncNow(){
-  const btn = event.target;
-  const orig = btn.textContent;
-  btn.textContent = '⏳ Sincronizando…'; btn.disabled = true;
-  try {
-    const r = await abFetch('/sync', {method:'POST'});
-    if(r.ok){
-      const sr = r.resumen || {};
-      btn.textContent = `↻ ${sr.mensajes||0} mails · +${sr.pedidos_nuevos||0} · ↻${sr.pedidos_actualizados||0}`;
-      setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 3000);
-      abLoad();
-    } else {
-      throw new Error(r.error || 'sync falló');
-    }
-  } catch(e){
-    btn.textContent = '✕ Error';
-    alert('Error sincronizando: ' + e.message);
-    setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 2500);
-  }
-}
-
-function abEscape(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
 </script>
 </body>
 </html>

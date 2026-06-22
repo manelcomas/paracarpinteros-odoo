@@ -1582,8 +1582,15 @@ function renderRows(filter='todos'){
       action = `<button class="btn btn-sec" onclick="toggleDetail(${pi})">▸ Revisar</button><button class="btn btn-prim" style="margin-left:4px" onclick="openSchedulePicker(${p.picking_id}, '${safeCliente}')">📅 Agendar</button>`;
     } else {
       tag = `<span class="tag tag-incompleto" title="${p.warn}">● ${p.warn || 'Incompleto'}</span>`;
-      action = `${courierSelect}<button class="btn btn-sec" style="margin-left:4px" onclick="openModalGen(${p.picking_id}, document.getElementById('cs-${p.picking_id}').value)">✎ Editar datos</button>`;
+      // "Incompleto" suele ser un retiro en almacén (cliente sin dirección postal).
+      // Por eso se ofrece igual Agendar (solo fecha, no pide dirección); para imprimir
+      // la etiqueta de retiro se usa el botón 📍 Mano de abajo.
+      action = `${courierSelect}<button class="btn btn-sec" style="margin-left:4px" onclick="openModalGen(${p.picking_id}, document.getElementById('cs-${p.picking_id}').value)">✎ Editar datos</button><button class="btn btn-prim" style="margin-left:4px" onclick="openSchedulePicker(${p.picking_id}, '${safeCliente}')">📅 Agendar</button>`;
     }
+    // Entrega a mano / retiro en almacén: imprime etiqueta SIN requerir dirección postal.
+    // Disponible en cualquier estado (también "incompleto"), porque el retiro en almacén
+    // no necesita CP/dirección — abre el modal Turrialba/Almacén directamente.
+    action += `<button class="btn btn-sec" style="margin-left:4px; background:rgba(232,168,0,.10); border-color:rgba(232,168,0,.4); color:#ffc94a" onclick="openModalGen(${p.picking_id}, 'mano')" title="Entrega a mano / retiro en almacén — no requiere dirección">📍 Mano</button>`;
     // Botón ocultar (solo del listado, no toca Odoo)
     action += `<button class="btn btn-ghost" style="margin-left:4px; color:var(--text3)" onclick="hidePending(${p.picking_id})" title="Ocultar del panel (sigue en Odoo)">🗑</button>`;
 

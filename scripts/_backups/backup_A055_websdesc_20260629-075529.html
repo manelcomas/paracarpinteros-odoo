@@ -1,0 +1,130 @@
+<style>
+.pcf{--bg:#FBFBFA;--surface:#fff;--surface-2:#F7F6F3;--text:#111;--text-2:#6F6F6E;--text-3:#9B9A97;
+  --border:#EAEAEA;--border-2:#D1D1CF;--green-bg:#EDF3EC;--green-fg:#346538;--blue-bg:#E1F3FE;
+  --blue-fg:#1F6C9F;--yellow-bg:#FBF3DB;--yellow-fg:#956400;--purple-bg:#F4ECFF;--purple-fg:#5B2A86;
+  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
+  --font-sans:'Geist Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-serif:'Newsreader','Lyon Text',Georgia,serif;
+  --font-mono:'Geist Mono','SF Mono',ui-monospace,monospace;
+  font-family:var(--font-sans);color:var(--text);line-height:1.55;max-width:1080px;margin:0 auto;padding:24px 16px}
+.pcf .hero{display:grid;grid-template-columns:1fr;gap:32px;margin-bottom:48px}
+.pcf .hero-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pcf .tag{display:inline-block;padding:4px 11px;border-radius:9999px;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
+.pcf .tag-industrial{background:var(--blue-bg);color:var(--blue-fg)}
+.pcf .tag-power{background:var(--yellow-bg);color:var(--yellow-fg)}
+.pcf .tag-stock{background:var(--green-bg);color:var(--green-fg)}
+.pcf .tag-premium{background:var(--purple-bg);color:var(--purple-fg)}
+.pcf h1.title{font-family:var(--font-serif);font-size:2.2rem;font-weight:500;letter-spacing:-0.025em;line-height:1.08;margin:0 0 10px}
+.pcf .ref{display:block;font-family:var(--font-mono);font-size:.78rem;color:var(--text-3);font-weight:400;letter-spacing:0.05em;text-transform:uppercase;margin-top:6px}
+.pcf .lead{font-size:1.02rem;color:var(--text-2);line-height:1.6;margin:14px 0 20px;max-width:62ch}
+.pcf .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 24px}
+.pcf .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 10px;text-align:center}
+.pcf .kpi-val{font-family:var(--font-serif);font-size:1.45rem;font-weight:500;letter-spacing:-0.02em;line-height:1.05;margin-bottom:4px;word-break:break-word}
+.pcf .kpi-lbl{font-size:.62rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-weight:600}
+.pcf .price-block{margin:24px 0 20px;padding:18px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pcf .price{font-family:var(--font-serif);font-size:1.85rem;font-weight:500;letter-spacing:-0.025em;line-height:1}
+.pcf .price small{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);font-weight:400;display:block;margin-top:5px;letter-spacing:0.05em;text-transform:uppercase}
+.pcf .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pcf .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:var(--r-md);font-size:.86rem;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:.15s;line-height:1}
+.pcf .btn-wa{background:#25D366;color:#fff}
+.pcf .btn-wa:hover{background:#1ebe5b;color:#fff}
+.pcf .btn-secd{background:var(--surface);color:var(--text);border-color:var(--border)}
+.pcf .btn-secd:hover{background:var(--surface-2);border-color:var(--border-2)}
+.pcf .btn svg{width:14px;height:14px}
+.pcf .sec{margin:48px 0}
+.pcf .sec h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:500;letter-spacing:-0.025em;line-height:1.1;margin:0 0 6px}
+.pcf .sec .sec-sub{font-size:.9rem;color:var(--text-2);margin-bottom:22px;max-width:60ch;line-height:1.55}
+.pcf .narrative p{font-size:.94rem;color:var(--text);line-height:1.65;margin:0 0 14px;max-width:68ch}
+.pcf .features{list-style:none;padding:0;margin:0}
+.pcf .features li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.92rem;color:var(--text);line-height:1.45}
+.pcf .features li:last-child{border-bottom:none}
+.pcf .features li::before{content:'';width:18px;height:18px;border-radius:50%;background:var(--green-bg);flex-shrink:0;margin-top:2px;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23346538%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%2220 6 9 17 4 12%22/></svg>');background-repeat:no-repeat;background-position:center;background-size:10px}
+.pcf .features.features-warn li::before{background:#FBF3DB;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23956400%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><line x1=%2212%22 y1=%229%22 x2=%2212%22 y2=%2213%22/><line x1=%2212%22 y1=%2217%22 x2=%2212.01%22 y2=%2217%22/><path d=%22m10.29 3.86-8.18 14.16a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71-3l-8.18-14.16a2 2 0 0 0-3.42 0z%22/></svg>')}
+.pcf table.spec-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.pcf table.spec-table tr{border-bottom:1px solid var(--border)}
+.pcf table.spec-table tr:last-child{border-bottom:none}
+.pcf table.spec-table th,.pcf table.spec-table td{padding:12px 16px;text-align:left;font-size:.86rem;vertical-align:top}
+.pcf table.spec-table th{width:34%;color:var(--text-2);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;font-size:.68rem;background:var(--surface-2)}
+.pcf table.spec-table td{color:var(--text);font-family:var(--font-mono);font-size:.83rem}
+.pcf .video-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border);background:#000}
+.pcf .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.pcf .cta-final{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:32px 28px;text-align:center;margin:40px 0 0}
+.pcf .cta-final h3{font-family:var(--font-serif);font-size:1.5rem;font-weight:500;letter-spacing:-0.02em;margin:0 0 6px}
+.pcf .cta-final p{color:var(--text-2);font-size:.92rem;margin:0 0 18px;line-height:1.55}
+.pcf .cta-final .cta-row{justify-content:center}
+@media(max-width:600px){.pcf .kpi-row{grid-template-columns:repeat(3,1fr)} .pcf .kpi-val{font-size:1.1rem} .pcf h1.title{font-size:1.7rem}}
+.pcf .guide{display:grid;gap:12px;margin-top:8px}
+.pcf .guide-step{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px}
+.pcf .guide-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--purple-bg);color:var(--purple-fg);font-family:var(--font-serif);font-weight:600;font-size:1.02rem;display:flex;align-items:center;justify-content:center;line-height:1}
+.pcf .guide-step h4{margin:1px 0 5px;font-size:.98rem;font-weight:600;letter-spacing:-0.01em;color:var(--text)}
+.pcf .guide-step p{margin:0;font-size:.9rem;color:var(--text-2);line-height:1.6}
+</style>
+
+<div class="pcf">
+  <section class="hero">
+    <div>
+      <div class="hero-tags"><span class="tag tag-premium">Premium</span><span class="tag tag-power">50 W</span><span class="tag tag-stock">En stock</span></div>
+      <h1 class="title">CNC Atomstack X7 Pro: Grabadora láser 50W Máquina cortadora de grabado para madera y Metal 410 x 400 mm<span class="ref">REF · A055</span></h1>
+      <p class="lead">modelo : ATOMSTACK X7 PRO Área de trabajo: 410*400mm（Extensión de soporte） Potencia de la máquina: 50W Potencia de salida del láser: 10-11W Longitud de onda: 445 ± 5nm Precisión de grabado: 0,01 mm Método de enfoque: láser de enfoque fijo, sin necesidad de enfocar Cubierta protectora del láser: protege los ojos del usuario y evita que las mascotas agarren el punto del…</p>
+      <div class="kpi-row"><div class="kpi"><div class="kpi-val">50 W</div><div class="kpi-lbl">Potencia</div></div><div class="kpi"><div class="kpi-val">410 × 400 mm</div><div class="kpi-lbl">Área trabajo</div></div></div>
+      <div class="price-block">
+        <div class="price">₡ 430,000 <small>IVA incluido · envío Costa Rica</small></div>
+        <div class="cta-row">
+          <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20A055%20(CNC%20Atomstack%20X7%20Pro:%20Grabadora%20láser%2050W%20Máquina%20cortadora%20de%20grabado%20para%20madera%20y%20Metal%20410%20x%20400%20mm)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg> Consultar por WhatsApp</a>
+          <a class="btn btn-secd" href="/web/content/38932?download=true&amp;filename=ficha-tecnica-A055.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar ficha técnica
+        </a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <a id="specs"></a>
+  
+  <section class="sec">
+    <h2>Especificaciones técnicas</h2>
+    <p class="sec-sub">Datos del fabricante. Tolerancia ±5% en medidas/pesos.</p>
+    <table class="spec-table"><tr><th>Modelo</th><td>ATOMSTACK X7 PRO</td></tr><tr><th>Marca / Modelo</th><td>Atomstack X7 Pro</td></tr><tr><th>Tipo de máquina</th><td>Grabadora / cortadora láser CNC de escritorio</td></tr><tr><th>Potencia láser (óptica equivalente)</th><td>50 W</td></tr><tr><th>Área de trabajo</th><td>410 × 400 mm</td></tr><tr><th>Tipo de láser</th><td>Diodo láser (luz azul ~450 nm)</td></tr><tr><th>Estructura</th><td>Marco de aluminio con guías lineales en ejes X e Y</td></tr><tr><th>Control</th><td>Panel de control integrado con pantalla y joystick</td></tr><tr><th>Materiales compatibles</th><td>Madera, MDF, cuero, acrílico, metal (grabado), plástico</td></tr></table>
+  </section>
+  
+  
+  
+  <section class="sec">
+    <h2>Aplicaciones recomendadas</h2>
+    <p class="sec-sub">Usos típicos identificados por análisis del producto.</p>
+    <ul class="features"><li>Grabado decorativo en madera y MDF</li><li>Corte de materiales delgados (madera, acrílico, cuero)</li><li>Grabado superficial en metales pintados o anodizados</li><li>Personalización de piezas (logos, texto, ilustraciones)</li><li>Prototipado rápido en taller de carpintería</li></ul>
+  </section>
+  
+  <section class="sec">
+    <h2>Notas de operación</h2>
+    <p class="sec-sub">Recomendaciones críticas para uso seguro y vida útil.</p>
+    <ul class="features features-warn"><li>Requiere ventilación adecuada o extractor de humos: el corte/grabado genera gases y partículas tóxicas</li><li>Obligatorio uso de gafas de protección láser certificadas para longitud de onda ~450 nm</li><li>No operar sin supervisión directa; riesgo de incendio en materiales combustibles</li><li>Verificar foco del láser antes de cada trabajo para optimizar corte y grabado</li><li>El grabado en metal requiere recubrimiento previo (spray negro o pasta de grabado) para diodos de baja potencia</li><li>Mantener área de trabajo limpia de residuos inflamables</li></ul>
+  </section>
+  
+    <section class="sec">
+    <h2>Manual de uso</h2>
+    <p class="sec-sub">Cómo poner en marcha tu Atomstack X7 Pro 50W paso a paso.</p>
+    <div class="guide">
+      <div class="guide-step"><div class="guide-num">1</div><div><h4>Instalación</h4><p>Ensamblá la base y el pórtico y fijá el módulo láser siguiendo el video oficial; conectá los cables.</p></div></div>
+      <div class="guide-step"><div class="guide-num">2</div><div><h4>Terminal y software</h4><p>La X7 Pro trae terminal de control independiente (pantalla táctil) para grabar sin PC; también Atomstack Studio, LightBurn o LaserGRBL por USB, o la app por WiFi.</p></div></div>
+      <div class="guide-step"><div class="guide-num">3</div><div><h4>Enfoque fijo</h4><p>Poné la barra de enfoque incluida entre el módulo y el material y fijá la altura; quitala antes de grabar.</p></div></div>
+      <div class="guide-step"><div class="guide-num">4</div><div><h4>Encuadre</h4><p>Usá el encuadre para posicionar el trabajo sobre el material.</p></div></div>
+      <div class="guide-step"><div class="guide-num">5</div><div><h4>Primer grabado o corte</h4><p>Ajustá potencia y velocidad por material (air assist para cortar) y dale iniciar.</p></div></div>
+      <div class="guide-step"><div class="guide-num">6</div><div><h4>Seguridad</h4><p>Gafas de protección láser, extracción de humo, base ignífuga y no dejarla desatendida.</p></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Instalación (video oficial)</h2>
+    <p class="sec-sub">Instalación de la X7 Pro paso a paso. Video del canal oficial ATOMSTACK.</p>
+    <div class="video-wrap"><iframe src="https://www.youtube.com/embed/QoBE1GCNFYA" title="Instalación (video oficial)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  </section>
+
+  <section class="cta-final">
+    <h3>¿Dudas antes de comprar?</h3>
+    <p>Te confirmamos disponibilidad, garantía y entrega por WhatsApp el mismo día.</p>
+    <div class="cta-row">
+      <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20A055%20(CNC%20Atomstack%20X7%20Pro:%20Grabadora%20láser%2050W%20Máquina%20cortadora%20de%20grabado%20para%20madera%20y%20Metal%20410%20x%20400%20mm)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg> Escribir por WhatsApp</a>
+    </div>
+  </section>
+</div>

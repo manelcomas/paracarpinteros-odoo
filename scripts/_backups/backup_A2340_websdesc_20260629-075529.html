@@ -1,0 +1,164 @@
+<style>
+.pcf{--bg:#FBFBFA;--surface:#fff;--surface-2:#F7F6F3;--text:#111;--text-2:#6F6F6E;--text-3:#9B9A97;
+  --border:#EAEAEA;--border-2:#D1D1CF;--green-bg:#EDF3EC;--green-fg:#346538;--blue-bg:#E1F3FE;
+  --blue-fg:#1F6C9F;--yellow-bg:#FBF3DB;--yellow-fg:#956400;--purple-bg:#F4ECFF;--purple-fg:#5B2A86;
+  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
+  --font-sans:'Geist Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-serif:'Newsreader','Lyon Text',Georgia,serif;
+  --font-mono:'Geist Mono','SF Mono',ui-monospace,monospace;
+  font-family:var(--font-sans);color:var(--text);line-height:1.55;max-width:1080px;margin:0 auto;padding:24px 16px}
+.pcf .hero{display:grid;grid-template-columns:1fr;gap:32px;margin-bottom:48px}
+.pcf .hero-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pcf .tag{display:inline-block;padding:4px 11px;border-radius:9999px;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
+.pcf .tag-industrial{background:var(--blue-bg);color:var(--blue-fg)}
+.pcf .tag-power{background:var(--yellow-bg);color:var(--yellow-fg)}
+.pcf .tag-stock{background:var(--green-bg);color:var(--green-fg)}
+.pcf .tag-premium{background:var(--purple-bg);color:var(--purple-fg)}
+.pcf h1.title{font-family:var(--font-serif);font-size:2.2rem;font-weight:500;letter-spacing:-0.025em;line-height:1.08;margin:0 0 10px}
+.pcf .ref{display:block;font-family:var(--font-mono);font-size:.78rem;color:var(--text-3);font-weight:400;letter-spacing:0.05em;text-transform:uppercase;margin-top:6px}
+.pcf .lead{font-size:1.02rem;color:var(--text-2);line-height:1.6;margin:14px 0 20px;max-width:62ch}
+.pcf .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 24px}
+.pcf .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 10px;text-align:center}
+.pcf .kpi-val{font-family:var(--font-serif);font-size:1.45rem;font-weight:500;letter-spacing:-0.02em;line-height:1.05;margin-bottom:4px;word-break:break-word}
+.pcf .kpi-lbl{font-size:.62rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-weight:600}
+.pcf .price-block{margin:24px 0 20px;padding:18px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pcf .price{font-family:var(--font-serif);font-size:1.85rem;font-weight:500;letter-spacing:-0.025em;line-height:1}
+.pcf .price small{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);font-weight:400;display:block;margin-top:5px;letter-spacing:0.05em;text-transform:uppercase}
+.pcf .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pcf .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:var(--r-md);font-size:.86rem;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:.15s;line-height:1}
+.pcf .btn-wa{background:#25D366;color:#fff}
+.pcf .btn-wa:hover{background:#1ebe5b;color:#fff}
+.pcf .btn-secd{background:var(--surface);color:var(--text);border-color:var(--border)}
+.pcf .btn-secd:hover{background:var(--surface-2);border-color:var(--border-2)}
+.pcf .btn svg{width:14px;height:14px}
+.pcf .sec{margin:48px 0}
+.pcf .sec h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:500;letter-spacing:-0.025em;line-height:1.1;margin:0 0 6px}
+.pcf .sec .sec-sub{font-size:.9rem;color:var(--text-2);margin-bottom:22px;max-width:60ch;line-height:1.55}
+.pcf .narrative p{font-size:.94rem;color:var(--text);line-height:1.65;margin:0 0 14px;max-width:68ch}
+.pcf .features{list-style:none;padding:0;margin:0}
+.pcf .features li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.92rem;color:var(--text);line-height:1.45}
+.pcf .features li:last-child{border-bottom:none}
+.pcf .features li::before{content:'';width:18px;height:18px;border-radius:50%;background:var(--green-bg);flex-shrink:0;margin-top:2px;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23346538%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%2220 6 9 17 4 12%22/></svg>');background-repeat:no-repeat;background-position:center;background-size:10px}
+.pcf table.spec-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.pcf table.spec-table tr{border-bottom:1px solid var(--border)}
+.pcf table.spec-table tr:last-child{border-bottom:none}
+.pcf table.spec-table th,.pcf table.spec-table td{padding:12px 16px;text-align:left;font-size:.86rem;vertical-align:top}
+.pcf table.spec-table th{width:34%;color:var(--text-2);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;font-size:.68rem;background:var(--surface-2)}
+.pcf table.spec-table td{color:var(--text);font-family:var(--font-mono);font-size:.83rem}
+.pcf .video-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border);background:#000}
+.pcf .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.pcf .cta-final{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:32px 28px;text-align:center;margin:40px 0 0}
+.pcf .cta-final h3{font-family:var(--font-serif);font-size:1.5rem;font-weight:500;letter-spacing:-0.02em;margin:0 0 6px}
+.pcf .cta-final p{color:var(--text-2);font-size:.92rem;margin:0 0 18px;line-height:1.55}
+.pcf .cta-final .cta-row{justify-content:center}
+@media(max-width:600px){.pcf .kpi-row{grid-template-columns:repeat(3,1fr)} .pcf .kpi-val{font-size:1.1rem} .pcf h1.title{font-size:1.7rem}}
+.pcf .guide{display:grid;gap:12px;margin-top:8px}
+.pcf .guide-step{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px}
+.pcf .guide-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--purple-bg);color:var(--purple-fg);font-family:var(--font-serif);font-weight:600;font-size:1.02rem;display:flex;align-items:center;justify-content:center;line-height:1}
+.pcf .guide-step h4{margin:1px 0 5px;font-size:.98rem;font-weight:600;letter-spacing:-0.01em;color:var(--text)}
+.pcf .guide-step p{margin:0;font-size:.9rem;color:var(--text-2);line-height:1.6}
+.pcf .combos{display:grid;gap:10px;margin-top:8px}
+.pcf .combo{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:13px 16px}
+.pcf .combo-h{font-weight:600;font-size:.92rem;margin-bottom:7px;color:var(--text)}
+.pcf .combo-d{font-size:.88rem;color:var(--text-2);line-height:1.95}
+.pcf .kbd{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;border-radius:5px;background:var(--surface-2);border:1px solid var(--border-2);border-bottom-width:2px;font-family:var(--font-mono);font-size:.82rem;font-weight:600;color:var(--text)}
+.pcf .arrow{color:var(--text-3);margin:0 3px}
+.pcf .combo-note{font-size:.82rem;color:var(--text-3);line-height:1.55;margin-top:12px;font-style:italic}
+</style>
+
+<div class="pcf">
+  <section class="hero">
+    <div>
+      <div class="hero-tags"><span class="tag tag-premium">Premium</span></div>
+      <h1 class="title">Cerradura Inteligente K30 con Reconocimiento Facial 3D y Video Portero (Tuya)<span class="ref">REF · A2340</span></h1>
+      <p class="lead">Cerradura inteligente de alta gama con reconocimiento facial 3D y video portero integrado. Abre con el rostro, huella, palma, código, tarjeta, app o llave física. Cuerpo de aleación de aluminio. Con la app Tuya / Smart Life: video en tiempo real, intercomunicador y avisos al celular.</p>
+      <div class="kpi-row"><div class="kpi"><div class="kpi-val">Facial 3D</div><div class="kpi-lbl">Apertura</div></div><div class="kpi"><div class="kpi-val">Video</div><div class="kpi-lbl">Portero</div></div><div class="kpi"><div class="kpi-val">7 en 1</div><div class="kpi-lbl">Modos</div></div></div>
+      <div class="price-block">
+        <div class="price">₡ 93,000 <small>IVA incluido · envío Costa Rica</small></div>
+        <div class="cta-row">
+          <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20A2340%20%28Cerradura%20Inteligente%20K30%20con%20Reconocimiento%20Facial%203D%20y%20Video%20Portero%20%28Tuya%29%29"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg> Consultar por WhatsApp</a>
+          <a class="btn btn-secd" href="/web/content/40817?download=true&amp;filename=ficha-tecnica-A2340.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar ficha técnica
+        </a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <a id="specs"></a>
+
+  <section class="sec">
+    <h2>Especificaciones técnicas</h2>
+    <p class="sec-sub">Datos del fabricante. Tolerancia ±5% en medidas/pesos.</p>
+    <table class="spec-table"><tr><th>Tipo</th><td>Cerradura inteligente con video portero</td></tr><tr><th>Modos de apertura</th><td>Rostro 3D, huella, palma, código, tarjeta, app y llave</td></tr><tr><th>Cámara</th><td>Video portero HD con intercomunicador</td></tr><tr><th>Conectividad</th><td>Tuya / Smart Life (WiFi)</td></tr><tr><th>Material</th><td>Aleación de aluminio</td></tr><tr><th>Energía</th><td>Batería recargable</td></tr></table>
+  </section>
+
+  <section class="sec">
+    <h2>Características</h2>
+    <ul class="features"><li>Reconocimiento facial 3D: la puerta se abre al acercarse, sin contacto.</li><li>Video portero con cámara HD e intercomunicador desde el celular.</li><li>Hasta 7 formas de abrir: rostro, huella, palma, código, tarjeta, app y llave.</li><li>Avisos en tiempo real y registro de accesos en la app.</li><li>Cuerpo de aleación de aluminio de alta resistencia.</li></ul>
+  </section>
+
+  <section class="sec">
+    <h2>En video</h2>
+    <p class="sec-sub">La cerradura K30 en funcionamiento: reconocimiento facial 3D y video portero.</p>
+    <div class="video-wrap"><iframe src="https://www.youtube.com/embed/et-V2JCw0ok" title="Cerradura Inteligente K30" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  </section>
+
+    <section class="sec">
+    <h2>Guía de uso</h2>
+    <p class="sec-sub">Lo esencial para configurar y usar la K30, según la demostración en video.</p>
+    <div class="guide">
+      <div class="guide-step"><div class="guide-num">1</div><div><h4>Formas de abrir</h4><p>Huella digital (hasta ~100), código numérico (más de 1000), la app desde el celular y llave física de emergencia. Recién sacada de la caja no trae códigos ni huellas: hay que registrarlos.</p></div></div>
+      <div class="guide-step"><div class="guide-num">2</div><div><h4>Registrar huellas y crear códigos</h4><p>Las huellas se registran en la cerradura y abren con solo apoyar el dedo. Los códigos se crean desde la app Tuya / Smart Life: podés generar uno temporal de un solo uso o uno permanente, definir cuánto dura y enviárselo a quien quieras dejar entrar.</p></div></div>
+      <div class="guide-step"><div class="guide-num">3</div><div><h4>Video portero y notificaciones</h4><p>Cuando alguien toca el timbre te llega una notificación con videollamada al celular: ves quién está afuera, hablás con la persona y abrís a distancia desde la app, aunque no estés en casa. La pantalla trasera también muestra al visitante.</p></div></div>
+      <div class="guide-step"><div class="guide-num">4</div><div><h4>Seguridad</h4><p>Si alguien intenta abrir con una huella no registrada, suena una alarma, la cerradura empieza a grabar y te llega el video al celular. Cuerpo con múltiples cerrojos (varios pestillos automáticos más uno extra opcional).</p></div></div>
+      <div class="guide-step"><div class="guide-num">5</div><div><h4>Si se queda sin batería</h4><p>Dos salidas: la llave física de emergencia guardada en el compartimento secreto (tenela en el carro o con un familiar), o conectarle una power bank por USB para darle corriente y entrar con tu código. Avisa “batería baja” por voz antes de agotarse.</p></div></div>
+    </div>
+  </section>
+
+    <section class="sec">
+    <h2>Combinaciones para programar</h2>
+    <p class="sec-sub">Secuencias en el teclado de la cerradura. En cada paso la cerradura te guía por voz.</p>
+    <div class="combos">
+      <div class="combo">
+        <div class="combo-h">1 · Registrar el administrador (la primera vez)</div>
+        <div class="combo-d"><span class="kbd">*</span><span class="kbd">#</span><span class="arrow">&rarr;</span><span class="kbd">1</span><span class="kbd">1</span><span class="kbd">1</span><span class="arrow">&rarr;</span><span class="kbd">#</span><span class="arrow">&rarr;</span><span class="kbd">3</span><span class="arrow">&rarr;</span> digitá la clave de administrador <span class="arrow">&rarr;</span><span class="kbd">#</span><span class="arrow">&rarr;</span> repetila <span class="arrow">&rarr;</span><span class="kbd">#</span>. Luz verde = registrado.</div>
+      </div>
+      <div class="combo">
+        <div class="combo-h">2 · Entrar al menú (ya con administrador)</div>
+        <div class="combo-d"><span class="kbd">*</span><span class="kbd">#</span><span class="arrow">&rarr;</span> digitá el código de administrador.</div>
+      </div>
+      <div class="combo">
+        <div class="combo-h">3 · Agregar un usuario nuevo</div>
+        <div class="combo-d">Dentro del menú: <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">1</span><span class="arrow">&rarr;</span><span class="kbd">#</span>. Después elegí el método:<br>
+        &bull; <b>Huella</b> <span class="arrow">&rarr;</span><span class="kbd">1</span> y apoyá el dedo 8 veces hasta la luz verde.<br>
+        &bull; <b>Tarjeta</b> <span class="arrow">&rarr;</span><span class="kbd">2</span> y acercá la tarjeta al lector.<br>
+        &bull; <b>Código</b> <span class="arrow">&rarr;</span><span class="kbd">3</span>, digitá el código <span class="kbd">#</span>, repetilo <span class="kbd">#</span>.<br>
+        &bull; <b>Rostro</b> <span class="arrow">&rarr;</span><span class="kbd">4</span>, mirá de frente y girá la cabeza a izquierda, derecha, abajo y arriba hasta la luz verde.</div>
+      </div>
+      <div class="combo">
+        <div class="combo-h">4 · Vincular con el celular (app Tuya / Smart Life)</div>
+        <div class="combo-d">En el menú: <span class="kbd">1</span><span class="kbd">3</span><span class="kbd">1</span> para activar el modo búsqueda. En la app: <b>Agregar dispositivo &rarr; Cámara y cerradura &rarr; Cerradura WiFi</b>, poné la clave de tu WiFi y elegí el <b>modo EZ</b>; esperá a que se vincule.</div>
+      </div>
+      <div class="combo">
+        <div class="combo-h">5 · Crear una clave temporal (desde la app)</div>
+        <div class="combo-d">Entrá a <b>Claves temporales &rarr; Agregar</b>: escribila o generala al azar, ponele nombre y un horario de inicio y fin. Guardá y queda activa.</div>
+      </div>
+    </div>
+    <p class="combo-note">Las combinaciones provienen del video de configuración (cerradura facial Tuya de referencia). Tu unidad te guía por voz: si numera los menús distinto, seguí lo que dice la voz. El flujo de la app Tuya es idéntico en todos los modelos.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Cómo configurarla (video)</h2>
+    <p class="sec-sub">Paso a paso para programar la cerradura: administrador, huella, tarjeta, código y rostro, y vincularla a la app Tuya / Smart Life (claves temporales y avisos de timbre). El método por la app es el mismo en este tipo de cerradura.</p>
+    <div class="video-wrap"><iframe src="https://www.youtube.com/embed/VRfwc2cBN5o" title="Cómo configurar la cerradura inteligente" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  </section>
+
+  <section class="cta-final">
+    <h3>¿Dudas antes de comprar?</h3>
+    <p>Te confirmamos disponibilidad, garantía y entrega por WhatsApp el mismo día.</p>
+    <div class="cta-row">
+      <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20A2340%20%28Cerradura%20Inteligente%20K30%20con%20Reconocimiento%20Facial%203D%20y%20Video%20Portero%20%28Tuya%29%29"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg> Escribir por WhatsApp</a>
+    </div>
+  </section>
+</div>

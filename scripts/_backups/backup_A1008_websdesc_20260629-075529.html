@@ -1,0 +1,137 @@
+<style>
+.pcf{--bg:#FBFBFA;--surface:#fff;--surface-2:#F7F6F3;--text:#111;--text-2:#6F6F6E;--text-3:#9B9A97;
+  --border:#EAEAEA;--border-2:#D1D1CF;--green-bg:#EDF3EC;--green-fg:#346538;--blue-bg:#E1F3FE;
+  --blue-fg:#1F6C9F;--yellow-bg:#FBF3DB;--yellow-fg:#956400;--purple-bg:#F4ECFF;--purple-fg:#5B2A86;
+  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
+  --font-sans:'Geist Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-serif:'Newsreader','Lyon Text',Georgia,serif;
+  --font-mono:'Geist Mono','SF Mono',ui-monospace,monospace;
+  font-family:var(--font-sans);color:var(--text);line-height:1.55;max-width:1080px;margin:0 auto;padding:24px 16px}
+.pcf .hero{display:grid;grid-template-columns:1fr;gap:32px;margin-bottom:48px}
+.pcf .hero-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pcf .tag{display:inline-block;padding:4px 11px;border-radius:9999px;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
+.pcf .tag-industrial{background:var(--blue-bg);color:var(--blue-fg)}
+.pcf .tag-power{background:var(--yellow-bg);color:var(--yellow-fg)}
+.pcf .tag-stock{background:var(--green-bg);color:var(--green-fg)}
+.pcf .tag-premium{background:var(--purple-bg);color:var(--purple-fg)}
+.pcf h1.title{font-family:var(--font-serif);font-size:2.2rem;font-weight:500;letter-spacing:-0.025em;line-height:1.08;margin:0 0 10px}
+.pcf .ref{display:block;font-family:var(--font-mono);font-size:.78rem;color:var(--text-3);font-weight:400;letter-spacing:0.05em;text-transform:uppercase;margin-top:6px}
+.pcf .lead{font-size:1.02rem;color:var(--text-2);line-height:1.6;margin:14px 0 20px;max-width:62ch}
+.pcf .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 24px}
+.pcf .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 10px;text-align:center}
+.pcf .kpi-val{font-family:var(--font-serif);font-size:1.45rem;font-weight:500;letter-spacing:-0.02em;line-height:1.05;margin-bottom:4px;word-break:break-word}
+.pcf .kpi-lbl{font-size:.62rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-weight:600}
+.pcf .price-block{margin:24px 0 20px;padding:18px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pcf .price{font-family:var(--font-serif);font-size:1.85rem;font-weight:500;letter-spacing:-0.025em;line-height:1}
+.pcf .price small{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);font-weight:400;display:block;margin-top:5px;letter-spacing:0.05em;text-transform:uppercase}
+.pcf .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pcf .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:var(--r-md);font-size:.86rem;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:.15s;line-height:1}
+.pcf .btn-wa{background:#25D366;color:#fff}
+.pcf .btn-wa:hover{background:#1ebe5b;color:#fff}
+.pcf .btn-secd{background:var(--surface);color:var(--text);border-color:var(--border)}
+.pcf .btn-secd:hover{background:var(--surface-2);border-color:var(--border-2)}
+.pcf .btn svg{width:14px;height:14px}
+.pcf .sec{margin:48px 0}
+.pcf .sec h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:500;letter-spacing:-0.025em;line-height:1.1;margin:0 0 6px}
+.pcf .sec .sec-sub{font-size:.9rem;color:var(--text-2);margin-bottom:22px;max-width:60ch;line-height:1.55}
+.pcf .narrative p{font-size:.94rem;color:var(--text);line-height:1.65;margin:0 0 14px;max-width:68ch}
+.pcf .features{list-style:none;padding:0;margin:0}
+.pcf .features li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.92rem;color:var(--text);line-height:1.45}
+.pcf .features li:last-child{border-bottom:none}
+.pcf .features li::before{content:'';width:18px;height:18px;border-radius:50%;background:var(--green-bg);flex-shrink:0;margin-top:2px;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23346538%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%2220 6 9 17 4 12%22/></svg>');background-repeat:no-repeat;background-position:center;background-size:10px}
+.pcf .features.features-warn li::before{background:#FBF3DB;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23956400%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><line x1=%2212%22 y1=%229%22 x2=%2212%22 y2=%2213%22/><line x1=%2212%22 y1=%2217%22 x2=%2212.01%22 y2=%2217%22/><path d=%22m10.29 3.86-8.18 14.16a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71-3l-8.18-14.16a2 2 0 0 0-3.42 0z%22/></svg>')}
+.pcf table.spec-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.pcf table.spec-table tr{border-bottom:1px solid var(--border)}
+.pcf table.spec-table tr:last-child{border-bottom:none}
+.pcf table.spec-table th,.pcf table.spec-table td{padding:12px 16px;text-align:left;font-size:.86rem;vertical-align:top}
+.pcf table.spec-table th{width:34%;color:var(--text-2);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;font-size:.68rem;background:var(--surface-2)}
+.pcf table.spec-table td{color:var(--text);font-family:var(--font-mono);font-size:.83rem}
+.pcf .video-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border);background:#000}
+.pcf .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.pcf .cta-final{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:32px 28px;text-align:center;margin:40px 0 0}
+.pcf .cta-final h3{font-family:var(--font-serif);font-size:1.5rem;font-weight:500;letter-spacing:-0.02em;margin:0 0 6px}
+.pcf .cta-final p{color:var(--text-2);font-size:.92rem;margin:0 0 18px;line-height:1.55}
+.pcf .cta-final .cta-row{justify-content:center}
+@media(max-width:600px){.pcf .kpi-row{grid-template-columns:repeat(3,1fr)} .pcf .kpi-val{font-size:1.1rem} .pcf h1.title{font-size:1.7rem}}
+.pcf .guide{display:grid;gap:12px;margin-top:8px}
+.pcf .guide-step{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px}
+.pcf .guide-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--purple-bg);color:var(--purple-fg);font-family:var(--font-serif);font-weight:600;font-size:1.02rem;display:flex;align-items:center;justify-content:center;line-height:1}
+.pcf .guide-step h4{margin:1px 0 5px;font-size:.98rem;font-weight:600;letter-spacing:-0.01em;color:var(--text)}
+.pcf .guide-step p{margin:0;font-size:.9rem;color:var(--text-2);line-height:1.6}
+</style>
+
+<div class="pcf">
+  <section class="hero">
+    <div>
+      <div class="hero-tags"><span class="tag tag-industrial">Industrial</span><span class="tag tag-premium">Premium</span><span class="tag tag-stock">En stock</span></div>
+      <h1 class="title">Encapsulador Carcasa inteligente CNC  AlgoLaser para todas las máquinas de grabado láser<span class="ref">REF · A1008</span></h1>
+      <p class="lead">El Encapsulador para CNC de Algolaser está diseñado para ofrecer una solución segura y eficaz para el uso de máquinas CNC, impresoras 3D o equipos láser. Este encapsulador protege tanto al operario como al entorno de partículas, polvo y vapores generados durante los procesos de corte o grabado. También permite una mayor eficiencia en la extracción de humos y ventilación del…</p>
+      <div class="kpi-row"><div class="kpi"><div class="kpi-val">Perfecto para cort</div><div class="kpi-lbl">Área trabajo</div></div></div>
+      <div class="price-block">
+        <div class="price">₡ 110,000 <small>IVA incluido · envío Costa Rica</small></div>
+        <div class="cta-row">
+          <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20A1008%20(Encapsulador%20Carcasa%20inteligente%20CNC%20%20AlgoLaser%20para%20todas%20las%20máquinas%20de%20grabado%20láser)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg> Consultar por WhatsApp</a>
+          <a class="btn btn-secd" href="/web/content/38963?download=true&amp;filename=ficha-tecnica-A1008.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar ficha técnica
+        </a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <a id="specs"></a>
+  
+  <section class="sec">
+    <h2>Especificaciones técnicas</h2>
+    <p class="sec-sub">Datos del fabricante. Tolerancia ±5% en medidas/pesos.</p>
+    <table class="spec-table"><tr><th>Ancho</th><td>830 mm</td></tr><tr><th>Profundidad</th><td>730 mm</td></tr><tr><th>Altura</th><td>395 mm</td></tr><tr><th>Material</th><td>Acero resistente, con ventanas de protección de acrílico transparente.</td></tr><tr><th>Sistema de Escape</th><td>Incluye una brida de escape y un ventilador de 120 mm para la expulsión de humos.</td></tr><tr><th>Ventilación</th><td>Equipado con una malla protectora para ventilación eficiente y segura.</td></tr><tr><th>Iluminación</th><td>Tubo de luz LED para iluminar el área de trabajo interna, mejorando la visibilidad.</td></tr><tr><th>Cubierta del Gabinete</th><td>Ventana de protección frontal para observar el proceso de trabajo sin exponer al operario a posibles riesgos.</td></tr><tr><th>Protección del Operario</th><td>Cubre completamente la máquina CNC o láser, evitando que las partículas o humos lleguen al operario.</td></tr><tr><th>Extracción Eficiente de Humos</th><td>Sistema de escape incorporado que facilita la ventilación y mejora el ambiente de trabajo.</td></tr><tr><th>Fácil Instalación</th><td>El encapsulador es de montaje sencillo e incluye todas las herramientas necesarias para su instalación.</td></tr><tr><th>Visualización del Trabajo</th><td>Gracias a la ventana frontal transparente, es posible monitorear el proceso de trabajo en tiempo real sin necesidad de abrir la cubierta.</td></tr><tr><th>Compatibilidad</th><td>Ideal para máquinas CNC, cortadoras láser y equipos de impresión 3D de tamaño pequeño a mediano.</td></tr><tr><th>Uso en Talleres y Fábricas</th><td>Protege al personal y mejora las condiciones de trabajo en entornos industriales.</td></tr><tr><th>Proyectos de Carpintería y Grabado</th><td>Perfecto para cortar, grabar y realizar otros procesos industriales con materiales como madera, acrílico y plásticos.</td></tr><tr><th>Impresión 3D</th><td>Encapsula la máquina para evitar la liberación de partículas de filamento durante la impresión.</td></tr><tr><th>Mayor Seguridad</th><td>El encapsulador protege al usuario del contacto directo con la máquina.</td></tr><tr><th>Control de Humos</th><td>El ventilador y la brida de escape optimizan la ventilación y eliminan los humos generados.</td></tr><tr><th>Iluminación Interna</th><td>Luz LED integrada para mejorar la visibilidad durante los trabajos.</td></tr><tr><th>Resistente y Duradero</th><td>Fabricado en acero de alta calidad para soportar el uso continuo.</td></tr><tr><th>Marca</th><td>AlgoLaser</td></tr><tr><th>Referencia</th><td>A1008</td></tr><tr><th>Tipo de producto</th><td>Encapsulador / Carcasa de protección para grabadora láser</td></tr><tr><th>Ventana de visualización</th><td>Ventana con filtro de protección UV/láser (tinte ámbar)</td></tr><tr><th>Sistema de extracción</th><td>Salida para ducto de extracción de humos (ducto flexible incluido/compatible)</td></tr></table>
+  </section>
+  
+  <section class="sec narrative">
+    <h2>Descripción</h2>
+    <p>El encapsulador es una herramienta indispensable para mejorar la seguridad y eficiencia en cualquier taller que use máquinas CNC, impresoras 3D o cortadoras láser. Su diseño robusto y funcional garantiza una larga durabilidad y protección óptima.</p>
+  </section>
+  
+  <section class="sec">
+    <h2>Características</h2>
+    <ul class="features"><li>Llave Allen M2.5</li><li>Llave ajustable</li><li>Tornillos M4x40</li><li>Tuercas hexagonales M4</li><li>Tuercas hexagonales M4</li><li>Cuerpo del encapsulador.</li><li>Cubierta del gabinete con ventana.</li><li>Brida de escape.</li><li>Ventilador de escape.</li><li>Malla de protección del ventilador.</li><li>Tubo de escape.</li><li>Tubo de luz LED.</li></ul>
+  </section>
+  
+  <section class="sec">
+    <h2>Aplicaciones recomendadas</h2>
+    <p class="sec-sub">Usos típicos identificados por análisis del producto.</p>
+    <ul class="features"><li>Contención de humos y gases generados durante el grabado láser</li><li>Protección visual contra radiación láser durante operación</li><li>Aislamiento acústico del proceso de grabado</li><li>Uso seguro en talleres de carpintería, oficinas o espacios compartidos</li><li>Compatible con grabadoras láser de escritorio de diferentes marcas</li></ul>
+  </section>
+  
+  <section class="sec">
+    <h2>Notas de operación</h2>
+    <p class="sec-sub">Recomendaciones críticas para uso seguro y vida útil.</p>
+    <ul class="features features-warn"><li>Conectar siempre el ducto de extracción a ventilación exterior antes de operar el láser</li><li>No operar el láser con la tapa abierta sin protección ocular adecuada</li><li>La ventana de visualización tiene filtro de protección pero NO sustituye lentes de seguridad láser certificados</li><li>Verificar compatibilidad de dimensiones internas con la grabadora láser específica antes de comprar</li><li>El sistema de extracción de humos es obligatorio para materiales que generan gases tóxicos (PVC, acrílico, etc.)</li></ul>
+  </section>
+
+  <section class="sec">
+    <h2>Manual de uso</h2>
+    <p class="sec-sub">Cómo armar y usar la carcasa inteligente (enclosure) de AlgoLaser.</p>
+    <div class="guide">
+      <div class="guide-step"><div class="guide-num">1</div><div><h4>Armar la carcasa</h4><p>Montá la carcasa plegable siguiendo el video oficial; es compatible con las grabadoras AlgoLaser.</p></div></div>
+      <div class="guide-step"><div class="guide-num">2</div><div><h4>Colocar la máquina</h4><p>Poné la grabadora dentro de la carcasa: protege la vista de la luz láser y contiene el humo.</p></div></div>
+      <div class="guide-step"><div class="guide-num">3</div><div><h4>Conectar la extracción</h4><p>Conectá la salida de humos de la carcasa a una extracción o a una ventana.</p></div></div>
+      <div class="guide-step"><div class="guide-num">4</div><div><h4>Seguridad</h4><p>Mejora la seguridad, pero igual usá gafas de protección láser si la abrís con la máquina encendida.</p></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Armado (video oficial)</h2>
+    <p class="sec-sub">Armado de la Smart Enclosure paso a paso. Video del canal oficial AlgoLaser.</p>
+    <div class="video-wrap"><iframe src="https://www.youtube.com/embed/1B5AcWJ_76A" title="Armado (video oficial)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  </section>
+
+  
+  <section class="cta-final">
+    <h3>¿Dudas antes de comprar?</h3>
+    <p>Te confirmamos disponibilidad, garantía y entrega por WhatsApp el mismo día.</p>
+    <div class="cta-row">
+      <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20A1008%20(Encapsulador%20Carcasa%20inteligente%20CNC%20%20AlgoLaser%20para%20todas%20las%20máquinas%20de%20grabado%20láser)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"/></svg> Escribir por WhatsApp</a>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,242 @@
+<style>
+.pcf{--bg:#FBFBFA;--surface:#fff;--surface-2:#F7F6F3;--text:#111;--text-2:#6F6F6E;--text-3:#9B9A97;
+  --border:#EAEAEA;--border-2:#D1D1CF;--green-bg:#EDF3EC;--green-fg:#346538;--blue-bg:#E1F3FE;
+  --blue-fg:#1F6C9F;--yellow-bg:#FBF3DB;--yellow-fg:#956400;--purple-bg:#F4ECFF;--purple-fg:#5B2A86;
+  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
+  --font-sans:'Geist Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-serif:'Newsreader','Lyon Text',Georgia,serif;
+  --font-mono:'Geist Mono','SF Mono',ui-monospace,monospace;
+  font-family:var(--font-sans);color:var(--text);line-height:1.55;max-width:1080px;margin:0 auto;padding:24px 16px}
+.pcf .hero{display:grid;grid-template-columns:1fr;gap:32px;margin-bottom:28px}
+.pcf .hero-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pcf .tag{display:inline-block;padding:4px 11px;border-radius:9999px;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
+.pcf .tag-industrial{background:var(--blue-bg);color:var(--blue-fg)}
+.pcf .tag-power{background:var(--yellow-bg);color:var(--yellow-fg)}
+.pcf .tag-stock{background:var(--green-bg);color:var(--green-fg)}
+.pcf .tag-premium{background:var(--purple-bg);color:var(--purple-fg)}
+.pcf h1.title{font-family:var(--font-serif);font-size:2.2rem;font-weight:500;letter-spacing:-0.025em;line-height:1.08;margin:0 0 10px}
+.pcf .ref{display:block;font-family:var(--font-mono);font-size:.78rem;color:var(--text-3);font-weight:400;letter-spacing:0.05em;text-transform:uppercase;margin-top:6px}
+.pcf .lead{font-size:1.02rem;color:var(--text-2);line-height:1.6;margin:14px 0 20px;max-width:62ch}
+.pcf .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 24px}
+.pcf .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 10px;text-align:center}
+.pcf .kpi-val{font-family:var(--font-serif);font-size:1.45rem;font-weight:500;letter-spacing:-0.02em;line-height:1.05;margin-bottom:4px;word-break:break-word}
+.pcf .kpi-lbl{font-size:.62rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-weight:600}
+.pcf .price-block{margin:24px 0 20px;padding:18px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pcf .price{font-family:var(--font-serif);font-size:1.85rem;font-weight:500;letter-spacing:-0.025em;line-height:1}
+.pcf .price small{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);font-weight:400;display:block;margin-top:5px;letter-spacing:0.05em;text-transform:uppercase}
+.pcf .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pcf .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:var(--r-md);font-size:.86rem;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:.15s;line-height:1}
+.pcf .btn-wa{background:#25D366;color:#fff}
+.pcf .btn-wa:hover{background:#1ebe5b;color:#fff}
+.pcf .btn-secd{background:var(--surface);color:var(--text);border-color:var(--border)}
+.pcf .btn-secd:hover{background:var(--surface-2);border-color:var(--border-2)}
+.pcf .btn svg{width:14px;height:14px}
+.pcf .sec{margin:44px 0}
+.pcf .sec h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:500;letter-spacing:-0.025em;line-height:1.1;margin:0 0 6px}
+.pcf .sec .sec-sub{font-size:.9rem;color:var(--text-2);margin-bottom:22px;max-width:60ch;line-height:1.55}
+.pcf .narrative p{font-size:.94rem;color:var(--text);line-height:1.65;margin:0 0 14px;max-width:68ch}
+.pcf .features{list-style:none;padding:0;margin:0}
+.pcf .features li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.92rem;color:var(--text);line-height:1.45}
+.pcf .features li:last-child{border-bottom:none}
+.pcf .features li::before{content:'';width:18px;height:18px;border-radius:50%;background:var(--green-bg);flex-shrink:0;margin-top:2px;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23346538%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%2220 6 9 17 4 12%22/></svg>');background-repeat:no-repeat;background-position:center;background-size:10px}
+.pcf .features.features-warn li::before{background:#FBF3DB;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23956400%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><line x1=%2212%22 y1=%229%22 x2=%2212%22 y2=%2213%22/><line x1=%2212%22 y1=%2217%22 x2=%2212.01%22 y2=%2217%22/><path d=%22m10.29 3.86-8.18 14.16a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71-3l-8.18-14.16a2 2 0 0 0-3.42 0z%22/></svg>')}
+.pcf table.spec-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.pcf table.spec-table tr{border-bottom:1px solid var(--border)}
+.pcf table.spec-table tr:last-child{border-bottom:none}
+.pcf table.spec-table th,.pcf table.spec-table td{padding:12px 16px;text-align:left;font-size:.86rem;vertical-align:top}
+.pcf table.spec-table th{width:34%;color:var(--text-2);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;font-size:.68rem;background:var(--surface-2)}
+.pcf table.spec-table td{color:var(--text);font-family:var(--font-mono);font-size:.83rem}
+.pcf .cta-final{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:32px 28px;text-align:center;margin:40px 0 0}
+.pcf .cta-final h3{font-family:var(--font-serif);font-size:1.5rem;font-weight:500;letter-spacing:-0.02em;margin:0 0 6px}
+.pcf .cta-final p{color:var(--text-2);font-size:.92rem;margin:0 0 18px;line-height:1.55}
+.pcf .cta-final .cta-row{justify-content:center}
+/* --- añadidos para fotos + base/opcional --- */
+.pcf .fig{margin:0;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
+.pcf .fig img{width:100%;display:block}
+.pcf .fig figcaption{padding:9px 14px;font-size:.76rem;color:var(--text-2);border-top:1px solid var(--border);font-family:var(--font-mono)}
+.pcf .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 8px}
+.pcf .callout{display:flex;gap:13px;align-items:flex-start;background:var(--yellow-bg);border:1px solid #efdfae;border-radius:var(--r-lg);padding:15px 17px;margin:0 0 26px}
+.pcf .callout svg{width:20px;height:20px;flex-shrink:0;margin-top:1px;stroke:var(--yellow-fg)}
+.pcf .callout p{margin:0;font-size:.92rem;color:#6b4a07;line-height:1.5}
+.pcf .callout b{color:var(--yellow-fg)}
+.pcf table.opt-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.pcf table.opt-table tr{border-bottom:1px solid var(--border)}
+.pcf table.opt-table tr:last-child{border-bottom:none}
+.pcf table.opt-table td{padding:13px 16px;font-size:.9rem;vertical-align:top;line-height:1.45}
+.pcf table.opt-table td.opt-name{font-weight:600;width:34%;color:var(--text)}
+.pcf table.opt-table td.opt-name a{color:var(--blue-fg);text-decoration:none}
+.pcf table.opt-table td.opt-name a:hover{text-decoration:underline}
+.pcf table.opt-table td.opt-price{text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:.83rem;color:var(--text-2);width:22%}
+.pcf .pill{display:inline-block;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:9999px}
+.pcf .pill-serie{background:var(--green-bg);color:var(--green-fg)}
+.pcf .pill-opt{background:var(--yellow-bg);color:var(--yellow-fg)}
+@media(max-width:600px){.pcf .kpi-row{grid-template-columns:repeat(3,1fr)} .pcf .kpi-val{font-size:1.1rem} .pcf h1.title{font-size:1.7rem} .pcf .grid2{grid-template-columns:1fr} .pcf table.opt-table td.opt-name{width:auto}}
+.pcf .guide{display:grid;gap:12px;margin-top:8px}
+.pcf .guide-step{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px}
+.pcf .guide-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--purple-bg);color:var(--purple-fg);font-family:var(--font-serif);font-weight:600;font-size:1.02rem;display:flex;align-items:center;justify-content:center;line-height:1}
+.pcf .guide-step h4{margin:1px 0 5px;font-size:.98rem;font-weight:600;letter-spacing:-0.01em;color:var(--text)}
+.pcf .guide-step p{margin:0;font-size:.9rem;color:var(--text-2);line-height:1.6}
+.pcf .video-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border);background:#000;margin-top:8px}
+.pcf .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+</style>
+
+
+<div class="pcf">
+  <section class="hero o_colored_level">
+    <div>
+      <div class="hero-tags"><span class="tag tag-industrial">Router CNC 3 ejes</span><span class="tag tag-premium">Modular</span><span class="tag tag-stock">En stock</span></div>
+      <h1 class="title">Router CNC Two‑Trees TTC450 PRO — modelo base<span class="ref">REF · A1072</span></h1>
+      <p class="lead">La <b>TTC450 PRO</b> es una fresadora‑grabadora CNC de sobremesa, todo metal, con área de 460×460×80 mm. El precio corresponde a la <b>máquina base</b>: estructura completa, 3 ejes, controlador con pantalla táctil y <b>husillo de 80 W de serie</b>. Es <b>modular</b>: el husillo de 500 W, el módulo láser, el 4º eje y demás son <b>accesorios opcionales</b> que se compran aparte.</p>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-val">460×460×80</div><div class="kpi-lbl">Área de trabajo (X×Y)</div></div>
+        <div class="kpi"><div class="kpi-val">80 W</div><div class="kpi-lbl">Husillo de serie</div></div>
+        <div class="kpi"><div class="kpi-val">NEMA 57</div><div class="kpi-lbl">Motores de ejes</div></div>
+      </div>
+      <figure class="fig"><img src="/web/image/40662" alt="Router CNC Two-Trees TTC450 PRO" loading="lazy"><figcaption>TwoTrees TTC450 PRO — máquina base (los módulos de la foto inferior son opcionales).</figcaption></figure>
+      <div class="price-block">
+        <div class="price">₡ 480,000 <small>Máquina base · IVA incluido · envío Costa Rica</small></div>
+        <div class="cta-row">
+          <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20la%20TTC450%20PRO%20(A1072)%20y%20quiero%20saber%20qu%C3%A9%20trae%20de%20serie%20y%20qu%C3%A9%20es%20opcional"><svg viewbox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"></path></svg> Consultar por WhatsApp</a>
+          <a href="/web/content/38924?download=true&amp;filename=ficha-tecnica-A1072.html" target="_blank" rel="noopener" class="btn-secd btn">
+            <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Descargar ficha técnica
+          </a>
+        </div>
+      </div>
+      <div class="callout">
+        <svg viewbox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <p><b>Importante:</b> esta es la <b>configuración base</b>. Trae husillo de <b>80 W</b> de serie. El husillo de <b>500 W</b>, el <b>módulo láser 20 W</b>, el <b>4º eje rotativo</b> y el kit de aspiración <b>NO vienen incluidos</b> — ver la sección «Accesorios opcionales».</p>
+      </div>
+    </div>
+  </section>
+  
+
+  <section class="sec o_colored_level">
+    <h2>Qué incluye de serie <span class="pill pill-serie">Incluido</span></h2>
+    <p class="sec-sub">Todo lo que viene en la caja con la máquina base a ₡480.000.</p>
+    <ul class="features">
+      <li>Estructura completa todo metal (aluminio + placas de pórtico reforzadas), área de trabajo 460×460×80 mm.</li>
+      <li><b>Husillo de 80 W refrigerado por aire</b> (cabezal de fresado de serie).</li>
+      <li>Motores de ejes paso a paso <b>NEMA 57</b> (eje X reforzado en la versión PRO), resolución 0,0025 mm, precisión ±0,05 mm.</li>
+      <li>3 ejes (X, Y, Z) sobre husillos y guías lineales. Ampliable a 4º eje (opcional).</li>
+      <li>Controlador con <b>pantalla táctil 3,5"</b>: funciona <b>sin PC</b> (offline) y permite cambiar entre modo CNC y láser desde la pantalla.</li>
+      <li>Compatible con GRBL: Candle, LaserGRBL y LightBurn.</li>
+      <li>95 % premontada: lista en ~10–30 min.</li>
+      <li>Usos: grabado, fresado y corte de madera, MDF, contrachapado, acrílico y plásticos.</li>
+    </ul>
+    <div class="grid2" style="margin-top:20px">
+      <figure class="fig"><img src="/web/image/40663" alt="Área de trabajo 460x460x80 mm" loading="lazy"><figcaption>Área de trabajo: 460 × 460 × 80 mm.</figcaption></figure>
+      <figure class="fig"><img src="/web/image/40664" alt="Pantalla táctil de control offline" loading="lazy"><figcaption>Controlador con pantalla táctil: opera sin PC.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="sec o_colored_level">
+    <h2>Accesorios opcionales <span class="pill pill-opt">Se compra aparte</span></h2>
+    <p class="sec-sub">La placa base controla varios módulos. Estos NO están incluidos en el precio base — consultános por disponibilidad y precio actual.</p>
+    <table class="opt-table">
+      <tbody><tr>
+        <td class="opt-name"><a href="/shop/a2044-spindle-500w-para-router-cnc-two-trees-ttc450-pro-para-grabado-y-fresado-de-alta-precision-regulado-por-aire-6638">Husillo 500 W (refrigerado por aire)</a></td>
+        <td>Cambia el husillo de 80 W por uno de 500 W: más potencia y RPM para fresar más rápido y en materiales más duros. Ref. A2044.</td>
+        <td class="opt-price">₡ 70.000</td>
+      </tr>
+      <tr>
+        <td class="opt-name">Módulo láser 20 W (TC20)</td>
+        <td>Convierte la máquina en grabadora/cortadora láser. Grabado en madera, cuero, acrílico y marcado en metal anodizado.</td>
+        <td class="opt-price">Por encargo</td>
+      </tr>
+      <tr>
+        <td class="opt-name">4º eje rotativo (eje A)</td>
+        <td>Módulo rotativo para grabar y tallar piezas cilíndricas (patas, vasos, columnas).</td>
+        <td class="opt-price">Por encargo</td>
+      </tr>
+      <tr>
+        <td class="opt-name">Kit de aspiración / extractor de polvo</td>
+        <td>Recoge el polvo y la viruta durante el fresado para mantener limpia la superficie de trabajo.</td>
+        <td class="opt-price">Por encargo</td>
+      </tr>
+      <tr>
+        <td class="opt-name"><a href="/shop?search=fresa+CNC">Fresas / brocas CNC</a></td>
+        <td>Amplio surtido de fresas de carburo para madera, MDF, acrílico y aluminio (vástago 1/8", 1/4" y 1/2").</td>
+        <td class="opt-price">desde ₡ 4.000</td>
+      </tr>
+    </tbody></table>
+    <div class="grid2" style="margin-top:20px">
+      <figure class="fig"><img src="/web/image/40665" alt="Cabezales intercambiables: router, husillo 500W y láser 20W" loading="lazy"><figcaption>Cabezales intercambiables (opcionales): router / husillo 500 W / láser 20 W.</figcaption></figure>
+      <figure class="fig"><img src="/web/image/40666" alt="Módulo de 4º eje rotativo" loading="lazy"><figcaption>4º eje rotativo (opcional) para piezas cilíndricas.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="sec o_colored_level">
+    <h2>Especificaciones técnicas</h2>
+    <p class="sec-sub">Datos del fabricante (configuración base). Tolerancia ±5 % en medidas/pesos.</p>
+    <table class="spec-table">
+      <tbody><tr><th>Marca / Modelo</th><td>Two Trees TTC450 PRO</td></tr>
+      <tr><th>Tipo de máquina</th><td>Router CNC de fresado y grabado (modular, ampliable a láser y 4º eje)</td></tr>
+      <tr><th>Área de Trabajo</th><td>460 × 460 × 80 mm</td></tr>
+      <tr><th>Ejes</th><td>3 ejes (X, Y, Z) — ampliable a 4º eje (opcional)</td></tr>
+      <tr><th>Husillo de serie</th><td>80 W, refrigerado por aire (opcional: 500 W)</td></tr>
+      <tr><th>Motores de ejes</th><td>Paso a paso NEMA 57 (eje X reforzado), 0,0025 mm</td></tr>
+      <tr><th>Precisión</th><td>±0,05 mm</td></tr>
+      <tr><th>Estructura</th><td>Todo metal: aluminio + placas de pórtico reforzadas</td></tr>
+      <tr><th>Transmisión</th><td>Husillos + guías lineales</td></tr>
+      <tr><th>Control</th><td>Pantalla táctil 3,5", controlador offline (sin PC)</td></tr>
+      <tr><th>Conectividad</th><td>USB y operación offline desde la pantalla</td></tr>
+      <tr><th>Software</th><td>GRBL — Candle, LaserGRBL, LightBurn</td></tr>
+      <tr><th>Materiales</th><td>Madera, MDF, contrachapado, acrílico y plásticos</td></tr>
+      <tr><th>Montaje</th><td>95 % premontada (~10–30 min)</td></tr>
+      <tr><th>Referencia</th><td>A1072</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="sec o_colored_level">
+    <h2>Aplicaciones recomendadas</h2>
+    <p class="sec-sub">Usos típicos en taller de carpintería.</p>
+    <ul class="features">
+      <li>Grabado en relieve sobre madera sólida y tableros</li>
+      <li>Fresado de piezas planas en MDF, contrachapado y acrílico</li>
+      <li>Corte de piezas decorativas en madera blanda</li>
+      <li>Prototipado de partes para carpintería</li>
+      <li>Incrustaciones y marquetería de precisión</li>
+      <li>Grabado láser y tallado cilíndrico (con los módulos opcionales)</li>
+    </ul>
+  </section>
+
+  <section class="sec o_colored_level">
+    <h2>Notas de operación</h2>
+    <p class="sec-sub">Recomendaciones críticas para uso seguro y vida útil.</p>
+    <ul class="features features-warn">
+      <li>Verificar el cero de trabajo (home) en los 3 ejes antes de iniciar cada trabajo</li>
+      <li>Fijar firmemente el material a la cama con mordazas de sujeción</li>
+      <li>No exceder la profundidad de pasada recomendada según el material para evitar rotura de fresas</li>
+      <li>Mantenimiento periódico: lubricar guías lineales y husillos</li>
+      <li>El controlador offline permite operar sin PC; verificar que el G‑code sea compatible</li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <h2>Manual de uso</h2>
+    <p class="sec-sub">Cómo armar y poner en marcha tu fresadora CNC TwoTrees TTC450 PRO.</p>
+    <div class="guide">
+      <div class="guide-step"><div class="guide-num">1</div><div><h4>Armado</h4><p>Ensamblá el pórtico, los ejes X, Y y Z, el husillo (spindle) y el cableado siguiendo el video oficial de armado.</p></div></div>
+      <div class="guide-step"><div class="guide-num">2</div><div><h4>Driver y software</h4><p>Instalá el driver USB y el software de control (la TTC450 trabaja con GRBL: Candle/GRBLControl o similar) y conectá la máquina por USB.</p></div></div>
+      <div class="guide-step"><div class="guide-num">3</div><div><h4>Cero de la pieza</h4><p>Sujetá el material en la cama, montá la fresa en el husillo y establecé el cero de los ejes X, Y y Z (referenciá la Z con una galga o un papel sobre la superficie).</p></div></div>
+      <div class="guide-step"><div class="guide-num">4</div><div><h4>Cargar el G-code</h4><p>Generá el G-code con tu CAM usando un postprocesador GRBL y cargalo en el software de control.</p></div></div>
+      <div class="guide-step"><div class="guide-num">5</div><div><h4>Primer fresado</h4><p>Empezá con velocidad y profundidad de pasada conservadoras; asegurate de que la pieza quede bien sujeta antes de iniciar.</p></div></div>
+      <div class="guide-step"><div class="guide-num">6</div><div><h4>Seguridad</h4><p>Usá gafas y protección auditiva, aspirá la viruta, sujetá firme pieza y fresa, y no acerques las manos al husillo en marcha.</p></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Armado (video oficial)</h2>
+    <p class="sec-sub">Armado paso a paso de la TTC450 PRO. Video del canal oficial TWO TREES.</p>
+    <div class="video-wrap"><iframe src="https://www.youtube.com/embed/-BdXioWLcOc" title="Armado (video oficial)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  </section>
+
+  <section class="cta-final o_colored_level">
+    <h3>¿Dudas antes de comprar?</h3>
+    <p>Te confirmamos qué trae de serie, qué accesorio te conviene, disponibilidad y entrega por WhatsApp el mismo día.</p>
+    <div class="cta-row">
+      <a class="btn btn-wa" href="https://wa.me/50664063012?text=Hola%2C%20me%20interesa%20la%20TTC450%20PRO%20(A1072)%20y%20quiero%20saber%20qu%C3%A9%20trae%20de%20serie%20y%20qu%C3%A9%20es%20opcional"><svg viewbox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.95 1.17-.34.22-.64.07c-1.8-.9-3-1.6-4.2-3.65-.32-.55.32-.5.9-1.67.1-.2.05-.37-.02-.52s-.67-1.6-.92-2.2c-.24-.57-.49-.5-.67-.5-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.5 1.9.82 2.65.9 3.6.77.58-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.27-.2-.57-.35M12 2C6.5 2 2 6.5 2 12c0 1.92.56 3.7 1.52 5.22L2 22l4.92-1.5C8.37 21.45 10.13 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2"></path></svg> Escribir por WhatsApp</a>
+    </div>
+  </section>
+</div>

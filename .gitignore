@@ -37,3 +37,7 @@ fe-signer/fe-converter/borrador_*.xml
 # Claves de cuentas de servicio (NO subir)
 .credentials/
 .claude/settings.local.json
+
+# MCP local activado (rutas absolutas de esta máquina + acceso write a Odoo prod).
+# Se versiona solo la plantilla .mcp.json.example; cada máquina copia la suya.
+.mcp.json

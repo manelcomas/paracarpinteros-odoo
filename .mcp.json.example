@@ -1,0 +1,11 @@
+{
+  "_comentario": "Copia esto a .mcp.json (o usa el comando de activación de abajo) para que Claude Code arranque el MCP de Odoo. Expone lectura Y escritura sobre Odoo de PRODUCCIÓN — por eso lo activas tú, no el asistente. Para modo solo-lectura, añade env: { \"ODOO_MCP_READONLY\": \"1\" }.",
+  "mcpServers": {
+    "odoo": {
+      "command": "/home/manel/proyectos/paracarpinteros-odoo/.venv/bin/python3",
+      "args": [
+        "/home/manel/proyectos/paracarpinteros-odoo/scripts/mcp_odoo_server.py"
+      ]
+    }
+  }
+}

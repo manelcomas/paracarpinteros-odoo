@@ -77,6 +77,17 @@ print('uid:', c.authenticate(os.environ['ODOO_DB'], os.environ['ODOO_USERNAME'],
 "
 ```
 
+### Tooling local del asistente (MCP Odoo + skills de deploy)
+
+Para reducir scripts sueltos y comandos memorizados, el repo trae herramientas que Claude Code usa directamente:
+
+- **MCP de Odoo** — `scripts/mcp_odoo_server.py` (FastMCP, lee el baúl `.env`). Expone Odoo por XML-RPC como herramientas conversacionales: `odoo_search_read`, `odoo_read`, `odoo_fields_get` (¡úsalo antes de escribir campos que no conozcas — geo CR = Studio fields!), `odoo_search_count`, `odoo_name_search`, `odoo_create`, `odoo_write`, `odoo_execute` (escape hatch), `odoo_unlink` (gated). **No se auto-registra**: copiar `.mcp.json.example` → `.mcp.json` para activarlo (el classifier bloquea que el asistente lo registre solo, porque expone write/unlink a producción). Modo seguro: `ODOO_MCP_READONLY=1`. Self-test: `.venv/bin/python scripts/mcp_odoo_server.py --selftest`. Necesita `mcp` en el `.venv` (`pip install mcp`).
+- **Skills de deploy** (aparecen solas en la lista de skills):
+  - `deploy-bridge` — push + git pull/rebuild del bridge en el VPS + verificación `/health/deep`.
+  - `deploy-fe-signer` — ídem para el fe-signer (firma + buzon-rx).
+  - `deploy-fe-converter` — sube el conversor FE al attachment 37459 vía `scripts/deploy_fe_converter.py` (dry-run por defecto, `--apply` para backup+subir).
+- **MCPs de claude.ai ya conectados** en sesión: Cloudflare (DNS/R2/Workers), Gmail (envios@/buzon-rx), Google Drive (export contable, Sheets) y Calendar. Preferirlos a scripts one-off para cambios puntuales.
+
 ### Bridge (`correos-cr-bridge/`)
 
 ```bash
